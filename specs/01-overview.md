@@ -436,9 +436,12 @@ Each invocation creates a folder under `--state-dir` (default `.debate/`):
 
 ### Lifecycle invariants the orchestrator must enforce
 
+The general rule: any file referenced by an `@<path>` pointer must exist on disk before the agent receives the pointer.
+
 - `start.json` written atomically before any agent process spawns.
-- Per-fork: `fork-session-id` written immediately after `--fork-session` returns, before R1's pointer is dispatched.
-- Round files are written before the corresponding pointer message is dispatched. The agent receiving the pointer can always Read the file — no race.
+- **R1 ordering is the unique case.** `forks/critic-<i>/rounds/r1-critic.md` is written first (orchestrator runs the critic in a fresh `codex exec`/equivalent and persists its output). Only then does the orchestrator run `claude --resume <root> --fork-session -p "<pointer to r1-critic.md>" --output-format json`, which creates the fork *and* delivers R1 in one shot. The fork's session ID is captured from that call's JSON output (the `session_id` field) and written to `forks/critic-<i>/fork-session-id` *immediately on return* — there is no earlier moment to write it, since the ID does not exist before the call.
+- The proposer-clone's R2 defense text is in the same call's JSON `result` field; it's persisted to `r2-proposer.md` after the call returns.
+- For R3 onward (within the same fork): each round file is written before the orchestrator dispatches the corresponding pointer via `claude --resume <fork-id> -p "<pointer>"`. By that point the fork already exists, so file-then-pointer ordering is straightforward.
 - `transcript.jsonl` and `attacks.jsonl` are append-only — never rewrite, never seek-back. A killed process leaves a valid (truncated) record.
 - `summary.md` and `end.json` are written only at termination (clean or interrupted).
 - `log.jsonl` is appended last, after `end.json` is durable. A run with `end.json` missing is an interrupted session; user can inspect `forks/<i>/rounds/` directly.
