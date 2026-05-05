@@ -277,19 +277,27 @@ The Stop hook is the **default install path**, not optional. It's how the optima
 
 ### Hook configuration
 
-A single Stop hook entry in `.claude/settings.json`:
+The Stop hook entry in `.claude/settings.json` must use the **verbose format** (the simpler `{"command": "..."}` style is silently dropped from the registry — verified against claude 2.1.129):
 
 ```json
 {
   "hooks": {
-    "Stop": [{
-      "command": "jq -r '.session_id' | xargs -I{} debate --session-id {} --max-turn 6"
-    }]
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/path/to/debate-stop-hook.sh"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-Or as a script for more logic (custom thresholds, conditional skipping, project-specific config):
+The hook script:
 
 ```bash
 #!/usr/bin/env bash
@@ -298,51 +306,84 @@ SESSION_ID=$(echo "$PAYLOAD" | jq -r '.session_id')
 TRANSCRIPT=$(echo "$PAYLOAD" | jq -r '.transcript_path')
 CWD=$(echo "$PAYLOAD" | jq -r '.cwd')
 
-# unset ANTHROPIC_API_KEY so claude -p falls back to the OAuth keychain
-# (a stale key in env causes 401 in subprocess context)
+# Stale ANTHROPIC_API_KEY in env causes 401 in claude -p subprocesses
 unset ANTHROPIC_API_KEY
 
 # --resume requires running from the cwd that owns the project's session dir
 cd "$CWD" || exit 1
 
-exec debate --session-id "$SESSION_ID" --transcript "$TRANSCRIPT" --max-turn 6
+# Run the orchestrator in foreground; on exit, emit a single
+# systemMessage with the summary path so claude's next response
+# (or session) can reference it.
+SUMMARY=$(debate --session-id "$SESSION_ID" --transcript "$TRANSCRIPT" --max-turn 6 --format markdown)
+SUMMARY_PATH=$(echo "$SUMMARY" | grep -oE '\.debate/sessions/[^ ]+/summary\.md' | head -1)
+
+# Stop event's JSON output schema accepts: continue, suppressOutput,
+# stopReason, decision, reason, systemMessage. NOT additionalContext.
+jq -n --arg msg "Debate review at @$SUMMARY_PATH" '{"systemMessage":$msg}'
+exit 0
 ```
 
-The hook payload (per Claude Code hook docs) contains `session_id`, `transcript_path`, `cwd`, `stop_reason`, and `output` as JSON on stdin. No plugin manifest, no slash command, no skill — all the work lives in the `debate` CLI; the hook just routes the payload.
+The hook payload contains `session_id`, `transcript_path`, `cwd`, `stop_reason`, and `output` as JSON on stdin. No plugin manifest, no slash command, no skill — all the work lives in the `debate` CLI; the hook just routes the payload.
+
+**Project-level vs user-level settings.** Project `.claude/settings.json` works (claude reads it), but my probe of `claude -p` showed hooks defined there can be filtered if the project isn't trusted. The cleanest install path is *user-level* `~/.claude/settings.json` for tools meant to apply across projects, or `.claude/settings.json` accepted via a one-time interactive trust prompt for project-specific config.
 
 ### What the user sees during debate
 
-The hook runs synchronously: claude waits for it to exit before the prompt becomes available again. The orchestrator writes progress to stderr so the user sees it in their claude terminal in real time:
+**Probed against `claude -p` (claude 2.1.129):** hooks fire correctly, but **none of the obvious channels surface to user-facing output streams in `-p` mode**:
 
+| Channel from hook | Visible to user in `-p`? |
+|---|---|
+| Plain stderr | ❌ No |
+| Plain stdout | ❌ No |
+| JSON `systemMessage` (valid for Stop) | ❌ Not in captured stdout/stderr |
+| JSON `additionalContext` (for Stop) | ❌ Schema rejects it for Stop event |
+
+**Implication.** Live per-fork progress in the user's claude terminal — the original UX I sketched — is **probably not deliverable** via standard hook channels. Interactive mode rendering (TUI) is *unverified* (I cannot drive an interactive claude from inside this agent), so it's possible interactive does surface hook output where `-p` doesn't. But the conservative assumption is that it doesn't, and the spec must work in that case.
+
+The realistic UX is two-phase:
+
+1. **At Stop**: hook fires, runs orchestrator synchronously to completion. Claude is "stopping" and the prompt is unavailable until orchestrator exits. **No mid-flight progress is shown to the user** — they see nothing, then the prompt returns. Typical run: 30s–3min.
+2. **After hook returns**: hook emits a `systemMessage` JSON with the summary path. Claude renders this as a system reminder on the next user-visible context. The user opens `summary.md` to see results.
+
+If interactive mode turns out to render hook output cleanly (worth verifying — see below), upgrade to live progress: the orchestrator writes per-fork status lines to stderr, and the user watches them scroll. But this should be treated as an *enhancement* gated on verification, not the design baseline.
+
+UX properties (conservative baseline):
+
+- **Synchronous.** Prompt is unavailable until hook exits.
+- **Cancellable.** Ctrl-C in the user's terminal sends SIGINT through the process tree to the orchestrator. Orchestrator catches it, writes `end.json` with `terminated: interrupted`, exits non-zero. Claude finishes stopping normally.
+- **Trivial-diff gate.** `--changed-lines-min 10` filters out single-line edits etc. Below threshold the hook returns in <100ms with a `systemMessage` saying "debate skipped: trivial diff."
+- **Surfacing**: only via `systemMessage` rendered as a system reminder; the user's recourse is `summary.md`.
+
+### Interactive verification (a 30-second test you should run before v0)
+
+Live in-session progress depends on claude's interactive TUI rendering at least *one* hook channel. Easiest probe:
+
+```bash
+mkdir -p /tmp/dbg-probe/.claude
+cat > /tmp/dbg-probe/.claude/settings.json <<'EOF'
+{
+  "hooks": {
+    "Stop": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "echo PROBE_STDERR >&2; echo '{\"systemMessage\":\"PROBE_SYSMSG\"}'; exit 0"
+      }]
+    }]
+  }
+}
+EOF
+cd /tmp/dbg-probe
+claude   # interactive. Type any prompt, observe what (if anything) appears around the response end.
 ```
-[user]   refactor the auth module to use JWT
-[claude] Done. <claude's summary of changes>
 
-[debate] starting (4 critics: functional-logic, security, code-quality, performance)
-[debate] fork 1/4 security      | R1 attack    | 3 attacks raised
-[debate] fork 1/4 security      | R2 defense   | 2 conceded, 1 rebutted
-[debate] fork 2/4 functional    | R1 attack    | 1 attack raised
-[debate] fork 2/4 functional    | R2 defense   | 1 conceded
-[debate] fork 3/4 code-quality  | R1 attack    | 0 attacks (steady-state, fork done)
-[debate] fork 4/4 performance   | R1 attack    | 2 attacks raised
-[debate] ...
-[debate] all forks complete: 12 attacks, 11 resolved, 1 unresolved
-[debate] HEADLINE: input sanitization at api.py:88 (3 rounds, critic re-attacked)
-[debate] full review: .debate/sessions/2026-05-05T22-58-40-a3f9b1/summary.md
+What to look for:
+- `PROBE_STDERR` appearing in the terminal → hook stderr surfaces; live-progress UX is viable.
+- `PROBE_SYSMSG` appearing as a system note in the chat → systemMessage renders in interactive (and we should use it for the summary surface).
+- Neither → conservative two-phase UX is the only path; v0 should not promise live progress.
 
-[user] _
-```
-
-UX properties:
-
-- **Synchronous.** Claude is "stopping" but waiting on the hook; prompt is unavailable until debate finishes. Typical run: 30s–3min depending on side-count and max-turn.
-- **Progress visible.** Per-fork status to stderr; user knows the tool is alive, not hung.
-- **Cancellable.** Ctrl-C in the user's terminal sends SIGINT through the process tree to the orchestrator, which catches it, writes `end.json` with `terminated: interrupted`, prints a partial summary, exits. Claude then finishes its stop normally.
-- **Trivial-diff gate.** Most stops shouldn't trigger debate. `--changed-lines-min 10` (configurable) filters out single-line edits, comment changes, etc. Below threshold the hook prints one line (`[debate] skipped: trivial diff`) and exits in <100ms.
-
-### Verification needed before final UX commit
-
-I have not directly probed how Stop hook stderr renders in interactive claude (vs `-p` mode). The expected behavior — stderr appears in the terminal because the hook is in the same process tree — is highly likely but not confirmed against claude 2.1.x. The hook spec also lists `systemMessage` and `additionalContext` as JSON output channels worth exploring if plain stderr doesn't render cleanly. A small live spike with a no-op hook (`echo "[debate] HELLO" >&2`) inside a real claude session should resolve this before the v0 implementation commits to a specific channel.
+(The first run may need to accept a project-trust prompt; that's expected.)
 
 ### Manual invocation (fallback)
 
