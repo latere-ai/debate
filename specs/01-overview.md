@@ -23,10 +23,10 @@ The debate must not pollute the root session. The user's original Claude Code co
 
 Each critic gets its own **debate fork**: a clone of the root session paired with one critic process. Forks are isolated:
 
-- **No cross-critic leakage.** Critic A's debate is invisible to critic B. Each fork has its own (proposer-clone, critic) conversation pair. Critics never see each other's attacks or the proposer's responses to other critics.
+- **No transcript leakage between critics.** Each fork has its own (proposer-clone, critic) conversation pair. Critic A never sees critic B's attacks or the proposer's responses inside critic B's fork — the conversation logs are isolated.
+- **Outcome leakage through the working tree is real and accepted.** When critic A's fork concedes a fix, that fix lands in the shared working tree. Critic B (running later, since v0 is serial) sees the modified code but not the conversation that produced it. This is the conservative trade-off: full per-fork isolation would require frozen working-tree snapshots per fork (e.g. `claude --worktree`), which is deferred (see Out of scope). Treat critic-B as reviewing "the code as it stands now," not "the code Claude wrote initially."
 - **No root pollution.** The proposer in a fork is a clone of the root produced via Claude Code's built-in `--fork-session` flag. The original root session's transcript is unchanged after the debate.
-- **Shared working tree.** Concession-fixes land in the real working tree as they happen. Critics in later forks see the updated code, but not the conversation that produced it.
-- **Serial execution in v0.** Forks run one at a time to avoid working-tree races. Parallel forks via per-fork git worktrees (`claude --worktree`) are deferred until the basic flow is proven (see Out of scope).
+- **Serial execution in v0.** Forks run one at a time to avoid working-tree races. Parallel forks via per-fork git worktrees would also frozen-snapshot the tree per fork, eliminating outcome leakage; deferred until v0 is proven.
 
 ### When the proposer is Codex instead of Claude
 
@@ -106,7 +106,12 @@ The orchestrator uses three Claude Code primitives, all already documented:
 
 3. **Driving the critic.** Codex has no fork concept; each `codex exec` is a fresh process. The critic-side state we need (per-round inputs, per-round outputs) lives on disk in the round files; codex reads the previous round's proposer file at start of each round.
 
-The wrap-up step prints to stdout. **Claude Code provides no way to inject an assistant turn into the root session**, and the user explicitly does not want a system-reminder-shaped notification (`additionalContext` from a `SessionStart` hook would technically work but violates the channel constraint — it's a system message, not natural feedback). The summary lives at `summary.md` and on stdout; that's the contract.
+The wrap-up step prints to stdout. **Claude Code provides no way to inject an assistant turn into the root session**, and *every* alternative I considered violates either the channel constraint or the root-preservation invariant:
+
+- `additionalContext` from `SessionStart` / `UserPromptSubmit` hooks: system-reminder-shaped, fails the channel constraint.
+- `systemMessage` from a `Stop` hook: probe-verified (2026-05) to write a `hook_system_message` attachment to the root session's JSONL transcript. That's pollution — fails the root-preservation invariant.
+
+The summary lives at `summary.md` and on the orchestrator's stdout; that's the contract. Users who want live progress can `tail -f` the session's `transcript.jsonl` (or the per-fork round files) in another terminal — that doesn't touch the root.
 
 ### Verified primitives (2026-05, claude 2.1.129)
 
@@ -123,6 +128,8 @@ The mechanism above was probed against a real Claude Code installation before th
 - **`ANTHROPIC_API_KEY` env var pollution.** If set (even to a stale/invalid value), `claude -p` uses it instead of the OAuth keychain and fails with 401. The hook script must either `unset ANTHROPIC_API_KEY` before invoking the orchestrator, or document the precondition. (This bites in subprocesses inheriting env from a parent shell with a stale key.)
 - **JSON output may contain control characters in `result`** that break naive parsers. The orchestrator must use a proper JSON library (Python `json`, Go `encoding/json`), not `jq` with raw shell pipes.
 - **First-call cost.** First `claude -p` invocation in a fresh window primes a large system-prompt cache (~32k tokens, ~$0.20). Subsequent calls within the 5-minute cache window are cheap. Run all rounds of a debate in close succession to amortize.
+- **`Stop` hook `systemMessage` mutates root JSONL.** Probe (2026-05) emitted `{"systemMessage":"<marker>"}` from a Stop hook and found it written into the root session's transcript as a `hook_system_message` attachment entry alongside a `hook_success` attachment. So `systemMessage` is *not* a way to surface debate notifications to the user without polluting root. The conservative path is "no in-session UI"; live progress requires the user to `tail -f` the orchestrator's session files in another terminal.
+- **Stop hook output channels in `-p` mode**: plain stderr, plain stdout, and `systemMessage` JSON are all silently swallowed (don't appear in claude's captured stdout/stderr). Interactive mode rendering is unverified. Hook config must use the verbose format `{"matcher": "...", "hooks": [{"type": "command", "command": "..."}]}` — the simpler `{"command": "..."}` is silently dropped from the registry.
 
 ### Channel constraint (load-bearing)
 
@@ -157,13 +164,17 @@ The pointer messages are the only orchestrator-authored text the agents see. Eve
 
 Per fork (forks run serially in v0):
 
-1. **R0 — Setup.** Orchestrator extracts task context from the root session's transcript, computes the working-tree diff, and forks the proposer via `claude --resume <root-id> --fork-session ...`.
-2. **R1 — Attack.** Critic Cᵢ produces a structured attack list against the diff. Each attack names a concrete leaf: `{location, claim, expected violation, reproduction}`. Orchestrator persists output to `forks/critic-<i>/rounds/r1-critic.md`. Attacks lacking a reproduction are dropped at parse time, not by the proposer.
-3. **R2 — Defense.** Proposer-clone responds with one of: `concede` (and apply fix), `rebut` (with specific counter-evidence), `push-back` (request clarification — only allowed once per attack). Orchestrator persists the response into `forks/critic-<i>/rounds/r2-proposer.md`; concession-fixes show up as a diff in the real working tree.
-4. **R3..R(max_turn) — Cross-examination.** Critic and proposer-clone alternate, each round persisted to its file. Per-claim resolution state advances or stalls.
-5. **Fork-wrap.** When this fork's termination condition fires, write its per-fork attack ledger.
+1. **R0 — Setup.** Orchestrator extracts task context from the root session's transcript and computes the working-tree diff. In claude-as-proposer mode it will create the fork via `claude --resume <root-id> --fork-session ...` together with R1 (see below). In codex-as-proposer mode there is no fork; each round is a fresh `codex exec`.
+2. **R1 — Attack.** Critic Cᵢ produces a structured attack list against the diff. Each attack carries:
+   - `attack_id` — stable across rounds. The critic prompt asks for an id of the form `c<critic-index>-<seq>` (e.g. `c1-3`); the orchestrator validates and re-assigns deterministically if the critic skips or duplicates ids. The id is **the** identity of an attack across re-attacks, defenses, withdrawals, contention scoring, and the headline.
+   - The leaf fields `{location, claim, expected violation, reproduction}`. Attacks lacking a reproduction are dropped at parse time.
 
-After all forks complete: aggregate across forks, write `summary.md` and `end.json`, print to stdout. Root session is untouched.
+   Orchestrator persists output to `forks/critic-<i>/rounds/r1-critic.md` and appends one record per attack to `attacks.jsonl` (status: `open`, rounds_survived: 0, re_attacked: false).
+3. **R2 — Defense.** Proposer-clone responds per attack-id with one of: `concede` (and apply fix in the working tree), `rebut` (with specific counter-evidence), `push-back` (request clarification — only allowed once per attack-id). Orchestrator persists the response to `forks/critic-<i>/rounds/r2-proposer.md` and updates each attack's record in `attacks.jsonl`.
+4. **R3..R(max_turn) — Cross-examination.** Critic and proposer-clone alternate, addressing attacks by id. Re-attacks reuse the original `attack_id` and set `re_attacked = true`; new attacks get new ids; withdrawn attacks transition to `status = withdrawn`. Each round persisted to its file.
+5. **Fork-wrap.** When this fork's termination condition fires, the per-fork ledger is final.
+
+After all forks complete: aggregate across forks (attack_id is unique per critic-index, so cross-fork IDs don't collide), write `summary.md` and `end.json`, print to stdout. Root session is untouched.
 
 ## Critic specialization
 
@@ -229,11 +240,11 @@ In claude-as-proposer mode, the CLI **always injects into a fork, never the root
 
 ### Option B — CLI + Stop hook (default UX for claude-as-proposer)
 
-Hook fires when claude finishes responding, invokes the CLI synchronously, prints progress and the final summary in the user's terminal, exits. This is the optimal UX: the user codes normally, debate fires automatically, summary appears in the same session.
+Hook fires when claude finishes responding, invokes the CLI synchronously to completion, exits. The user's claude prompt is unavailable while debate runs (typical 30s–3min). After it returns, the user finds `summary.md` at the path printed by the hook on the surrounding shell's stdout (or in `.debate/log.jsonl` for cross-session history). **No mid-flight in-session UI is delivered** — Stop-hook channels (stderr, stdout, systemMessage) either don't render in `-p` mode or pollute the root JSONL. Users who want live progress can `tail -f` the orchestrator's session/round files in another terminal.
 
 - Pro: zero workflow friction. User doesn't have to remember to run `debate` after every session.
-- Con: every claude stop triggers the orchestrator unless gated; the gate (`--changed-lines-min`) is essential to avoid debating trivial completions.
-- Verdict: **default for claude-as-proposer.** The hook is two lines of shell that invokes the CLI.
+- Con: every claude stop triggers the orchestrator unless gated; the gate (`--changed-lines-min`) is essential to avoid debating trivial completions. And: no in-session feedback during the run.
+- Verdict: **default for claude-as-proposer.** The hook is one stdin-read of the payload, an `exec debate ...` call, and a recursion guard.
 
 ### Rejected options
 
@@ -301,6 +312,17 @@ The hook script:
 
 ```bash
 #!/usr/bin/env bash
+set -e
+
+# Recursion guard. The orchestrator spawns `claude --resume <fork-id> -p ...`
+# subprocesses to drive each round; those subprocesses also fire the Stop
+# hook when they finish responding. Without this guard the hook would
+# re-enter the orchestrator on every round and fork infinitely.
+if [ -n "$DEBATE_IN_PROGRESS" ]; then
+  exit 0
+fi
+export DEBATE_IN_PROGRESS=1
+
 PAYLOAD=$(cat)
 SESSION_ID=$(echo "$PAYLOAD" | jq -r '.session_id')
 TRANSCRIPT=$(echo "$PAYLOAD" | jq -r '.transcript_path')
@@ -312,78 +334,45 @@ unset ANTHROPIC_API_KEY
 # --resume requires running from the cwd that owns the project's session dir
 cd "$CWD" || exit 1
 
-# Run the orchestrator in foreground; on exit, emit a single
-# systemMessage with the summary path so claude's next response
-# (or session) can reference it.
-SUMMARY=$(debate --session-id "$SESSION_ID" --transcript "$TRANSCRIPT" --max-turn 6 --format markdown)
-SUMMARY_PATH=$(echo "$SUMMARY" | grep -oE '\.debate/sessions/[^ ]+/summary\.md' | head -1)
-
-# Stop event's JSON output schema accepts: continue, suppressOutput,
-# stopReason, decision, reason, systemMessage. NOT additionalContext.
-jq -n --arg msg "Debate review at @$SUMMARY_PATH" '{"systemMessage":$msg}'
-exit 0
+# Hand off to the orchestrator. exec lets its stdout/stderr flow through
+# to the surrounding shell's terminal — DO NOT capture into a variable
+# (that would hide everything the user might want to see).
+# We deliberately do NOT emit any JSON on stdout: a Stop-hook
+# `systemMessage` writes a `hook_system_message` attachment into the root
+# session's JSONL transcript (probe-verified), which is root pollution.
+exec debate --session-id "$SESSION_ID" --transcript "$TRANSCRIPT" --max-turn 6
 ```
 
 The hook payload contains `session_id`, `transcript_path`, `cwd`, `stop_reason`, and `output` as JSON on stdin. No plugin manifest, no slash command, no skill — all the work lives in the `debate` CLI; the hook just routes the payload.
+
+**Recursion guard contract.** The orchestrator must `export DEBATE_IN_PROGRESS=1` (or inherit it) before spawning any `claude --resume <fork-id> -p ...` subprocess, and the hook must check it and exit 0 immediately if set. Without both halves of this contract, every fork's `claude -p` round would itself trigger the Stop hook → recursive debate. The guard is the only reliable signal because the spawned subprocess looks like a normal claude session from the hook's perspective.
+
+**No JSON emitted to stdout from the hook.** Anything written to stdout in the Stop event's expected JSON shape (e.g. `{"systemMessage": "..."}`) is processed by claude and persisted to the root session's JSONL as an attachment entry — pollution. The hook should write nothing to stdout. The orchestrator's stdout flows through to the surrounding shell's terminal directly via `exec`, where it's visible after the run completes.
 
 **Project-level vs user-level settings.** Project `.claude/settings.json` works (claude reads it), but my probe of `claude -p` showed hooks defined there can be filtered if the project isn't trusted. The cleanest install path is *user-level* `~/.claude/settings.json` for tools meant to apply across projects, or `.claude/settings.json` accepted via a one-time interactive trust prompt for project-specific config.
 
 ### What the user sees during debate
 
-**Probed against `claude -p` (claude 2.1.129):** hooks fire correctly, but **none of the obvious channels surface to user-facing output streams in `-p` mode**:
+Conservative baseline, decided after probe findings:
 
-| Channel from hook | Visible to user in `-p`? |
+- **At Stop**: hook fires, sets `DEBATE_IN_PROGRESS=1`, `exec`s the orchestrator. Claude is "stopping" and the user's prompt is unavailable until the orchestrator exits. **No in-session UI is delivered**: no banner, no progress, no styled note. The terminal may show the orchestrator's stdout/stderr if interactive mode renders it (unverified — see below), but the spec does not depend on it.
+- **At orchestrator exit**: orchestrator's last stdout line names the summary path (`.debate/sessions/<ts>-<id>/summary.md`). The hook returns 0; claude finishes stopping; the user's prompt returns. The user opens `summary.md` to see results.
+- **Trivial diffs**: `--changed-lines-min 10` short-circuits early. Hook returns in <100ms with one stdout line ("debate skipped: trivial diff, <N> lines"). No round files, no `summary.md`, just a `.debate/log.jsonl` entry.
+- **Cancellable**: Ctrl-C in the user's terminal sends SIGINT through the process tree. Orchestrator catches it, writes `end.json` with `terminated: interrupted`, exits non-zero. Claude finishes stopping normally.
+
+If a future probe shows interactive claude renders hook stderr (TUI mode, unverified — `-p` definitely doesn't), the orchestrator can write per-fork progress to stderr and users will see it scroll. That's an *additive* enhancement; the spec design does not promise it.
+
+#### Why no in-session UI
+
+Three channels were considered and all failed:
+
+| Channel | Verdict |
 |---|---|
-| Plain stderr | ❌ No |
-| Plain stdout | ❌ No |
-| JSON `systemMessage` (valid for Stop) | ❌ Not in captured stdout/stderr |
-| JSON `additionalContext` (for Stop) | ❌ Schema rejects it for Stop event |
+| Hook stderr / stdout (plain) | Probe (`claude -p`): not in captured streams. Interactive: unverified. |
+| Stop-hook `systemMessage` JSON | Probe: writes `hook_system_message` attachment into root JSONL. **Pollution** — rejected. |
+| Stop-hook `additionalContext` JSON | Probe: schema rejects `additionalContext` for Stop event. |
 
-**Implication.** Live per-fork progress in the user's claude terminal — the original UX I sketched — is **probably not deliverable** via standard hook channels. Interactive mode rendering (TUI) is *unverified* (I cannot drive an interactive claude from inside this agent), so it's possible interactive does surface hook output where `-p` doesn't. But the conservative assumption is that it doesn't, and the spec must work in that case.
-
-The realistic UX is two-phase:
-
-1. **At Stop**: hook fires, runs orchestrator synchronously to completion. Claude is "stopping" and the prompt is unavailable until orchestrator exits. **No mid-flight progress is shown to the user** — they see nothing, then the prompt returns. Typical run: 30s–3min.
-2. **After hook returns**: hook emits a `systemMessage` JSON with the summary path. Claude renders this as a system reminder on the next user-visible context. The user opens `summary.md` to see results.
-
-If interactive mode turns out to render hook output cleanly (worth verifying — see below), upgrade to live progress: the orchestrator writes per-fork status lines to stderr, and the user watches them scroll. But this should be treated as an *enhancement* gated on verification, not the design baseline.
-
-UX properties (conservative baseline):
-
-- **Synchronous.** Prompt is unavailable until hook exits.
-- **Cancellable.** Ctrl-C in the user's terminal sends SIGINT through the process tree to the orchestrator. Orchestrator catches it, writes `end.json` with `terminated: interrupted`, exits non-zero. Claude finishes stopping normally.
-- **Trivial-diff gate.** `--changed-lines-min 10` filters out single-line edits etc. Below threshold the hook returns in <100ms with a `systemMessage` saying "debate skipped: trivial diff."
-- **Surfacing**: only via `systemMessage` rendered as a system reminder; the user's recourse is `summary.md`.
-
-### Interactive verification (a 30-second test you should run before v0)
-
-Live in-session progress depends on claude's interactive TUI rendering at least *one* hook channel. Easiest probe:
-
-```bash
-mkdir -p /tmp/dbg-probe/.claude
-cat > /tmp/dbg-probe/.claude/settings.json <<'EOF'
-{
-  "hooks": {
-    "Stop": [{
-      "matcher": "",
-      "hooks": [{
-        "type": "command",
-        "command": "echo PROBE_STDERR >&2; echo '{\"systemMessage\":\"PROBE_SYSMSG\"}'; exit 0"
-      }]
-    }]
-  }
-}
-EOF
-cd /tmp/dbg-probe
-claude   # interactive. Type any prompt, observe what (if anything) appears around the response end.
-```
-
-What to look for:
-- `PROBE_STDERR` appearing in the terminal → hook stderr surfaces; live-progress UX is viable.
-- `PROBE_SYSMSG` appearing as a system note in the chat → systemMessage renders in interactive (and we should use it for the summary surface).
-- Neither → conservative two-phase UX is the only path; v0 should not promise live progress.
-
-(The first run may need to accept a project-trust prompt; that's expected.)
+If the user wants live progress, the supported path is `tail -f .debate/sessions/<latest>/forks/critic-*/rounds/r*-{critic,proposer}.md` (or `transcript.jsonl`) in another terminal. That's outside the claude session and doesn't touch root.
 
 ### Manual invocation (fallback)
 
@@ -415,33 +404,88 @@ Each invocation creates a folder under `--state-dir` (default `.debate/`):
   log.jsonl                          # one line per debate run, appended at end
   sessions/
     <ISO8601>-<short-id>/
-      start.json                     # timestamp, root-session-id, task-context, diff snapshot, config
-      forks/                         # one folder per critic-fork (mirrors the tree shape)
+      start.json                     # timestamp, proposer-agent, root-session-id (claude only), task-context, diff snapshot, config
+      forks/                         # one folder per critic; "fork" is the conceptual unit even when the proposer is codex (no real session fork)
         critic-1/
-          fork-session-id            # the proposer-clone's session ID, captured from --fork-session
+          proposer-state.json        # agent-neutral; see schema below
           rounds/
             r1-critic.md             # critic 1's R1 attack list (full text)
-            r2-proposer.md           # proposer-clone's R2 defense
+            r2-proposer.md           # proposer's R2 defense
             r3-critic.md             # critic's response to R2
-            ...                      # one file per round, durable as it happens
+            ...                      # one file per (round, role)
         critic-2/
-          fork-session-id
+          proposer-state.json
           rounds/
             ...
       transcript.jsonl               # append-only index across forks: pointers to round files
-      attacks.jsonl                  # per-attack records aggregated across forks
+      attacks.jsonl                  # per-attack records aggregated across forks (keyed by attack_id)
       summary.md                     # human-facing summary, written at termination
       end.json                       # termination condition, stats, exit code
 ```
+
+#### `proposer-state.json` schema
+
+Agent-neutral file capturing whatever is needed to drive the proposer in subsequent rounds. The `agent` field discriminates:
+
+```jsonc
+// Claude-as-proposer
+{
+  "agent": "claude",
+  "model": "claude-sonnet-4-6",         // null/absent = CLI default
+  "fork_session_id": "<uuid>",          // captured from --fork-session JSON return on R1
+  "root_session_id": "<uuid>"           // for audit; root is never resumed
+}
+```
+
+```jsonc
+// Codex-as-proposer (no native fork; each round is a fresh exec)
+{
+  "agent": "codex",
+  "model": "gpt-5",                     // null/absent = CLI default
+  "round_thread_ids": [                 // captured from each codex exec's "thread.started" event
+    {"round": 2, "thread_id": "<uuid>"},
+    {"round": 4, "thread_id": "<uuid>"}
+    // ... one entry per even (proposer) round actually executed
+  ]
+}
+```
+
+In claude mode `fork_session_id` is load-bearing — round 3+ dispatch via `claude --resume <fork_session_id> -p ...`. In codex mode the field doesn't exist; `round_thread_ids` is purely informational (rounds run forward via fresh `codex exec`), useful for audit and for matching the persisted codex session files at `~/.codex/sessions/<date>/rollout-*-<thread_id>.jsonl` if a user wants to inspect them.
+
+#### `attacks.jsonl` schema
+
+One JSON object per line, one entry per state transition for an `attack_id`:
+
+```jsonc
+{
+  "attack_id": "c1-3",                  // critic-index + sequence; stable across rounds
+  "critic_index": 1,
+  "aspect": "security",
+  "round_introduced": 1,
+  "round_last_touched": 3,
+  "location": "src/api.py:88",
+  "claim": "input not sanitized before LIKE pattern",
+  "expected_violation": "SQL injection via search parameter",
+  "reproduction": "GET /search?q=%' OR 1=1--",
+  "status": "open",                      // open | conceded | rebutted | withdrawn | unresolved
+  "rounds_survived": 2,
+  "re_attacked": true,                   // critic re-engaged after a defense round
+  "concession_files": ["src/api.py"],    // populated when status -> conceded
+  "timestamp": "..."
+}
+```
+
+Append-only — newer entries supersede older ones for the same `attack_id`. The orchestrator computes the final per-attack state by reading the file forward.
 
 ### Lifecycle invariants the orchestrator must enforce
 
 The general rule: any file referenced by an `@<path>` pointer must exist on disk before the agent receives the pointer.
 
 - `start.json` written atomically before any agent process spawns.
-- **R1 ordering is the unique case.** `forks/critic-<i>/rounds/r1-critic.md` is written first (orchestrator runs the critic in a fresh `codex exec`/equivalent and persists its output). Only then does the orchestrator run `claude --resume <root> --fork-session -p "<pointer to r1-critic.md>" --output-format json`, which creates the fork *and* delivers R1 in one shot. The fork's session ID is captured from that call's JSON output (the `session_id` field) and written to `forks/critic-<i>/fork-session-id` *immediately on return* — there is no earlier moment to write it, since the ID does not exist before the call.
-- The proposer-clone's R2 defense text is in the same call's JSON `result` field; it's persisted to `r2-proposer.md` after the call returns.
-- For R3 onward (within the same fork): each round file is written before the orchestrator dispatches the corresponding pointer via `claude --resume <fork-id> -p "<pointer>"`. By that point the fork already exists, so file-then-pointer ordering is straightforward.
+- **R1 ordering is the unique case (claude-as-proposer).** `forks/critic-<i>/rounds/r1-critic.md` is written first (orchestrator runs the critic and persists its output). Only then does the orchestrator run `claude --resume <root> --fork-session -p "<pointer to r1-critic.md>" --output-format json`, which creates the fork *and* delivers R1 in one shot. The fork's session ID is captured from that call's JSON output and written to `forks/critic-<i>/proposer-state.json` (with `agent: "claude"`, `fork_session_id: <uuid>`, etc.) *immediately on return* — there is no earlier moment to write it, since the ID does not exist before the call.
+- **Codex-as-proposer R1 ordering**: also write `r1-critic.md` first; then run a fresh `codex exec` with the prompt referencing it. Capture the `thread_id` from the first `thread.started` event and append `{round: 2, thread_id: ...}` to `proposer-state.json`'s `round_thread_ids`. No fork to track.
+- The proposer's R2 defense text is in the call's JSON `result` (claude) or final `agent_message` event (codex); persist to `r2-proposer.md` after the call returns. Update `attacks.jsonl` with one entry per attack-id status transition.
+- For R3 onward: each round file is written before the orchestrator dispatches the corresponding pointer. In claude mode the dispatch is `claude --resume <fork_session_id> -p "<pointer>"`; the fork already exists, ordering is straightforward. In codex mode each round is a fresh `codex exec` re-supplied with prior round files; capture the new `thread_id` and append to `round_thread_ids`.
 - `transcript.jsonl` and `attacks.jsonl` are append-only — never rewrite, never seek-back. A killed process leaves a valid (truncated) record.
 - `summary.md` and `end.json` are written only at termination (clean or interrupted).
 - `log.jsonl` is appended last, after `end.json` is durable. A run with `end.json` missing is an interrupted session; user can inspect `forks/<i>/rounds/` directly.
