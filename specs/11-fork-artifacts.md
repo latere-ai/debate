@@ -1,5 +1,6 @@
 # Spec 11 — Per-fork artifacts
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Session persistence" → Layout for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [08](08-diff.md), [09](09-state-dir.md).
@@ -155,7 +156,7 @@ func ChangedFilesAfter(forkRoot string, since *Diff) ([]string, error)
 
 ## Acceptance criteria
 
-- [ ] All per-fork files are atomic-write only (no append-in-place).
-- [ ] Round-file naming (`r<n>-<role>.md`) is enforced at the API boundary, not by callers.
-- [ ] `proposer-state.json` for claude is written exactly once per fork.
-- [ ] Critic round files contain the normalized output from [14](14-attack-parser.md), not raw stdout.
+- [x] All per-fork files are atomic-write only (no append-in-place).
+- [x] Round-file naming (`r<n>-<role>.md`) is enforced at the API boundary, not by callers.
+- [x] `proposer-state.json` for claude is written exactly once per fork.
+- [x] Critic round files contain the normalized output from [14](14-attack-parser.md), not raw stdout.
