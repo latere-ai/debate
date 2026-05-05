@@ -1,5 +1,6 @@
 # Spec 21 — Signal handling and graceful exit
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Cancellable" and §"Termination conditions" → User interrupt.
 
 **Depends on:** [09](09-state-dir.md), [10](10-run-artifacts.md), [16](16-subprocess-infra.md), [19](19-round-loop.md), [20](20-termination.md).
@@ -108,8 +109,8 @@ Owned by [16](16-subprocess-infra.md) at the per-call level. This spec only requ
 
 ## Acceptance criteria
 
-- [ ] Single SIGINT writes `end.json` with `Termination = "interrupted"`.
-- [ ] Double SIGINT bypasses cleanup and exits 130 within 100ms.
-- [ ] Subprocesses are killed (verified by `pgrep -f` after the test).
-- [ ] Exit-code matrix above is covered by table-driven tests.
-- [ ] Pre-flight failure exit codes propagate even under `--hook-mode`.
+- [x] Single SIGINT writes `end.json` with `Termination = "interrupted"`.
+- [x] Double SIGINT bypasses cleanup and exits 130 within 100ms.
+- [x] Subprocesses are killed (verified by `pgrep -f` after the test).
+- [x] Exit-code matrix above is covered by table-driven tests.
+- [x] Pre-flight failure exit codes propagate even under `--hook-mode`.

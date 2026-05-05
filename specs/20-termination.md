@@ -1,5 +1,6 @@
 # Spec 20 — Termination conditions and cost-cap accounting
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Termination conditions" for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [12](12-attacks-ledger.md), [14](14-attack-parser.md), [19](19-round-loop.md).
@@ -152,8 +153,8 @@ The summary's `Termination` field is the *run-level* reason if any was hit; othe
 
 ## Acceptance criteria
 
-- [ ] All five `TerminationReason` values reachable in the test suite.
-- [ ] Cost meter tracks both proposer and critic tokens.
-- [ ] Steady-state detection requires `len(history) >= 3`; below that returns false.
-- [ ] Malformed-twice resets on a single good round.
-- [ ] Detector is a pure value type; no global state.
+- [x] All five `TerminationReason` values reachable in the test suite.
+- [x] Cost meter tracks both proposer and critic tokens.
+- [x] Steady-state detection requires `len(history) >= 3`; below that returns false.
+- [x] Malformed-twice resets on a single good round.
+- [x] Detector is a pure value type; no global state.

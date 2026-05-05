@@ -1,5 +1,6 @@
 # Spec 19 — Round loop and per-fork orchestration
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Rounds" and "Lifecycle invariants" for design intent.
 
 **Depends on:** [06](06-preflight.md), [07](07-claude-transcript.md), [08](08-diff.md), [09](09-state-dir.md), [10](10-run-artifacts.md), [11](11-fork-artifacts.md), [12](12-attacks-ledger.md), [14](14-attack-parser.md), [15](15-aspect-prompts.md), [17](17-claude-proposer.md), [18](18-critic-drivers.md).
@@ -199,8 +200,8 @@ Before each fork's R1, [08](08-diff.md)'s `Compute` runs against the current wor
 
 ## Acceptance criteria
 
-- [ ] All forks run serially; concurrent fork execution is rejected at construction.
-- [ ] Each round's file is durable on disk before the next agent call.
-- [ ] Ledger is updated within the same round-loop iteration that produced the round file.
-- [ ] Per-fork `diff.patch` is captured before R1's critic call.
-- [ ] Summary returned by `Run` is fully populated; no field defaulted to a panic-style sentinel.
+- [x] All forks run serially; concurrent fork execution is rejected at construction.
+- [x] Each round's file is durable on disk before the next agent call.
+- [x] Ledger is updated within the same round-loop iteration that produced the round file.
+- [x] Per-fork `diff.patch` is captured before R1's critic call.
+- [x] Summary returned by `Run` is fully populated; no field defaulted to a panic-style sentinel.
