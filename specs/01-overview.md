@@ -28,6 +28,20 @@ Each critic gets its own **debate fork**: a clone of the root session paired wit
 - **Shared working tree.** Concession-fixes land in the real working tree as they happen. Critics in later forks see the updated code, but not the conversation that produced it.
 - **Serial execution in v0.** Forks run one at a time to avoid working-tree races. Parallel forks via per-fork git worktrees (`claude --worktree`) are deferred until the basic flow is proven (see Out of scope).
 
+### When the proposer is Codex instead of Claude
+
+The fork mechanism above is Claude-specific because Claude Code has `--fork-session`. Codex does not have an equivalent — its `codex exec --ephemeral` model assumes no persistence. Both directions of the role assignment are still supported, just by different mechanisms:
+
+|                       | Claude as proposer (default)                        | Codex as proposer                                 |
+|-----------------------|-----------------------------------------------------|---------------------------------------------------|
+| Per-fork mechanism    | `claude --resume <root> --fork-session -p ...`      | Fresh `codex exec` per round, full context re-supplied |
+| Round 2+ within fork  | `claude --resume <fork-id> -p ...`                  | Fresh `codex exec` per round                      |
+| Root preservation     | Native (`--fork-session` doesn't touch root)        | N/A — codex sessions are ephemeral, no root       |
+| Auto-trigger          | Claude Code Stop hook (we have it)                  | No equivalent — manual CLI only                   |
+| Cost model            | Cache-amortized within a 5-min window               | Full re-supply each round (more expensive)        |
+
+The CLI's `--main` and `--side` flags are symmetric: any pairing works. The `--main codex` case loses session continuity within forks (each round is fresh) and loses auto-trigger (no codex equivalent of Stop hook), but otherwise the architecture holds: critic comments via file-pointer, defenses via response, contention-scored headline, etc. Both directions are tested before shipping.
+
 #### Tree shape
 
 ```
@@ -75,6 +89,22 @@ The orchestrator uses three Claude Code primitives, all already documented:
 3. **Driving the critic.** Codex has no fork concept; each `codex exec` is a fresh process. The critic-side state we need (per-round inputs, per-round outputs) lives on disk in the round files; codex reads the previous round's proposer file at start of each round.
 
 The wrap-up step prints to stdout. **Claude Code provides no way to inject an assistant turn into the root session**, and the user explicitly does not want a system-reminder-shaped notification (`additionalContext` from a `SessionStart` hook would technically work but violates the channel constraint — it's a system message, not natural feedback). The summary lives at `summary.md` and on stdout; that's the contract.
+
+### Verified primitives (2026-05, claude 2.1.129)
+
+The mechanism above was probed against a real Claude Code installation before this spec was finalized. Findings:
+
+- **`claude --resume <root> --fork-session -p "..." --output-format json` works.** Returns a JSON result with a new `session_id` (different from root). Root JSONL is bit-identical preserved (mtime and size unchanged) across fork creation. ✅
+- **`claude --resume <fork-id> -p "..."` continues the fork in place.** Same session_id across rounds (no fork-of-fork); fork JSONL grows; root JSONL still bit-identical. ✅
+- **The fork inherits root's full conversation history.** When the fork is asked "what have you said so far," the response includes both the root's prior turns and the new fork turns. The proposer-clone has the original task + code in context, exactly as required. ✅
+- **The fork JSONL is stored alongside root** under `~/.claude/projects/<encoded-cwd>/<fork-id>.jsonl`. ✅
+
+#### Constraints uncovered by the probe (must inform implementation)
+
+- **`--resume` is cwd-scoped.** Running `claude --resume <id>` from any cwd other than the one the session was created in returns *No conversation found with session ID*. The orchestrator must `cd` to the cwd captured in the Stop hook payload before any `claude --resume` call. This is not optional.
+- **`ANTHROPIC_API_KEY` env var pollution.** If set (even to a stale/invalid value), `claude -p` uses it instead of the OAuth keychain and fails with 401. The hook script must either `unset ANTHROPIC_API_KEY` before invoking the orchestrator, or document the precondition. (This bites in subprocesses inheriting env from a parent shell with a stale key.)
+- **JSON output may contain control characters in `result`** that break naive parsers. The orchestrator must use a proper JSON library (Python `json`, Go `encoding/json`), not `jq` with raw shell pipes.
+- **First-call cost.** First `claude -p` invocation in a fresh window primes a large system-prompt cache (~32k tokens, ~$0.20). Subsequent calls within the 5-minute cache window are cheap. Run all rounds of a debate in close succession to amortize.
 
 ### Channel constraint (load-bearing)
 
@@ -167,7 +197,8 @@ debate [--main claude] [--side codex] [--side-count 1]
 
 Notes:
 
-- `--session-id` is the **root** session ID. The orchestrator forks from it for each critic via `claude --resume <root> --fork-session`. The root session is never modified. Without `--session-id`, the orchestrator falls back to fresh `claude -p` invocations per round (no proposer continuity within a fork — much more expensive).
+- `--session-id` is the **root** session ID (Claude-as-proposer mode only). The orchestrator forks from it for each critic via `claude --resume <root> --fork-session`. The root session is never modified. Without `--session-id`, the orchestrator falls back to fresh `claude -p` invocations per round (no proposer continuity within a fork — much more expensive). When `--main codex`, this flag is ignored (codex has no session model in headless).
+- The orchestrator must be invoked from the cwd that owns the root session — `claude --resume <id>` is cwd-scoped. The hook-supplied `cwd` field is authoritative. The CLI errors out if invoked from a different cwd.
 - `--transcript` is optional but useful: the Stop hook payload includes `transcript_path` pointing at the root session's JSONL. Passing it lets the orchestrator extract task context cheaply (no second `claude` call to inspect the session).
 - `--side-count` and `--aspect` interact: if `--aspect a,b,c` is given with `--side-count 3`, each critic gets one aspect. If counts mismatch, error.
 - `--max-turn` counts P+C exchanges combined per fork. 6 = 3 attack rounds + 3 defense rounds within one fork. With `side-count=3` and max-turn=6, the worst case is 18 round-exchanges total (serial across forks).
@@ -196,6 +227,15 @@ Or as a script if you want more logic (skip on trivial diffs, etc.):
 PAYLOAD=$(cat)
 SESSION_ID=$(echo "$PAYLOAD" | jq -r '.session_id')
 TRANSCRIPT=$(echo "$PAYLOAD" | jq -r '.transcript_path')
+CWD=$(echo "$PAYLOAD" | jq -r '.cwd')
+
+# unset ANTHROPIC_API_KEY so claude -p falls back to the OAuth keychain
+# (a stale key in env causes 401 in subprocess context)
+unset ANTHROPIC_API_KEY
+
+# --resume requires running from the cwd that owns the project's session dir
+cd "$CWD" || exit 1
+
 exec debate --session-id "$SESSION_ID" --transcript "$TRANSCRIPT" --max-turn 6
 ```
 
