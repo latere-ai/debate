@@ -1,5 +1,6 @@
 # Spec 06 — Pre-flight checks
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"CLI surface" notes for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [05](05-config-file.md).
@@ -166,7 +167,7 @@ Not an error. Does not auto-edit ([01-overview.md](01-overview.md) §`.gitignore
 
 ## Acceptance criteria
 
-- [ ] All exit codes above are reachable in tests.
-- [ ] Each error message is verbatim as listed (lint test compares against a golden file).
-- [ ] No filesystem mutation during pre-flight other than the state-dir-parent stat (no `Mkdir`, no file create).
-- [ ] Returning `*Plan` with `Forks` indexed and aspect-mapped is the only success path.
+- [x] All exit codes above are reachable in tests.
+- [x] Each error message is verbatim as listed (lint test compares against a golden file).
+- [x] No filesystem mutation during pre-flight other than the state-dir-parent stat (no `Mkdir`, no file create).
+- [x] Returning `*Plan` with `Forks` indexed and aspect-mapped is the only success path.
