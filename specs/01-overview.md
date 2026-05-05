@@ -28,6 +28,12 @@ The spec uses **v0** and **v1** as concrete release tiers, not vague handwaves.
 - Forks run serially against the shared working tree.
 - Conservative UX: no in-session live progress; summary on disk; user can `tail -f` round files in another terminal if they want progress.
 
+**v0 release blockers (must clear before GA, not just before merge).**
+
+- **Upstream 07a per-aspect critic-found-bug rate** ≥ 60% on at least two aspects (see Relationship to upstream research). Without this, the tool is hollow.
+- **No-output Stop-hook probe.** Run a Stop hook that emits *nothing* to stdout/stderr/JSON against the current claude version and verify whether root JSONL gains a `hook_success` (or any other) attachment. Outcome determines the final wording of the root-preservation invariant: byte-identical (probe says no attachment) or "no debate-content pollution" (probe says yes). Stop hook is the v0 default UX, so this question cannot be left open at GA. See Verified primitives → Constraints uncovered.
+- **Hook output rendering in interactive claude.** v0 already commits to "stdout best-effort" so this is not strictly blocking, but a 30-second interactive probe before GA settles whether to mention "stdout *may* surface in interactive mode" or drop the qualifier entirely.
+
 **v1 — natural enhancements once v0 is proven and 07a's per-aspect critic-found-bug rates are positive.**
 
 - **Codex-as-proposer.** Stateless rounds with re-supplied context (architecture already in spec). No auto-trigger; manual CLI only.
@@ -45,7 +51,7 @@ The spec uses **v0** and **v1** as concrete release tiers, not vague handwaves.
 - Style-only attacks.
 - Plugin packaging unless multiple unrelated users ask for it.
 - Training a better critic — use the off-the-shelf side agent; weak aspects get dropped from defaults.
-- Critic tool access beyond reading the diff and task context — keeps critics narrow, prevents critic-rabbit-holes.
+- Adding extra critic tools beyond agent defaults — no MCP servers, no custom skills, no orchestrator-granted file access. The defaults that codex / claude already ship with are constrained by prompt + `codex --sandbox read-only`, not by OS isolation in v0 (see Critic isolation).
 
 ## Architecture
 
@@ -232,7 +238,7 @@ Per fork (forks run serially in v0):
 4. **R3..R(max_turn) — Cross-examination.** Critic and proposer-clone alternate, addressing attacks by id. Re-attacks reuse the original `attack_id` and set `re_attacked = true`; new attacks get new ids; withdrawn attacks transition to `status = withdrawn`. Each round persisted to its file.
 5. **Fork-wrap.** When this fork's termination condition fires, the per-fork ledger is final.
 
-After all forks complete: aggregate across forks (attack_id is unique per critic-index, so cross-fork IDs don't collide), write `summary.md` and `end.json`, print to stdout. Root session is untouched.
+After all forks complete: aggregate across forks (attack_id is unique per critic-index, so cross-fork IDs don't collide), write `summary.md` and `end.json`, print to stdout. Root receives no debate content (see Fork model and Lifecycle invariants for the full caveat about Option B's `hook_success` attachment).
 
 ## Critic specialization
 
@@ -298,7 +304,7 @@ In claude-as-proposer mode, the CLI **always injects into a fork, never the root
 
 ### Option B — CLI + Stop hook (default UX for claude-as-proposer)
 
-Hook fires when claude finishes responding, invokes the CLI synchronously to completion, exits. The user's claude prompt is unavailable while debate runs (typical 30s–3min). After it returns, the user finds `summary.md` at the path printed by the hook on the surrounding shell's stdout (or in `.debate/log.jsonl` for cross-session history). **No mid-flight in-session UI is delivered** — Stop-hook channels (stderr, stdout, systemMessage) either don't render in `-p` mode or pollute the root JSONL. Users who want live progress can `tail -f` the orchestrator's session/round files in another terminal.
+Hook fires when claude finishes responding, invokes the CLI synchronously to completion, exits. The user's claude prompt is unavailable while debate runs (typical 30s–3min). After it returns, the canonical place to look up the run is `.debate/log.jsonl` (one line per run, last line is the most recent; the entry contains the path to that run's `summary.md`); the orchestrator's stdout *may* also surface that path in the surrounding shell, but stdout rendering during a hook is best-effort and unverified, so the spec does not depend on it. **No mid-flight in-session UI is delivered** — Stop-hook channels (stderr, stdout, systemMessage) either don't render in `-p` mode or pollute the root JSONL. Users who want live progress can `tail -f` the orchestrator's session/round files in another terminal.
 
 - Pro: zero workflow friction. User doesn't have to remember to run `debate` after every session.
 - Con: every claude stop triggers the orchestrator unless gated; the gate (`--changed-lines-min`) is essential to avoid debating trivial completions. And: no in-session feedback during the run.
@@ -677,7 +683,7 @@ This section is the canonical list. The Versioning section above summarises the 
 
 This tool is the productization of the debate architecture studied in [agents-byzantine-tolerance](https://github.com/changkun/agents-byzantine-tolerance). Specifically it bets on the architecture from [spec 07](https://github.com/changkun/agents-byzantine-tolerance/blob/main/specs/07-adversarial-debate.md) and inherits its risks.
 
-**Spec 08 should not be built before upstream spec 07a returns positive results, measured per aspect.** What "positive" means with aspect-specialized critics:
+**This tool should not be built before upstream spec 07a returns positive results, measured per aspect.** What "positive" means with aspect-specialized critics:
 
 1. Run upstream 07a per aspect (functional-logic, security, code-quality, performance) — aspect-specialized critics, not one generalist.
 2. For each aspect, measure critic-found-bug rate on seeded bugs of that aspect.
