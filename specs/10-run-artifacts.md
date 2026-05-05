@@ -1,5 +1,6 @@
 # Spec 10 — Run-level artifacts
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Session persistence" → Layout for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [06](06-preflight.md), [07](07-claude-transcript.md), [08](08-diff.md), [09](09-state-dir.md).
@@ -190,7 +191,7 @@ Wraps [09](09-state-dir.md)'s `AtomicWrite` and `AppendLine`. No business logic 
 
 ## Acceptance criteria
 
-- [ ] All four schemas decode/encode round-trip via `encoding/json`.
-- [ ] Schema version strings appear at top level of each (`debate.start.v0`, etc.).
-- [ ] `WriteEnd` is the last fsynced write before `AppendLog`; ordering enforced by an integration test.
-- [ ] No path in this spec writes the contents of `start.json` more than once per session (immutability check).
+- [x] All four schemas decode/encode round-trip via `encoding/json`.
+- [x] Schema version strings appear at top level of each (`debate.start.v0`, etc.).
+- [x] `WriteEnd` is the last fsynced write before `AppendLog`; ordering enforced by an integration test.
+- [x] No path in this spec writes the contents of `start.json` more than once per session (immutability check).
