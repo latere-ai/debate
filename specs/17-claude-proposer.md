@@ -1,5 +1,6 @@
 # Spec 17 — Claude proposer driver
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Mechanism" → "Forking the proposer" / "Continuing within a fork" for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [07](07-claude-transcript.md), [11](11-fork-artifacts.md), [16](16-subprocess-infra.md).
@@ -143,8 +144,8 @@ Each typed error wraps the raw `agent.Result` for debugging.
 
 ## Acceptance criteria
 
-- [ ] All five typed errors reachable.
-- [ ] `--fork-session` is *always* in `FirstRound`'s args; never in `NextRound`'s.
-- [ ] `claude --resume <root>` (without `--fork-session`) is absent from this package's call sites; lint test grep verifies.
-- [ ] `--cwd` set on `Run.Cwd`; integration test asserts cwd-scoped failures map to `ErrCwdMismatch`.
-- [ ] `Tokens` accumulator usable by [20](20-termination.md)'s cost-cap gate.
+- [x] All five typed errors reachable.
+- [x] `--fork-session` is *always* in `FirstRound`'s args; never in `NextRound`'s.
+- [x] `claude --resume <root>` (without `--fork-session`) is absent from this package's call sites; lint test grep verifies.
+- [x] `--cwd` set on `Run.Cwd`; integration test asserts cwd-scoped failures map to `ErrCwdMismatch`.
+- [x] `Tokens` accumulator usable by [20](20-termination.md)'s cost-cap gate.

@@ -1,5 +1,6 @@
 # Spec 18 — Critic drivers (codex + claude)
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Mechanism" → "Driving the critic" for design intent.
 
 **Depends on:** [13](13-critic-output-format.md), [15](15-aspect-prompts.md), [16](16-subprocess-infra.md).
@@ -169,8 +170,8 @@ Hook for v1: when [01-overview.md](01-overview.md)'s strict-isolation v1 lands, 
 
 ## Acceptance criteria
 
-- [ ] Both `CodexCritic` and `ClaudeCritic` satisfy the `Critic` interface.
-- [ ] `--sandbox read-only` is always present on codex args (lint test grep).
-- [ ] `--resume` and `--fork-session` are absent from `ClaudeCritic` args.
-- [ ] Prompt assembly is deterministic (no clock, no rand) given the same `CriticInput`.
-- [ ] `agent.NewCritic("codex", ...)` returns `*CodexCritic`; `"claude"` returns `*ClaudeCritic`; other family panics.
+- [x] Both `CodexCritic` and `ClaudeCritic` satisfy the `Critic` interface.
+- [x] `--sandbox read-only` is always present on codex args (lint test grep).
+- [x] `--resume` and `--fork-session` are absent from `ClaudeCritic` args.
+- [x] Prompt assembly is deterministic (no clock, no rand) given the same `CriticInput`.
+- [x] `agent.NewCritic("codex", ...)` returns `*CodexCritic`; `"claude"` returns `*ClaudeCritic`; other family panics.
