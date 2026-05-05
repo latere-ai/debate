@@ -30,17 +30,35 @@ Each critic gets its own **debate fork**: a clone of the root session paired wit
 
 ### When the proposer is Codex instead of Claude
 
-The fork mechanism above is Claude-specific because Claude Code has `--fork-session`. Codex does not have an equivalent — its `codex exec --ephemeral` model assumes no persistence. Both directions of the role assignment are still supported, just by different mechanisms:
+Codex (0.128+) has session persistence and supports interactive `/fork` and `/resume` slash commands inside the TUI, plus `codex exec resume <id> "<prompt>"` for non-interactive resume. **But it has no non-interactive fork.** Verified by probe (2026-05, codex 0.128.0):
 
-|                       | Claude as proposer (default)                        | Codex as proposer                                 |
-|-----------------------|-----------------------------------------------------|---------------------------------------------------|
-| Per-fork mechanism    | `claude --resume <root> --fork-session -p ...`      | Fresh `codex exec` per round, full context re-supplied |
-| Round 2+ within fork  | `claude --resume <fork-id> -p ...`                  | Fresh `codex exec` per round                      |
-| Root preservation     | Native (`--fork-session` doesn't touch root)        | N/A — codex sessions are ephemeral, no root       |
-| Auto-trigger          | Claude Code Stop hook (we have it)                  | No equivalent — manual CLI only                   |
-| Cost model            | Cache-amortized within a 5-min window               | Full re-supply each round (more expensive)        |
+- `codex fork <id> "<prompt>"` errors with `"Error: stdin is not a terminal"` when invoked from a script — TUI-only entry point.
+- `codex exec resume <id> "<prompt>"` works non-interactively but **modifies the resumed session in place** (the session file grows; `thread_id` does not change).
+- `--ephemeral` does not save us: it suppresses persistence for *fresh* sessions only, not resumed ones. Resume-with-ephemeral still pollutes the resumed file.
 
-The CLI's `--main` and `--side` flags are symmetric: any pairing works. The `--main codex` case loses session continuity within forks (each round is fresh) and loses auto-trigger (no codex equivalent of Stop hook), but otherwise the architecture holds: critic comments via file-pointer, defenses via response, contention-scored headline, etc. Both directions are tested before shipping.
+|                                       | Claude (2.1.x)                                  | Codex (0.128+)                                 |
+|---------------------------------------|-------------------------------------------------|------------------------------------------------|
+| Non-interactive fork                  | `claude --resume <id> --fork-session -p ...` ✅ | None ❌ (`codex fork` requires TTY)            |
+| Non-interactive resume                | `claude --resume <id> -p ...` ✅                | `codex exec resume <id> "<prompt>"` ✅         |
+| Resume modifies resumed session?      | Only the fork (root preserved)                  | **Yes** — session file grows in place          |
+| `--ephemeral` prevents that?          | N/A                                             | No (applies only to fresh sessions)            |
+| Auto-trigger via Stop hook            | Yes                                             | No equivalent                                  |
+| Sandbox flag on resume                | `--permission-mode` accepted                    | `--sandbox` rejected on `exec resume` (inherits from parent) |
+
+**Implication.** When `--main codex`, the orchestrator cannot create a non-mutating fork off the user's codex session. Instead, each defense round is a **stateless `codex exec`** with the full context re-supplied as the prompt:
+
+```
+codex exec --skip-git-repo-check --sandbox <mode> --json \
+  "<task + current diff + all prior rounds in this fork>"
+```
+
+- Each round produces a fresh `thread_id` (no continuation of the prior round). The orchestrator carries fork state on disk in the round files and re-feeds it each round.
+- No cache amortization across rounds — input tokens paid in full each time. This is the dominant cost difference vs. claude mode.
+- The user's existing codex session (if any) is not touched: the orchestrator's `codex exec` calls don't resume any prior session.
+- Auto-trigger is not available; only manual CLI invocation.
+- Capture `thread_id` from the first JSON event on stdout (`{"type":"thread.started","thread_id":"<uuid>"}`); the final response is in the `item.completed` event with `type: "agent_message"`.
+
+The CLI's `--main` and `--side` flags remain symmetric — any pairing works. Architectural contracts (channel constraint, file-pointer payload, contention scoring, headline output) are identical in both modes; only the proposer-driving mechanism differs.
 
 #### Tree shape
 
@@ -146,6 +164,36 @@ Per fork (forks run serially in v0):
 5. **Fork-wrap.** When this fork's termination condition fires, write its per-fork attack ledger.
 
 After all forks complete: aggregate across forks, write `summary.md` and `end.json`, print to stdout. Root session is untouched.
+
+## Critic specialization
+
+Multi-critic isn't a frill — it's the structural mitigation for lazy-critic risk. The debate-theoretic property (Irving 2018, building on PCP intuitions): **soundness needs one competent honest player, not all players honest**. Translated to multi-aspect critics: bugs in aspect *i* need only the critic on aspect *i* to be honest and competent. A lazy critic on aspect *j* doesn't break aspect *i* coverage.
+
+This pushes the binding empirical question from "is THE critic competent?" (whole-tool risk) to "is the critic on aspect *X* competent?" (per-aspect risk). The latter is much more tractable: a weak aspect gets dropped from defaults without killing the tool.
+
+### Default aspect set
+
+The default `--aspect` list is a production-quality bar, not a pure bug-detection set:
+
+- **functional-logic** — does it do what the task asked? Off-by-ones, missing branches, silent-failure paths, edge cases the spec implies but the code missed.
+- **security** — input validation, authn/authz, injection (SQL, shell, template), data exposure, secrets in logs, unsafe deserialization.
+- **code-quality** — maintainability red flags: long functions, swallowed exceptions, unclear naming *where it bites readability*, dead branches. **Not** style preferences.
+- **performance** — algorithmic complexity, N+1 IO, unnecessary allocations or copies, blocking calls in hot paths.
+
+Each critic is prompted with exactly one aspect, and its system prompt explicitly forbids cross-aspect attacks. The mediator drops attacks tagged with the wrong aspect at parse time. This narrows each critic's mandate, which is where lazy rubber-stamping hides — a generalist critic asked "review this" is much more likely to say "looks fine" than a specialist critic asked "find concrete security flaws in this diff."
+
+### Aspect ≠ style
+
+`code-quality` is not a license for stylistic gripes:
+
+- **Code quality**: "This function silently swallows the exception, breaking the calling contract." (real correctness/maintainability impact)
+- **Style**: "Use single quotes instead of double quotes." (no impact)
+
+The default critic prompt requires every attack to name a concrete behavior or maintainability impact, not a preference. Style-shaped attacks are dropped at parse time.
+
+### Aspect list is open
+
+The four defaults cover typical backend coding work. Other teams might add `concurrency-safety` for systems code, `accessibility` for frontend, `api-compatibility` for libraries, `migration-safety` for schema/state changes. Aspect names are free-form and become part of the critic's system prompt; the mediator just uses them as routing labels and headline tags.
 
 ## Build options
 
@@ -309,11 +357,11 @@ Project-level `.debate.toml` overrides defaults:
 
 ```toml
 max_turn = 6
-side_count = 2
-aspects = ["correctness", "security"]
+side_count = 4
+aspects = ["functional-logic", "security", "code-quality", "performance"]
 cost_cap_tokens = 50000
 trigger = "manual"           # "manual" | "stop"
-allow_style_attacks = false  # default: critic must attack behavior, not style
+allow_style_attacks = false  # default: code-quality critic attacks impact, not preference
 ```
 
 ## Termination conditions
@@ -361,11 +409,11 @@ The Headline section is the entire justification for the tool. If it's noise acr
 
 ## Risks
 
-- **Lazy-critic risk (the binding one).** This is upstream spec 07's H6. Codex may rubber-stamp. **Mitigation**: do not ship the tool until upstream 07a (bug detection, deterministic judge) returns critic-found-bug rate ≥ 60% on seeded bugs. If it's below 30%, this whole project is dead on arrival.
+- **Per-aspect lazy-critic risk** (was previously framed as "the binding one"; that overgeneralized the single-critic case). A lazy critic produces no value in its aspect. With multi-critic across distinct aspects, no single lazy critic collapses the whole tool — only its aspect goes uncovered. The binding question becomes **per-aspect**: for each aspect we ship as default, is the critic prompt + model competent enough to find real instances? Mitigation: measure critic-found-bug rate *per aspect* in upstream 07a; aspects below threshold get dropped from defaults rather than the tool being abandoned. The debate-theoretic intuition (one competent honest player suffices for soundness) is what makes this work.
 - **Cost.** Multi-critic multi-turn debates 5–10x a coding session's token bill. Cost cap is mandatory; default it conservatively (50k tokens).
 - **Flow disruption.** Auto-Stop on every completion is annoying for trivial edits. Default trigger is `manual`; auto is opt-in. Consider a `--changed-lines-min N` filter (only debate if diff is non-trivial).
 - **Critic context starvation.** Critic only sees diff + task context, not the broader codebase. Produces false-positive attacks ("this function isn't called!" — yes it is, elsewhere). Mitigations: critic prompt requires concrete reproduction, and the proposer is allowed to rebut with `file:line` references the critic is forbidden from re-attacking.
-- **Stylistic-gripe drift.** Critic attacks style not behavior. `allow_style_attacks = false` enforces it in the critic prompt; mediator drops style-shaped attacks at parse time.
+- **Stylistic-gripe drift (especially in `code-quality` aspect).** Critic drifts from real maintainability impact into formatting/naming preferences. `code-quality` is the most exposed aspect because the line between "real quality issue" and "preference" is fuzzier than for `security` or `performance`. Mitigation: critic prompt requires every attack to name a concrete behavior or maintainability impact; mediator drops style-shaped attacks at parse time (heuristic: attack contains "should be" + naming/formatting language without a concrete behavior claim).
 - **Asymmetric truth.** Proposer has more context than critic; may over-defend when actually wrong. Mitigation: `--judge llm` mode triages unresolved leaves; default `none` just surfaces them and trusts the human.
 - **Critic colludes with proposer.** If critic and proposer share a model family, they're more likely to agree on the same wrong answer. **Heterogeneity is structural here, not optional** — Claude proposer + Codex critic is the default for a reason. Don't ship a Claude-vs-Claude default.
 
@@ -385,11 +433,12 @@ The Headline section is the entire justification for the tool. If it's noise acr
 
 This tool is the productization of the debate architecture studied in [agents-byzantine-tolerance](https://github.com/changkun/agents-byzantine-tolerance). Specifically it bets on the architecture from [spec 07](https://github.com/changkun/agents-byzantine-tolerance/blob/main/specs/07-adversarial-debate.md) and inherits its risks.
 
-**This tool should not be built before upstream spec 07a returns positive on H1 (debate beats voting at equal compute) and not-bitten on H6 (lazy critic).** Order of work:
+**Spec 08 should not be built before upstream spec 07a returns positive results, measured per aspect.** What "positive" means with aspect-specialized critics:
 
-1. Run upstream 07a (bug detection, deterministic judge, 2-player honest debate) — measure critic-found-bug rate.
-2. If ≥ 60%: build this repo's CLI orchestrator (Option A).
-3. If 07a also shows H1 holds: add the Stop hook (Option B).
-4. If 07's H6 bites (lazy critic): re-prompt critic, re-measure; if still bad, abandon the tool.
+1. Run upstream 07a per aspect (functional-logic, security, code-quality, performance) — aspect-specialized critics, not one generalist.
+2. For each aspect, measure critic-found-bug rate on seeded bugs of that aspect.
+3. **Default aspects = aspects where the rate is ≥ 60%.**
+4. **Acceptable thresholds**: at least two aspects pass; otherwise the tool is hollow. If only one aspect passes, it's a single-aspect linter, not a debate tool.
+5. If H1 also holds (debate beats voting at equal compute, on per-aspect tasks): add Option B's Stop hook.
 
-This ordering means the tool is gated on a real measurement, not a hope.
+The previous order-of-work conflated all critics into one threshold. With aspect specialization, the failure of one aspect doesn't kill the tool — it just narrows the default set. Upstream 07's H6 ("lazy critic collapses the architecture") is real but only at the per-aspect level.
