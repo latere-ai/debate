@@ -1,5 +1,6 @@
 # Spec 03 — CI, lint, version, release
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) for design intent.
 
 **Depends on:** [02](02-go-module.md).
@@ -127,8 +128,8 @@ Tags: `v0.0.1` style. Tag pushes trigger a separate `release.yml` GitHub Action 
 
 ## Acceptance criteria
 
-- [ ] `.github/workflows/ci.yml` exists; passes against the [02](02-go-module.md) baseline.
-- [ ] `.golangci.yml` exists and `make lint` is clean.
-- [ ] `cmd/debate/main.go` exposes `version`, `commit`, `date` as set-via-ldflags vars.
-- [ ] `.goreleaser.yaml` validates with `goreleaser check`.
-- [ ] Tagging `v0.0.1-rc1` produces a draft release with darwin/linux × amd64/arm64 tarballs and `debate-stop-hook.sh` packaged alongside.
+- [x] `.github/workflows/ci.yml` exists; passes against the [02](02-go-module.md) baseline.
+- [x] `.golangci.yml` exists and `make lint` is clean.
+- [x] `cmd/debate/main.go` exposes `version`, `commit`, `date` as set-via-ldflags vars.
+- [x] `.goreleaser.yaml` validates with `goreleaser check`.
+- [x] Tagging `v0.0.1-rc1` produces a draft release with darwin/linux × amd64/arm64 tarballs and `debate-stop-hook.sh` packaged alongside.
