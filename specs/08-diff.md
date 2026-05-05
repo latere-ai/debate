@@ -1,5 +1,6 @@
 # Spec 08 — Working-tree diff and trivial-diff gate
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Risks" → flow disruption for design intent.
 
 **Depends on:** [02](02-go-module.md), [04](04-cli-flags.md).
@@ -97,7 +98,7 @@ When `--session-id` is set and the user did not pass `--diff-from`, the default 
 
 ## Acceptance criteria
 
-- [ ] `Compute` returns a non-nil `*Diff` for every valid input shape.
-- [ ] Trivial gate exits in `< 100ms` on a small diff, verified by [25](25-probes.md).
-- [ ] No git command is spawned with a shell; no `bash -c` anywhere in this package.
-- [ ] Stderr line format and `log.jsonl` shape match the strings above (golden test).
+- [x] `Compute` returns a non-nil `*Diff` for every valid input shape.
+- [x] Trivial gate exits in `< 100ms` on a small diff, verified by [25](25-probes.md).
+- [x] No git command is spawned with a shell; no `bash -c` anywhere in this package.
+- [x] Stderr line format and `log.jsonl` shape match the strings above (golden test).
