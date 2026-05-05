@@ -10,6 +10,40 @@ A tool that productizes the debate architecture from [agents-byzantine-tolerance
 
 When Claude finishes a coding task, run a critic (Codex by default) that produces concrete adversarial comments on the diff. Claude either fixes or defends each comment. Up to N rounds of cross-examination. Unresolved leaves surface to the human at the end as a structured review. The human inspects only what wasn't resolved by debate, not the full output.
 
+## Versioning
+
+The spec uses **v0** and **v1** as concrete release tiers, not vague handwaves.
+
+**v0 — minimum viable, shippable artifact. Everything above the line.**
+
+- `debate` CLI binary.
+- **Claude-as-proposer mode only.** Codex-as-proposer is fully *described* in this spec (so the architecture has a target) but its implementation is v1.
+- Auto-trigger via Stop hook (default UX) + manual CLI invocation.
+- Aspect-specialized multi-critic with the four-aspect default (`functional-logic`, `security`, `code-quality`, `performance`).
+- File-pointer channel; root-preservation invariant enforced; `--fork-session` always; recursion guard via `DEBATE_IN_PROGRESS`.
+- Session persistence layout: `start.json`, per-fork `proposer-state.json` + round files, `attacks.jsonl`, `transcript.jsonl`, `summary.md`, `end.json`, plus cross-session `log.jsonl`.
+- Stable `attack_id` ledger; contention-scored headline.
+- `--changed-lines-min` trivial-diff gate.
+- Cross-family default (claude proposer, codex critic); same-family requires explicit and different `--main-model`/`--side-model`.
+- Forks run serially against the shared working tree.
+- Conservative UX: no in-session live progress; summary on disk; user can `tail -f` round files in another terminal if they want progress.
+
+**v1 — natural enhancements once v0 is proven and 07a's per-aspect critic-found-bug rates are positive.**
+
+- **Codex-as-proposer.** Stateless rounds with re-supplied context (architecture already in spec). No auto-trigger; manual CLI only.
+- **Per-fork git worktrees** via `claude --worktree`. Frozen working-tree snapshot per fork; eliminates outcome leakage between serial critics; enables parallel forks. Needs a concession-merge story.
+- **Per-critic model configuration.** v0 uses one `--side-model` for all critics; v1 lets each critic specify its own model alongside its aspect.
+- **Resume an old debate session.** `debate resume <session-id>` — re-open a prior debate's unresolved leaves after the human addresses them, run more rounds.
+- **Live-progress UI**, *if* an interactive-mode probe finds a hook channel that surfaces text without polluting root JSONL. The current finding is that none of the obvious channels qualify; this v1 item is contingent on that changing.
+
+**Forever out of scope (non-goals, not "later"):**
+
+- Skill / slash-command / plugin-template entry points (channel-constraint violation).
+- Injecting an assistant turn or `systemMessage`/`additionalContext`-style notification into the root session via any mechanism (root-preservation invariant; probe-verified that `systemMessage` writes into the root JSONL).
+- Auto-applying critic-suggested fixes. The proposer-clone makes any changes; the critic never edits.
+- Style-only attacks.
+- Plugin packaging unless multiple unrelated users ask for it.
+
 ## Architecture
 
 - **Proposer (P)** — the Claude Code session that just wrote code. Sees the original task and its own diff.
@@ -586,15 +620,25 @@ The Headline section is the entire justification for the tool. If it's noise acr
 
 ## Out of scope
 
+This section is the canonical list. The Versioning section above summarises the same partition; this section gives the reasons.
+
+### Forever out (non-goals)
+
 - **Skill or slash-command entry points.** Both wrap critic output in framing that distorts the proposer's response. The channel constraint says verbatim user-message via `claude --resume` only.
-- **Plugin packaging.** Two-line hook + CLI binary doesn't need a manifest. Revisit only if multiple unrelated users adopt it.
-- **Injecting into the root session.** Claude Code provides no way to add an assistant turn to an existing session, and the natural alternatives (`additionalContext` from `SessionStart`/`UserPromptSubmit` hooks) all produce system-reminder-shaped messages that violate the channel constraint. Wrap-up is stdout-only.
-- **Parallel forks via per-fork worktrees.** Tempting (`claude --worktree` plus per-fork git worktrees would isolate the working tree per fork and allow parallel execution), but raises a concession-merge problem when two critics both ask for fixes that conflict. v0 is serial; revisit when the basic flow is proven and the conflict story is worth solving.
-- Training a better critic. Use whatever Codex gives us; if it's bad, the tool fails (and that's the right outcome).
-- Streaming TUI. v1 is batch.
-- Persistent debate state across user sessions. Each invocation is fresh against the current diff.
-- Critic tool access beyond reading the diff and the task context. Deliberate — keeps the critic narrow and prevents critic-rabbit-holes.
-- Auto-applying critic-suggested fixes. Concession-fixes are written by the proposer-clone within its fork, not by the critic. The critic never edits.
+- **Plugin packaging** (Claude Code plugin manifest). Two-line hook + CLI binary doesn't need it. Revisit only if multiple unrelated users adopt the tool.
+- **Injecting into the root session.** Claude Code provides no way to add an assistant turn to an existing session, and the natural alternatives all produce system-reminder-shaped messages that violate the channel constraint. `Stop`-hook `systemMessage` is probe-verified (2026-05) to write a `hook_system_message` attachment into root JSONL — that's pollution. `additionalContext` from `SessionStart`/`UserPromptSubmit` is system-reminder-shaped. Wrap-up is stdout-only.
+- **Auto-applying critic-suggested fixes.** Concession-fixes are written by the proposer-clone within its fork, not by the critic. The critic never edits.
+- **Training a better critic.** Use whatever Codex (or whichever side) gives us; if it's bad, the tool fails per-aspect (and that's the right outcome — drop the aspect from defaults).
+- **Critic tool access beyond reading the diff and the task context.** Deliberate — keeps the critic narrow and prevents critic-rabbit-holes.
+- **Style-only attacks.** Critic prompt requires concrete behavior or maintainability impact. Mediator drops style-shaped attacks at parse time.
+
+### Deferred to v1 (architecturally in scope, just not in v0)
+
+- **Codex-as-proposer.** Architecture documented above; implementation is v1 — different round driver, no Stop-hook auto-trigger, fresh `codex exec` per round.
+- **Parallel forks via per-fork worktrees** (`claude --worktree`). Frozen working-tree snapshots per fork eliminate the serial-outcome-leakage problem and enable parallel execution. Needs a concession-merge story when two critics' fixes conflict.
+- **Streaming TUI / live in-session progress.** v0 is batch (no in-session UI); a TUI or a viable hook-output channel would be v1 work.
+- **Persistent debate state across user sessions.** Each v0 invocation is fresh against the current diff. `debate resume <session-id>` is v1.
+- **Per-critic model configuration.** v0 shares one `--side-model` across all critics (aspect specialization carries the per-critic diversity). v1 may add per-critic model overrides.
 
 ## Relationship to upstream research
 
