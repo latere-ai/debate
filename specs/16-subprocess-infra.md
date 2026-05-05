@@ -1,5 +1,6 @@
 # Spec 16 — Subprocess infrastructure
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Constraints uncovered by the probe" for design intent.
 
 **Depends on:** [02](02-go-module.md), [04](04-cli-flags.md), [06](06-preflight.md).
@@ -125,7 +126,7 @@ Every subprocess inherits `DEBATE_IN_PROGRESS=1` (set by `CleanEnv`). The Stop h
 
 ## Acceptance criteria
 
-- [ ] No subprocess invocation in [17](17-claude-proposer.md) or [18](18-critic-drivers.md) calls `os/exec` directly; all go through `agent.Exec`.
-- [ ] Process-group teardown verified by an integration test that spawns a child-of-child and asserts both die on cancellation.
-- [ ] JSON sanitizer's pass-through rate ≥ 99.9% on a 10k-line replay of real claude output (perf bound, not correctness).
-- [ ] `DEBATE_IN_PROGRESS=1` is observable in every spawned process's `/proc/self/environ` (Linux integration test).
+- [x] No subprocess invocation in [17](17-claude-proposer.md) or [18](18-critic-drivers.md) calls `os/exec` directly; all go through `agent.Exec`.
+- [x] Process-group teardown verified by an integration test that spawns a child-of-child and asserts both die on cancellation.
+- [x] JSON sanitizer's pass-through rate ≥ 99.9% on a 10k-line replay of real claude output (perf bound, not correctness).
+- [x] `DEBATE_IN_PROGRESS=1` is observable in every spawned process's `/proc/self/environ` (Linux integration test).
