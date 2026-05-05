@@ -1,5 +1,6 @@
 # Spec 15 — Aspect prompts
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Critic specialization" for design intent.
 
 **Depends on:** [13](13-critic-output-format.md).
@@ -173,7 +174,7 @@ To avoid maintaining yet another keyword list, F3's "expected vocabulary for cur
 
 ## Acceptance criteria
 
-- [ ] All four prompts present verbatim in `internal/critic/aspects.go` (or a `_data` go:embed file).
-- [ ] Each prompt's structure matches the skeleton (audit-via-test).
-- [ ] `Assemble` is a pure function (no I/O, no clock).
-- [ ] Cross-aspect keyword lists do not overlap (a keyword forbidden by aspect A is not in aspect A's "expected vocabulary").
+- [x] All four prompts present verbatim in `internal/critic/aspects.go` (or a `_data` go:embed file).
+- [x] Each prompt's structure matches the skeleton (audit-via-test).
+- [x] `Assemble` is a pure function (no I/O, no clock).
+- [x] Cross-aspect keyword lists do not overlap (a keyword forbidden by aspect A is not in aspect A's "expected vocabulary").

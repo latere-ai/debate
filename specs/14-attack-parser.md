@@ -1,5 +1,6 @@
 # Spec 14 — Attack parser, normalizer, filters
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Rounds" → R1 Attack for design intent.
 
 **Depends on:** [12](12-attacks-ledger.md), [13](13-critic-output-format.md).
@@ -148,7 +149,7 @@ The renderer is the canonical writer; what the proposer reads via `@<path>` alwa
 
 ## Acceptance criteria
 
-- [ ] All four counters (`DroppedNoReproduce`, `DroppedStyle`, `DroppedCrossAspect`, `Renamed`) reachable in tests.
-- [ ] Parse failure on a malformed top header (`# wrong`) returns a typed error with line number, not a panic.
-- [ ] `Render(Parse(x))` is byte-identical to `x` modulo the trailing-`---` separator (the renderer always emits one).
-- [ ] No regex compiles on every call; all patterns are package-level `var`s.
+- [x] All four counters (`DroppedNoReproduce`, `DroppedStyle`, `DroppedCrossAspect`, `Renamed`) reachable in tests.
+- [x] Parse failure on a malformed top header (`# wrong`) returns a typed error with line number, not a panic.
+- [x] `Render(Parse(x))` is byte-identical to `x` modulo the trailing-`---` separator (the renderer always emits one).
+- [x] No regex compiles on every call; all patterns are package-level `var`s.

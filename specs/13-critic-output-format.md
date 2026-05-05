@@ -1,5 +1,6 @@
 # Spec 13 — Critic output format (the contract)
 
+> **Status: ✅ implemented** (validated by spec 14's parser tests).
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Rounds" → R1 Attack for design intent.
 
 **Depends on:** none (a pure protocol spec).
@@ -136,6 +137,6 @@ This document parses to two attacks under [14](14-attack-parser.md), both surviv
 
 ## Acceptance criteria
 
-- [ ] The exact format above is what [15](15-aspect-prompts.md)'s prompts require the critic to produce.
-- [ ] [14](14-attack-parser.md) parses the worked-example fixture without warnings.
-- [ ] Style-shaped attacks and reproduction-less attacks are detectable from the document alone (no agent re-prompting needed).
+- [x] The exact format above is what [15](15-aspect-prompts.md)'s prompts require the critic to produce.
+- [x] [14](14-attack-parser.md) parses the worked-example fixture without warnings.
+- [x] Style-shaped attacks and reproduction-less attacks are detectable from the document alone (no agent re-prompting needed).
