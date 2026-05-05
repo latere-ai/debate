@@ -195,6 +195,23 @@ The default critic prompt requires every attack to name a concrete behavior or m
 
 The four defaults cover typical backend coding work. Other teams might add `concurrency-safety` for systems code, `accessibility` for frontend, `api-compatibility` for libraries, `migration-safety` for schema/state changes. Aspect names are free-form and become part of the critic's system prompt; the mediator just uses them as routing labels and headline tags.
 
+## Heterogeneity (proposer vs. critic)
+
+The default pairing is cross-family: claude proposer, codex critic. Family asymmetry is the strongest form of independence — different training corpora, different RLHF objectives, different priors. It's the cleanest way to keep proposer and critic from rubber-stamping each other.
+
+But sometimes only one agent is available, or a user wants same-family debate (claude/claude, codex/codex). The tool supports this with one hard constraint:
+
+**When `--main` and `--side` are the same agent family, `--main-model` and `--side-model` must both be set and must differ.** Same model on both sides collapses to "the model debating itself" — same priors, same blind spots, no heterogeneity. The CLI errors out if either is unset or if they match.
+
+Recommended same-family pairings:
+
+- **claude/claude**: e.g. `--main-model claude-sonnet-4-6 --side-model claude-opus-4-7`. Different capability tiers or training generations.
+- **codex/codex**: e.g. `--main-model gpt-5 --side-model o3`. Different model families inside codex.
+
+Cross-family pairings don't require explicit model flags — the family difference already provides independence. Model flags are optional in those cases and default to each agent's CLI default.
+
+For multi-critic (`--side-count > 1`), `--side-model` applies to all critics; aspect specialization provides the per-critic diversity. Per-critic model config is out of scope for v0.
+
 ## Build options
 
 The channel constraint above eliminates most of the design space. Anything that wraps the critic's output in framing (skills, slash commands, plugin command templates) is out. What remains:
@@ -232,6 +249,7 @@ Same CLI as A. Add a Stop hook in `.claude/settings.json` that captures the just
 
 ```
 debate [--main claude] [--side codex] [--side-count 1]
+       [--main-model <model>] [--side-model <model>]
        [--max-turn 6] [--aspect general]
        [--session-id <root-claude-session-id>]
        [--transcript <path-to-jsonl>]
@@ -245,7 +263,8 @@ debate [--main claude] [--side codex] [--side-count 1]
 
 Notes:
 
-- `--session-id` is the **root** session ID (Claude-as-proposer mode only). The orchestrator forks from it for each critic via `claude --resume <root> --fork-session`. The root session is never modified. Without `--session-id`, the orchestrator falls back to fresh `claude -p` invocations per round (no proposer continuity within a fork — much more expensive). When `--main codex`, this flag is ignored (codex has no session model in headless).
+- `--session-id` is the **root** session ID (Claude-as-proposer mode only). The orchestrator forks from it for each critic via `claude --resume <root> --fork-session`. The root session is never modified. Without `--session-id`, the orchestrator falls back to fresh `claude -p` invocations per round (no proposer continuity within a fork — much more expensive). When `--main codex`, this flag is ignored (codex has no non-mutating fork; see codex section).
+- `--main-model` and `--side-model` are optional when `--main` and `--side` are different agent families (cross-family asymmetry suffices). When the families match, both flags are required and must differ — see Heterogeneity section. CLI errors out otherwise.
 - The orchestrator must be invoked from the cwd that owns the root session — `claude --resume <id>` is cwd-scoped. The hook-supplied `cwd` field is authoritative. The CLI errors out if invoked from a different cwd.
 - `--transcript` is optional but useful: the Stop hook payload includes `transcript_path` pointing at the root session's JSONL. Passing it lets the orchestrator extract task context cheaply (no second `claude` call to inspect the session).
 - `--side-count` and `--aspect` interact: if `--aspect a,b,c` is given with `--side-count 3`, each critic gets one aspect. If counts mismatch, error.
@@ -362,6 +381,13 @@ aspects = ["functional-logic", "security", "code-quality", "performance"]
 cost_cap_tokens = 50000
 trigger = "manual"           # "manual" | "stop"
 allow_style_attacks = false  # default: code-quality critic attacks impact, not preference
+
+# Models. Optional when main and side are different agent families.
+# Required (and must differ) when main and side are the same family.
+# main = "claude"
+# side = "codex"
+# main_model = "claude-sonnet-4-6"  # only used when main == side family
+# side_model = "claude-opus-4-7"
 ```
 
 ## Termination conditions
@@ -415,7 +441,7 @@ The Headline section is the entire justification for the tool. If it's noise acr
 - **Critic context starvation.** Critic only sees diff + task context, not the broader codebase. Produces false-positive attacks ("this function isn't called!" — yes it is, elsewhere). Mitigations: critic prompt requires concrete reproduction, and the proposer is allowed to rebut with `file:line` references the critic is forbidden from re-attacking.
 - **Stylistic-gripe drift (especially in `code-quality` aspect).** Critic drifts from real maintainability impact into formatting/naming preferences. `code-quality` is the most exposed aspect because the line between "real quality issue" and "preference" is fuzzier than for `security` or `performance`. Mitigation: critic prompt requires every attack to name a concrete behavior or maintainability impact; mediator drops style-shaped attacks at parse time (heuristic: attack contains "should be" + naming/formatting language without a concrete behavior claim).
 - **Asymmetric truth.** Proposer has more context than critic; may over-defend when actually wrong. Mitigation: `--judge llm` mode triages unresolved leaves; default `none` just surfaces them and trusts the human.
-- **Critic colludes with proposer.** If critic and proposer share a model family, they're more likely to agree on the same wrong answer. **Heterogeneity is structural here, not optional** — Claude proposer + Codex critic is the default for a reason. Don't ship a Claude-vs-Claude default.
+- **Critic colludes with proposer (same family + same model).** Same agent family + same model = the model debating itself, with the same priors and same blind spots. The CLI rejects same-model configurations when families match (`--main-model` and `--side-model` must differ). Same-family/different-model is allowed but weaker than cross-family — use it only when cross-family isn't available (single-agent install). The default `--main claude --side codex` provides cross-family heterogeneity automatically.
 
 ## Out of scope
 
