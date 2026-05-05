@@ -1,5 +1,6 @@
 # Spec 05 — Config file (`.debate.toml`)
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §Configuration for design intent.
 
 **Depends on:** [02](02-go-module.md), [04](04-cli-flags.md).
@@ -102,7 +103,7 @@ Errors:
 
 ## Acceptance criteria
 
-- [ ] All nine TOML keys decode into `Flags`.
-- [ ] Search path matches the order above; covered by table-driven tests.
-- [ ] Layering precedence demonstrable end-to-end: same field set at every level resolves to the CLI value.
-- [ ] Strict decoding catches typos before [06](06-preflight.md) runs.
+- [x] All nine TOML keys decode into `Flags`.
+- [x] Search path matches the order above; covered by table-driven tests.
+- [x] Layering precedence demonstrable end-to-end: same field set at every level resolves to the CLI value.
+- [x] Strict decoding catches typos before [06](06-preflight.md) runs.
