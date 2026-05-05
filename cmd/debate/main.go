@@ -5,6 +5,10 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/spf13/cobra"
+
+	"github.com/latere-ai/debate/internal/cli"
 )
 
 // Set via -ldflags by goreleaser / Makefile.
@@ -15,10 +19,24 @@ var (
 )
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "--version" {
-		fmt.Printf("debate %s (%s, %s)\n", version, commit, date)
-		os.Exit(0)
+	cmd := &cobra.Command{
+		Use:           "debate",
+		Short:         "Adversarial review for Claude Code coding sessions.",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		Version:       fmt.Sprintf("%s (%s, %s)", version, commit, date),
 	}
-	// Real CLI wiring lands in spec 04.
-	os.Exit(0)
+	cmd.SetVersionTemplate("debate {{.Version}}\n")
+
+	flags := cli.Bind(cmd)
+	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
+		cli.ApplyEnv(cmd, flags)
+		// Real run lands in spec 06+ (preflight + round loop).
+		return nil
+	}
+
+	if err := cmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, "debate:", err)
+		os.Exit(1)
+	}
 }

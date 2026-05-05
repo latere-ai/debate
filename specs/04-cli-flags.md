@@ -1,5 +1,6 @@
 # Spec 04 — CLI flags
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"CLI surface" for design intent.
 
 **Depends on:** [02](02-go-module.md), [03](03-ci-lint-release.md).
@@ -109,8 +110,8 @@ Per-flag help strings copied verbatim from the table above's "Notes" column, pre
 
 ## Acceptance criteria
 
-- [ ] `debate --help` lists all flags with the table's defaults.
-- [ ] `debate --version` prints version/commit/date.
-- [ ] Every flag has a `DEBATE_*` env var that, when set, populates the corresponding `Flags` field if no CLI flag is given.
-- [ ] CLI flag wins over env var when both set.
-- [ ] No business logic runs in `Bind`; calling it without invoking the cobra command leaves the program in a no-op state.
+- [x] `debate --help` lists all flags with the table's defaults.
+- [x] `debate --version` prints version/commit/date.
+- [x] Every flag has a `DEBATE_*` env var that, when set, populates the corresponding `Flags` field if no CLI flag is given.
+- [x] CLI flag wins over env var when both set.
+- [x] No business logic runs in `Bind`; calling it without invoking the cobra command leaves the program in a no-op state.
