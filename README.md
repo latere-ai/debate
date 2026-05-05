@@ -12,14 +12,14 @@ Coming once there's code.
 
 ## Usage
 
-Once built:
+The default UX is auto-trigger: install a Stop hook in `.claude/settings.json` and `debate` runs automatically when claude finishes responding, prints progress + summary in your claude terminal, returns control. See [Trigger via Stop hook](specs/01-overview.md#trigger-via-stop-hook-default-for-claude-as-proposer) in the spec.
+
+Manual invocation (for codex-as-proposer, CI, or out-of-band review):
 
 ```
-debate --session-id <root-claude-session-id> --side-count 3 \
-       --aspect correctness,security,perf --max-turn 6
+debate --session-id <root-claude-session-id> --side-count 4 \
+       --aspect functional-logic,security,code-quality,performance --max-turn 6
 ```
-
-Or auto-trigger via a Claude Code Stop hook — see [Hook surface](specs/01-overview.md#hook-surface-optional) in the spec.
 
 ## Design
 

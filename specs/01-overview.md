@@ -216,28 +216,24 @@ For multi-critic (`--side-count > 1`), `--side-model` applies to all critics; as
 
 The channel constraint above eliminates most of the design space. Anything that wraps the critic's output in framing (skills, slash commands, plugin command templates) is out. What remains:
 
-### Option A — CLI binary only
+### Option A — CLI binary (the primitive)
 
-A standalone `debate` orchestrator. User invokes from terminal after a coding session.
+A standalone `debate` orchestrator. Always built first; everything else layers on it.
 
 ```
 debate --max-turn=10 --main claude --side codex --side-count=3 \
        --aspect correctness,security,perf --session-id <claude-session>
 ```
 
-The CLI uses `claude --resume <id>` to inject critic comments as user turns into the existing Claude Code session, and `codex exec` to run the critic.
+Uses `claude --resume <id>` to drive forks (claude-as-proposer mode) or fresh `codex exec` per round (codex-as-proposer mode). Required as-is for: codex-as-proposer mode, CI gating, scripted batch runs, and as the backend for Option B.
 
-- Pro: clean channel (verbatim user-message injection); composable; works in CI; trivially supports more critics.
-- Con: not auto-triggered; user must invoke manually after each session.
-- Verdict: **this is the primitive.** Build first.
+### Option B — CLI + Stop hook (default UX for claude-as-proposer)
 
-### Option B — CLI + opt-in Stop hook (recommended)
+Hook fires when claude finishes responding, invokes the CLI synchronously, prints progress and the final summary in the user's terminal, exits. This is the optimal UX: the user codes normally, debate fires automatically, summary appears in the same session.
 
-Same CLI as A. Add a Stop hook in `.claude/settings.json` that captures the just-finished session ID and invokes the CLI against it.
-
-- Pro: automatic triggering for users who want it; manual invocation still works.
-- Con: requires Stop hook to be able to capture session ID and the CLI to drive `--resume` against a session that just stopped (verify mechanics in a spike before committing).
-- Verdict: **recommended once A works.** Hook is two lines of shell that calls the CLI; no plugin, no skill, no slash command.
+- Pro: zero workflow friction. User doesn't have to remember to run `debate` after every session.
+- Con: every claude stop triggers the orchestrator unless gated; the gate (`--changed-lines-min`) is essential to avoid debating trivial completions.
+- Verdict: **default for claude-as-proposer.** The hook is two lines of shell that invokes the CLI.
 
 ### Rejected options
 
@@ -257,6 +253,7 @@ debate [--main claude] [--side codex] [--side-count 1]
        [--task-context "<original task>"]
        [--judge none|llm|human]
        [--cost-cap 50000]
+       [--changed-lines-min 10]
        [--state-dir .debate]
        [--format markdown|json]
 ```
@@ -271,11 +268,16 @@ Notes:
 - `--max-turn` counts P+C exchanges combined per fork. 6 = 3 attack rounds + 3 defense rounds within one fork. With `side-count=3` and max-turn=6, the worst case is 18 round-exchanges total (serial across forks).
 - `--task-context` is mandatory when neither `--session-id` nor `--transcript` is given. Otherwise the orchestrator extracts it from the first user turn in the transcript.
 - `--cost-cap` is mandatory and aborts gracefully (surfaces partial review). Multi-critic multi-turn debates blow token budgets fast.
+- `--changed-lines-min` is the trivial-diff gate. Below the threshold, the orchestrator prints one status line (`[debate] skipped: trivial diff`) and exits fast. Critical when the Stop hook is auto-triggering on every claude session-stop.
 - Exit code 0 if zero unresolved leaves, 1 otherwise. Lets it gate CI.
 
-## Hook surface (optional)
+## Trigger via Stop hook (default for claude-as-proposer)
 
-The Stop hook receives a JSON payload on stdin (per Claude Code hook docs) containing `session_id`, `transcript_path`, `cwd`, `stop_reason`, and `output`. The hook script reads `session_id` from that payload and invokes the CLI:
+The Stop hook is the **default install path**, not optional. It's how the optimal UX is delivered: user opens claude interactively, codes normally, and when claude finishes responding the debate orchestrator runs in the same terminal, prints progress, prints the final summary, and returns control.
+
+### Hook configuration
+
+A single Stop hook entry in `.claude/settings.json`:
 
 ```json
 {
@@ -287,7 +289,7 @@ The Stop hook receives a JSON payload on stdin (per Claude Code hook docs) conta
 }
 ```
 
-Or as a script if you want more logic (skip on trivial diffs, etc.):
+Or as a script for more logic (custom thresholds, conditional skipping, project-specific config):
 
 ```bash
 #!/usr/bin/env bash
@@ -306,7 +308,58 @@ cd "$CWD" || exit 1
 exec debate --session-id "$SESSION_ID" --transcript "$TRANSCRIPT" --max-turn 6
 ```
 
-That's it. No plugin manifest, no slash command, no skill. The hook is one stdin-read because all the work is in the CLI. Default: hook is **not installed**; users opt in by adding the entry. The hook should return exit 0 promptly so Claude Code's UI doesn't appear hung — the orchestrator runs in the foreground and prints to stdout.
+The hook payload (per Claude Code hook docs) contains `session_id`, `transcript_path`, `cwd`, `stop_reason`, and `output` as JSON on stdin. No plugin manifest, no slash command, no skill — all the work lives in the `debate` CLI; the hook just routes the payload.
+
+### What the user sees during debate
+
+The hook runs synchronously: claude waits for it to exit before the prompt becomes available again. The orchestrator writes progress to stderr so the user sees it in their claude terminal in real time:
+
+```
+[user]   refactor the auth module to use JWT
+[claude] Done. <claude's summary of changes>
+
+[debate] starting (4 critics: functional-logic, security, code-quality, performance)
+[debate] fork 1/4 security      | R1 attack    | 3 attacks raised
+[debate] fork 1/4 security      | R2 defense   | 2 conceded, 1 rebutted
+[debate] fork 2/4 functional    | R1 attack    | 1 attack raised
+[debate] fork 2/4 functional    | R2 defense   | 1 conceded
+[debate] fork 3/4 code-quality  | R1 attack    | 0 attacks (steady-state, fork done)
+[debate] fork 4/4 performance   | R1 attack    | 2 attacks raised
+[debate] ...
+[debate] all forks complete: 12 attacks, 11 resolved, 1 unresolved
+[debate] HEADLINE: input sanitization at api.py:88 (3 rounds, critic re-attacked)
+[debate] full review: .debate/sessions/2026-05-05T22-58-40-a3f9b1/summary.md
+
+[user] _
+```
+
+UX properties:
+
+- **Synchronous.** Claude is "stopping" but waiting on the hook; prompt is unavailable until debate finishes. Typical run: 30s–3min depending on side-count and max-turn.
+- **Progress visible.** Per-fork status to stderr; user knows the tool is alive, not hung.
+- **Cancellable.** Ctrl-C in the user's terminal sends SIGINT through the process tree to the orchestrator, which catches it, writes `end.json` with `terminated: interrupted`, prints a partial summary, exits. Claude then finishes its stop normally.
+- **Trivial-diff gate.** Most stops shouldn't trigger debate. `--changed-lines-min 10` (configurable) filters out single-line edits, comment changes, etc. Below threshold the hook prints one line (`[debate] skipped: trivial diff`) and exits in <100ms.
+
+### Verification needed before final UX commit
+
+I have not directly probed how Stop hook stderr renders in interactive claude (vs `-p` mode). The expected behavior — stderr appears in the terminal because the hook is in the same process tree — is highly likely but not confirmed against claude 2.1.x. The hook spec also lists `systemMessage` and `additionalContext` as JSON output channels worth exploring if plain stderr doesn't render cleanly. A small live spike with a no-op hook (`echo "[debate] HELLO" >&2`) inside a real claude session should resolve this before the v0 implementation commits to a specific channel.
+
+### Manual invocation (fallback)
+
+For codex-as-proposer (no Stop hook equivalent), CI gating, or running debate against a saved session out-of-band, invoke the CLI directly:
+
+```
+debate --session-id <root-claude-session-id> --max-turn 6
+```
+
+Or with codex as proposer:
+
+```
+debate --main codex --side claude --main-model gpt-5 --side-model claude-sonnet-4-6 \
+       --task-context "$(< task.md)" --diff-from HEAD~1
+```
+
+Manual invocation is the only path for codex-as-proposer; for claude-as-proposer it's a fallback when the Stop hook isn't appropriate (CI, batch runs, debugging).
 
 ## Session persistence
 
@@ -379,7 +432,7 @@ max_turn = 6
 side_count = 4
 aspects = ["functional-logic", "security", "code-quality", "performance"]
 cost_cap_tokens = 50000
-trigger = "manual"           # "manual" | "stop"
+trigger = "stop"             # "stop" (default for claude-as-proposer) | "manual"
 allow_style_attacks = false  # default: code-quality critic attacks impact, not preference
 
 # Models. Optional when main and side are different agent families.
@@ -437,7 +490,7 @@ The Headline section is the entire justification for the tool. If it's noise acr
 
 - **Per-aspect lazy-critic risk** (was previously framed as "the binding one"; that overgeneralized the single-critic case). A lazy critic produces no value in its aspect. With multi-critic across distinct aspects, no single lazy critic collapses the whole tool — only its aspect goes uncovered. The binding question becomes **per-aspect**: for each aspect we ship as default, is the critic prompt + model competent enough to find real instances? Mitigation: measure critic-found-bug rate *per aspect* in upstream 07a; aspects below threshold get dropped from defaults rather than the tool being abandoned. The debate-theoretic intuition (one competent honest player suffices for soundness) is what makes this work.
 - **Cost.** Multi-critic multi-turn debates 5–10x a coding session's token bill. Cost cap is mandatory; default it conservatively (50k tokens).
-- **Flow disruption.** Auto-Stop on every completion is annoying for trivial edits. Default trigger is `manual`; auto is opt-in. Consider a `--changed-lines-min N` filter (only debate if diff is non-trivial).
+- **Flow disruption.** Auto-Stop on every claude completion would fire on trivial edits (typo fixes, single-line changes), which is the dominant failure mode of "always-on review tools." Mitigation is structural, not opt-in: `--changed-lines-min` (default 10) gates debate at the orchestrator entry point, so the hook returns in milliseconds for trivial diffs. The user sees one status line confirming the gate fired, not a debate run.
 - **Critic context starvation.** Critic only sees diff + task context, not the broader codebase. Produces false-positive attacks ("this function isn't called!" — yes it is, elsewhere). Mitigations: critic prompt requires concrete reproduction, and the proposer is allowed to rebut with `file:line` references the critic is forbidden from re-attacking.
 - **Stylistic-gripe drift (especially in `code-quality` aspect).** Critic drifts from real maintainability impact into formatting/naming preferences. `code-quality` is the most exposed aspect because the line between "real quality issue" and "preference" is fuzzier than for `security` or `performance`. Mitigation: critic prompt requires every attack to name a concrete behavior or maintainability impact; mediator drops style-shaped attacks at parse time (heuristic: attack contains "should be" + naming/formatting language without a concrete behavior claim).
 - **Asymmetric truth.** Proposer has more context than critic; may over-defend when actually wrong. Mitigation: `--judge llm` mode triages unresolved leaves; default `none` just surfaces them and trusts the human.
