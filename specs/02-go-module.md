@@ -1,5 +1,6 @@
 # Spec 02 — Go module and layout
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) for design intent.
 
 **Depends on:** none.
@@ -110,8 +111,8 @@ So `go build ./...` succeeds on a fresh clone before any business logic lands.
 
 ## Acceptance criteria
 
-- [ ] `go.mod` is `github.com/latere-ai/debate` at `go 1.23`.
-- [ ] Every directory in the layout exists, each with at least `doc.go` (where applicable).
-- [ ] `make build` produces `bin/debate`.
-- [ ] `bin/debate` exits 0 (placeholder until [04](04-cli-flags.md) replaces `main`).
-- [ ] `make all` succeeds on a fresh clone with no warnings.
+- [x] `go.mod` is `github.com/latere-ai/debate` at `go 1.23`.
+- [x] Every directory in the layout exists, each with at least `doc.go` (where applicable).
+- [x] `make build` produces `bin/debate`.
+- [x] `bin/debate` exits 0 (placeholder until [04](04-cli-flags.md) replaces `main`).
+- [x] `make all` succeeds on a fresh clone with no warnings.
