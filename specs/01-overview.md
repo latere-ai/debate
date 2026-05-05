@@ -20,7 +20,7 @@ The spec uses **v0** and **v1** as concrete release tiers, not vague handwaves.
 - **Claude-as-proposer mode only.** Codex-as-proposer is fully *described* in this spec (so the architecture has a target) but its implementation is v1.
 - Auto-trigger via Stop hook (default UX) + manual CLI invocation.
 - Aspect-specialized multi-critic with the four-aspect default (`functional-logic`, `security`, `code-quality`, `performance`).
-- File-pointer channel; root-preservation invariant enforced; `--fork-session` always; recursion guard via `DEBATE_IN_PROGRESS`.
+- File-pointer channel; **no debate-content** in root JSONL; `--fork-session` always; recursion guard via `DEBATE_IN_PROGRESS`. (The byte-identical "root transcript unchanged" claim only holds in non-Stop-hook modes; Option B may add a `hook_success` attachment per run — probe owed before v0 GA, see Lifecycle invariants.)
 - Session persistence layout: `start.json`, per-fork `proposer-state.json` + round files, `attacks.jsonl`, `transcript.jsonl`, `summary.md`, `end.json`, plus cross-session `log.jsonl`.
 - Stable `attack_id` ledger; contention-scored headline.
 - `--changed-lines-min` trivial-diff gate.
@@ -35,6 +35,7 @@ The spec uses **v0** and **v1** as concrete release tiers, not vague handwaves.
 - **Per-critic model configuration.** v0 uses one `--side-model` for all critics; v1 lets each critic specify its own model alongside its aspect.
 - **Resume an old debate session.** `debate resume <session-id>` — re-open a prior debate's unresolved leaves after the human addresses them, run more rounds.
 - **Live-progress UI**, *if* an interactive-mode probe finds a hook channel that surfaces text without polluting root JSONL. The current finding is that none of the obvious channels qualify; this v1 item is contingent on that changing.
+- **Strict critic isolation** via per-fork sandbox temp directory. v0 enforces "diff + task only" by aspect prompt + `codex --sandbox read-only`; OS-level isolation (or restricted-cwd discipline that holds against misbehaving agents) is v1 work. See Critic isolation.
 
 **Forever out of scope (non-goals, not "later"):**
 
@@ -49,7 +50,7 @@ The spec uses **v0** and **v1** as concrete release tiers, not vague handwaves.
 ## Architecture
 
 - **Proposer (P)** — the Claude Code session that just wrote code. Sees the original task and its own diff.
-- **Critic(s) (C₁..Cₖ)** — k independent adversarial agents (Codex by default), each scoped to a different aspect (functional-logic, security, performance, …). Sees the diff + task context only.
+- **Critic(s) (C₁..Cₖ)** — k independent adversarial agents (Codex by default), each scoped to a different aspect (functional-logic, security, performance, …). Receives the diff + task context as prompt inputs; the "diff + task only" contract is enforced by aspect prompt discipline (and `codex --sandbox read-only` for codex critics) — see [Critic isolation](#critic-isolation-best-effort-in-v0). Strict OS-level isolation is v1.
 - **Judge** — the human, but only at the end and only on unresolved leaves. Optional LLM-judge mode for triage.
 - **Mediator** — a small orchestrator process that routes messages between P and the Cᵢ and tracks per-claim resolution state. This is the actual binary we ship.
 
@@ -60,8 +61,8 @@ The debate must not pollute the root session. The user's original Claude Code co
 Each critic gets its own **debate fork**: a clone of the root session paired with one critic process. Forks are isolated:
 
 - **No transcript leakage between critics.** Each fork has its own (proposer-clone, critic) conversation pair. Critic A never sees critic B's attacks or the proposer's responses inside critic B's fork — the conversation logs are isolated.
-- **Outcome leakage through the working tree is real and accepted.** When critic A's fork concedes a fix, that fix lands in the shared working tree. Critic B (running later, since v0 is serial) sees the modified code but not the conversation that produced it. This is the conservative trade-off: full per-fork isolation would require frozen working-tree snapshots per fork (e.g. `claude --worktree`), which is deferred (see Out of scope). Treat critic-B as reviewing "the code as it stands now," not "the code Claude wrote initially."
-- **No root pollution.** The proposer in a fork is a clone of the root produced via Claude Code's built-in `--fork-session` flag. The original root session's transcript is unchanged after the debate.
+- **Outcome leakage through the working tree is real and accepted.** When critic A's fork concedes a fix, that fix lands in the shared working tree. Critic B (running later, since v0 is serial) is shown the working-tree diff *as it stands at critic-B's fork start* (i.e. including critic-A's concessions), and that snapshot is captured to `forks/critic-<i>/diff.patch` for audit — so each critic's record reflects what it actually saw, not what was in `start.json`. This is the conservative trade-off: full per-fork isolation would require frozen working-tree snapshots per fork (e.g. `claude --worktree`), which is deferred (see Out of scope). Treat critic-B as reviewing "the code as it stands now," not "the code Claude wrote initially."
+- **No debate-content pollution of the root.** The proposer in a fork is a clone of the root produced via Claude Code's built-in `--fork-session` flag. No debate turn, no debate text, no proposer-clone reply ever lands in the root's transcript. The strict "byte-identical root JSONL after a run" claim only holds in modes that don't use the Stop hook (manual CLI, codex-as-proposer); in Option B, the Stop hook itself may add a single `hook_success` attachment to root JSONL even with no hook output (probe owed before v0 GA — see Lifecycle invariants).
 - **Serial execution in v0.** Forks run one at a time to avoid working-tree races. Parallel forks via per-fork git worktrees would also frozen-snapshot the tree per fork, eliminating outcome leakage; deferred until v0 is proven.
 
 ### When the proposer is Codex instead of Claude
@@ -142,9 +143,9 @@ The orchestrator uses three Claude Code primitives, all already documented:
 
 3. **Driving the critic.** Both Codex and Claude critics run **stateless per round**: each round is a fresh process; per-round inputs and outputs live on disk in the round files, not in a session. The `forks/critic-<i>/proposer-state.json` file holds proposer (not critic) continuity state.
 
-   - **Codex critic** (the cross-family default). `codex exec --skip-git-repo-check --sandbox <mode> --json "<aspect prompt + task + diff + pointers to prior round files>"`. Codex has no fork concept; each invocation is a fresh process. Reads prior proposer round files via codex's file-access tool. Capture `thread_id` from the first `thread.started` event for audit; round-to-round continuity is on disk, not via that id.
+   - **Codex critic** (the cross-family default). `codex exec --skip-git-repo-check --sandbox read-only --json "<aspect prompt + task + diff + pointers to prior round files>"`. `read-only` blocks writes/network; **it does not isolate which files codex can read** — see Critic isolation. Codex has no fork concept; each invocation is a fresh process. Reads prior proposer round files via codex's file-access tool. Capture `thread_id` from the first `thread.started` event for audit; round-to-round continuity is on disk, not via that id.
 
-   - **Claude critic** (used in same-family `claude/claude` mode, see Heterogeneity). `claude -p "<aspect prompt + task + diff + pointers to prior round files>" --output-format json`. Fresh session per round — **no `--resume`, no `--fork-session`**. The architecture says the critic sees diff + task only, so resuming the user's root or any fork would over-share context; freshness is load-bearing. Anthropic's 5-minute prompt cache amortizes the system-prompt prefix across rounds within one debate. **Hook-recursion:** each `claude -p` critic call also fires the user's Stop hook, so the `DEBATE_IN_PROGRESS=1` guard must cover critic invocations as well as proposer-clone invocations (the orchestrator exports it once at process start; child `claude`/`codex` processes inherit it). Persistence: the critic writes its output to `r<n>-critic.md` (after the orchestrator parses + normalizes ids — see R1 attack); no per-critic session-id file is needed since each round is a fresh process.
+   - **Claude critic** (used in same-family `claude/claude` mode, see Heterogeneity). `claude -p "<aspect prompt + task + diff + pointers to prior round files>" --output-format json`. Fresh session per round — **no `--resume`, no `--fork-session`**. Freshness blocks the critic from inheriting any other session's conversation; it does **not** isolate which workspace files claude's file-access tools can read (the agent runs from the repo cwd; see Critic isolation). The "diff + task only" contract is enforced by aspect prompt discipline, not by OS isolation. Anthropic's 5-minute prompt cache amortizes the system-prompt prefix across rounds within one debate. **Hook-recursion:** each `claude -p` critic call also fires the user's Stop hook, so the `DEBATE_IN_PROGRESS=1` guard must cover critic invocations as well as proposer-clone invocations (the orchestrator exports it once at process start; child `claude`/`codex` processes inherit it). Persistence: the critic writes its output to `r<n>-critic.md` (after the orchestrator parses + normalizes ids — see R1 attack); no per-critic session-id file is needed since each round is a fresh process.
 
 The wrap-up step prints to stdout. **Claude Code provides no way to inject an assistant turn into the root session**, and *every* alternative I considered violates either the channel constraint or the root-preservation invariant:
 
@@ -177,6 +178,23 @@ The mechanism above was probed against a real Claude Code installation before th
 
 This rules out skills, slash commands, and any plugin-layer prompt template as the delivery channel.
 
+### Critic isolation (best-effort in v0)
+
+The "diff + task context only" claim above is the architectural intent; in v0 it is **enforced by prompt discipline, not by OS isolation**. Both `codex exec` and `claude -p`, when invoked from the repo cwd, ship with file-access tools that can read any workspace file the OS permits — so a misbehaving critic could in principle read code well outside the diff.
+
+What v0 does:
+
+- **Aspect prompt discipline.** Each critic is system-prompted to focus on its single aspect for this diff and is instructed not to wander into unrelated code. The mediator drops attacks whose `location` falls outside the diff or files the diff directly references (heuristic, not perfect).
+- **Codex critic: `--sandbox read-only`.** Blocks writes and network. Does *not* limit which files codex can read; this is defense in depth against side-effects, not file-scope isolation.
+- **Claude critic: cwd + prompt only.** Claude has no CLI-level sandbox flag. Same-family `claude/claude` runs lean entirely on prompt discipline; a misbehaving claude critic could read anywhere the OS allows.
+
+What v0 does **not** do:
+
+- **Per-fork temp-dir sandbox** (running the critic from a directory that contains only `task.md`, `diff.patch`, and prior round files, with the prompt referencing files by relative path). Would enforce file-scope isolation against well-behaved agents. Deferred to v1.
+- **OS-level isolation** (chroot, container, seccomp). Out of scope; the tool runs in the user's environment, not a sandbox.
+
+Implication for the trust model: **the critic's "context starvation" is a property of the prompt, not the runtime.** A misbehaving critic could produce attacks against unrelated code; the reproduction-required rule (Rounds → R1 Attack) drops most rabbit-holes at parse time. The Risks section flags the residual.
+
 ### Payload via file reference
 
 The verbatim user message stays short. The critic's full critique is written to disk, and the message just points at it:
@@ -204,7 +222,7 @@ The pointer messages are the only orchestrator-authored text the agents see. Eve
 
 Per fork (forks run serially in v0):
 
-1. **R0 — Setup.** Orchestrator extracts task context from the root session's transcript and computes the working-tree diff. In claude-as-proposer mode it will create the fork via `claude --resume <root-id> --fork-session ...` together with R1 (see below). In codex-as-proposer mode there is no fork; each round is a fresh `codex exec`.
+1. **R0 — Setup.** Orchestrator extracts task context from the root session's transcript and computes the initial working-tree diff (snapshot in `start.json`); a per-fork `forks/critic-<i>/diff.patch` is re-computed at each critic's R1 to capture what that critic actually saw (see Lifecycle invariants). In claude-as-proposer mode it will create the fork via `claude --resume <root-id> --fork-session ...` together with R1 (see below). In codex-as-proposer mode there is no fork; each round is a fresh `codex exec`.
 2. **R1 — Attack.** Critic Cᵢ produces a structured attack list against the diff. Each attack carries:
    - `attack_id` — stable across rounds. The critic prompt asks for an id of the form `c<critic-index>-<seq>` (e.g. `c1-3`); the orchestrator validates and re-assigns deterministically if the critic skips or duplicates ids. The id is **the** identity of an attack across re-attacks, defenses, withdrawals, contention scoring, and the headline.
    - The leaf fields `{location, claim, expected violation, reproduction}`. Attacks lacking a reproduction are dropped at parse time.
@@ -326,7 +344,7 @@ Notes:
 
 ## Trigger via Stop hook (default for claude-as-proposer)
 
-The Stop hook is the **default install path**, not optional. It's how the optimal UX is delivered: user opens claude interactively, codes normally, and when claude finishes responding the debate orchestrator runs in the same terminal, prints progress, prints the final summary, and returns control.
+The Stop hook is the **default install path**, not optional. It's how zero-friction triggering is delivered: user opens claude interactively, codes normally, and when claude finishes responding the orchestrator runs synchronously, writes `summary.md` to disk, appends a one-line entry to `.debate/log.jsonl`, and exits. The orchestrator's stdout flows through `exec` to the surrounding shell, so it *may* render on the user's terminal in interactive mode (unverified — see "What the user sees during debate"); the spec does **not** depend on that. The contract is "summary on disk; stdout best-effort."
 
 ### Hook configuration
 
@@ -450,10 +468,11 @@ Each invocation creates a folder under `--state-dir` (default `.debate/`):
   log.jsonl                          # one line per debate run, appended at end
   sessions/
     <ISO8601>-<short-id>/
-      start.json                     # timestamp, proposer-agent, root-session-id (claude only), task-context, diff snapshot, config
+      start.json                     # timestamp, proposer-agent, root-session-id (claude only), task-context, *initial* diff snapshot (before any fork runs), config
       forks/                         # one folder per critic; "fork" is the conceptual unit even when the proposer is codex (no real session fork)
         critic-1/
           proposer-state.json        # agent-neutral; see schema below
+          diff.patch                 # working-tree diff captured at THIS fork's start (after prior critics' concessions). What the critic actually saw.
           rounds/
             r1-critic.md             # critic 1's R1 attack list (full text)
             r2-proposer.md           # proposer's R2 defense
@@ -461,6 +480,7 @@ Each invocation creates a folder under `--state-dir` (default `.debate/`):
             ...                      # one file per (round, role)
         critic-2/
           proposer-state.json
+          diff.patch
           rounds/
             ...
       transcript.jsonl               # append-only index across forks: pointers to round files
@@ -527,7 +547,8 @@ Append-only — newer entries supersede older ones for the same `attack_id`. The
 
 The general rule: any file referenced by an `@<path>` pointer must exist on disk before the agent receives the pointer.
 
-- `start.json` written atomically before any agent process spawns.
+- `start.json` written atomically before any agent process spawns. Its `diff snapshot` is the *initial* working-tree diff, captured once. It is **not** the diff each critic saw.
+- **Per-fork diff snapshot.** Before each fork's R1 critic run, the orchestrator computes the current working-tree diff (which includes any concession-fixes from prior critics in v0's serial mode) and writes it to `forks/critic-<i>/diff.patch`. This file is what the critic prompt references via `@diff.patch`-style pointers, and what audit tools should consult to know "what did critic-i actually attack." `start.json`'s diff is for run-level provenance only.
 - **R1 ordering is the unique case (claude-as-proposer).** Orchestrator runs the critic, parses + normalizes ids, then writes the normalized `forks/critic-<i>/rounds/r1-critic.md`. Only then does the orchestrator run `claude --resume <root> --fork-session -p "<pointer to r1-critic.md>" --output-format json`, which creates the fork *and* delivers the pointer to R1 in one shot. The fork's session ID is captured from that call's JSON output and written to `forks/critic-<i>/proposer-state.json` (with `agent: "claude"`, `fork_session_id: <uuid>`, etc.) *immediately on return* — there is no earlier moment to write it, since the ID does not exist before the call.
 - **Codex-as-proposer R1 ordering**: also write `r1-critic.md` first; then run a fresh `codex exec` with the prompt referencing it. Capture the `thread_id` from the first `thread.started` event and append `{round: 2, thread_id: ...}` to `proposer-state.json`'s `round_thread_ids`. No fork to track.
 - The proposer's R2 defense text is in the call's JSON `result` (claude) or final `agent_message` event (codex); persist to `r2-proposer.md` after the call returns. Update `attacks.jsonl` with one entry per attack-id status transition.
@@ -625,7 +646,7 @@ The Headline section is the entire justification for the tool. If it's noise acr
 - **Per-aspect lazy-critic risk** (was previously framed as "the binding one"; that overgeneralized the single-critic case). A lazy critic produces no value in its aspect. With multi-critic across distinct aspects, no single lazy critic collapses the whole tool — only its aspect goes uncovered. The binding question becomes **per-aspect**: for each aspect we ship as default, is the critic prompt + model competent enough to find real instances? Mitigation: measure critic-found-bug rate *per aspect* in upstream 07a; aspects below threshold get dropped from defaults rather than the tool being abandoned. The debate-theoretic intuition (one competent honest player suffices for soundness) is what makes this work.
 - **Cost.** Multi-critic multi-turn debates 5–10x a coding session's token bill. Cost cap is always enforced (no uncapped mode); default it conservatively (50k tokens).
 - **Flow disruption.** Auto-Stop on every claude completion would fire on trivial edits (typo fixes, single-line changes), which is the dominant failure mode of "always-on review tools." Mitigation is structural, not opt-in: `--changed-lines-min` (default 10) gates debate at the orchestrator entry point, so the hook returns in milliseconds for trivial diffs. The user sees one status line confirming the gate fired, not a debate run.
-- **Critic context starvation.** Critic only sees diff + task context, not the broader codebase. Produces false-positive attacks ("this function isn't called!" — yes it is, elsewhere). Mitigations: critic prompt requires concrete reproduction, and the proposer is allowed to rebut with `file:line` references the critic is forbidden from re-attacking.
+- **Critic context starvation (and the inverse: rabbit-holes).** The aspect prompt asks the critic to focus on diff + task; in v0 this is enforced by prompt discipline rather than OS isolation (see Critic isolation), so a well-behaved critic produces context-starved attacks ("this function isn't called!" — yes it is, elsewhere) and a misbehaving one produces rabbit-hole attacks against unrelated code. Mitigations: critic prompt requires concrete reproduction (drops most rabbit-holes at parse time); the proposer is allowed to rebut with `file:line` references the critic is forbidden from re-attacking.
 - **Stylistic-gripe drift (especially in `code-quality` aspect).** Critic drifts from real maintainability impact into formatting/naming preferences. `code-quality` is the most exposed aspect because the line between "real quality issue" and "preference" is fuzzier than for `security` or `performance`. Mitigation: critic prompt requires every attack to name a concrete behavior or maintainability impact; mediator drops style-shaped attacks at parse time (heuristic: attack contains "should be" + naming/formatting language without a concrete behavior claim).
 - **Asymmetric truth.** Proposer has more context than critic; may over-defend when actually wrong. Mitigation: `--judge llm` mode triages unresolved leaves; default `none` just surfaces them and trusts the human.
 - **Critic colludes with proposer (same family + same model).** Same agent family + same model = the model debating itself, with the same priors and same blind spots. The CLI rejects same-model configurations when families match (`--main-model` and `--side-model` must differ). Same-family/different-model is allowed but weaker than cross-family — use it only when cross-family isn't available (single-agent install). The default `--main claude --side codex` provides cross-family heterogeneity automatically.
@@ -641,7 +662,7 @@ This section is the canonical list. The Versioning section above summarises the 
 - **Injecting into the root session.** Claude Code provides no way to add an assistant turn to an existing session, and the natural alternatives all produce system-reminder-shaped messages that violate the channel constraint. `Stop`-hook `systemMessage` is probe-verified (2026-05) to write a `hook_system_message` attachment into root JSONL — that's pollution. `additionalContext` from `SessionStart`/`UserPromptSubmit` is system-reminder-shaped. Wrap-up is stdout-only.
 - **Auto-applying critic-suggested fixes.** Concession-fixes are written by the proposer-clone within its fork, not by the critic. The critic never edits.
 - **Training a better critic.** Use whatever Codex (or whichever side) gives us; if it's bad, the tool fails per-aspect (and that's the right outcome — drop the aspect from defaults).
-- **Critic tool access beyond reading the diff and the task context.** Deliberate — keeps the critic narrow and prevents critic-rabbit-holes.
+- **Adding extra tools to the critic.** The orchestrator does not register MCP servers, install custom skills, or otherwise expand the critic's tool surface. What the critic can do via its agent-default tools (file reads, bash, etc.) is constrained by aspect prompt + `codex --sandbox read-only`, not by OS isolation in v0 (see Critic isolation). Strict per-fork sandbox-dir isolation is a v1 enhancement.
 - **Style-only attacks.** Critic prompt requires concrete behavior or maintainability impact. Mediator drops style-shaped attacks at parse time.
 
 ### Deferred to v1 (architecturally in scope, just not in v0)
