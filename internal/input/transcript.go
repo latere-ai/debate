@@ -1,0 +1,196 @@
+// Package input reads the claude session transcript and computes the
+// working-tree diff. See specs/07-claude-transcript.md for design.
+package input
+
+import (
+	"bufio"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+)
+
+// Transcript captures the parsed metadata of a root claude session.
+type Transcript struct {
+	Path      string
+	SessionID string
+	Cwd       string
+	FirstUser string
+	StartedAt time.Time
+	LineCount int
+}
+
+var (
+	// ErrTranscriptNotFound wraps os.ErrNotExist with the searched path.
+	ErrTranscriptNotFound = errors.New("transcript not found")
+	// ErrTranscriptMalformed signals > 5% bad lines or a parse error
+	// past tolerance.
+	ErrTranscriptMalformed = errors.New("transcript malformed")
+	// ErrNoUserTurn signals the transcript contains zero user records.
+	ErrNoUserTurn = errors.New("transcript has no user turn")
+)
+
+// EncodeCwd encodes an absolute cwd into the segment claude uses under
+// ~/.claude/projects/<encoded>/.
+//
+//	/Users/changkun/dev/foo  ->  -Users-changkun-dev-foo
+func EncodeCwd(cwd string) string {
+	return strings.ReplaceAll(filepath.ToSlash(cwd), "/", "-")
+}
+
+// DecodeCwd is the inverse of EncodeCwd.
+func DecodeCwd(encoded string) string {
+	return strings.ReplaceAll(encoded, "-", "/")
+}
+
+// LocateTranscript resolves the on-disk path for a root session.
+//
+// Preference order:
+//  1. explicit (when non-empty): used as-is.
+//  2. ~/.claude/projects/<encoded-cwd>/<sessionID>.jsonl
+//
+// Returns ErrTranscriptNotFound when neither path exists.
+func LocateTranscript(home, cwd, sessionID, explicit string) (string, error) {
+	if explicit != "" {
+		if _, err := os.Stat(explicit); err == nil {
+			return explicit, nil
+		}
+		return "", fmt.Errorf("%w: %s", ErrTranscriptNotFound, explicit)
+	}
+	if home == "" || cwd == "" || sessionID == "" {
+		return "", fmt.Errorf("%w: missing home/cwd/sessionID", ErrTranscriptNotFound)
+	}
+	p := filepath.Join(home, ".claude", "projects", EncodeCwd(cwd), sessionID+".jsonl")
+	if _, err := os.Stat(p); err == nil {
+		return p, nil
+	}
+	return "", fmt.Errorf("%w: %s", ErrTranscriptNotFound, p)
+}
+
+// ReadTranscript opens a JSONL transcript and returns a populated
+// *Transcript. Streaming line-by-line; bounded memory.
+func ReadTranscript(path string) (*Transcript, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	t := &Transcript{
+		Path:      path,
+		SessionID: strings.TrimSuffix(filepath.Base(path), ".jsonl"),
+	}
+	if abs := decodeCwdFromTranscript(path); abs != "" {
+		t.Cwd = abs
+	}
+
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+	var bad int
+	var first []byte
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+		var probe map[string]json.RawMessage
+		if err := json.Unmarshal(line, &probe); err != nil {
+			bad++
+			continue
+		}
+		t.LineCount++
+		if t.StartedAt.IsZero() {
+			if ts, ok := probe["timestamp"]; ok {
+				_ = json.Unmarshal(ts, &t.StartedAt)
+			}
+		}
+		if first == nil {
+			if typ, ok := probe["type"]; ok {
+				var s string
+				if err := json.Unmarshal(typ, &s); err == nil && s == "user" {
+					first = append([]byte(nil), line...)
+				}
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil && !errors.Is(err, io.EOF) {
+		return nil, err
+	}
+	if t.LineCount > 0 && float64(bad)/float64(t.LineCount+bad) > 0.05 {
+		return nil, ErrTranscriptMalformed
+	}
+	if first == nil {
+		return nil, ErrNoUserTurn
+	}
+	t.FirstUser, err = ExtractFirstUser([][]byte{first})
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+// ExtractFirstUser walks records in order and returns the message
+// content of the first user record. String-form and array-of-parts form
+// are both supported; tool_use parts are skipped.
+func ExtractFirstUser(records [][]byte) (string, error) {
+	for _, line := range records {
+		var rec struct {
+			Type    string `json:"type"`
+			Message struct {
+				Role    string          `json:"role"`
+				Content json.RawMessage `json:"content"`
+			} `json:"message"`
+		}
+		if err := json.Unmarshal(line, &rec); err != nil {
+			continue
+		}
+		if rec.Type != "user" {
+			continue
+		}
+		// String form?
+		var s string
+		if err := json.Unmarshal(rec.Message.Content, &s); err == nil {
+			return s, nil
+		}
+		// Array form.
+		var parts []struct {
+			Type string `json:"type"`
+			Text string `json:"text"`
+		}
+		if err := json.Unmarshal(rec.Message.Content, &parts); err == nil {
+			var b strings.Builder
+			for _, p := range parts {
+				if p.Type != "text" {
+					continue
+				}
+				if b.Len() > 0 {
+					b.WriteString("\n\n")
+				}
+				b.WriteString(p.Text)
+			}
+			return b.String(), nil
+		}
+	}
+	return "", ErrNoUserTurn
+}
+
+// decodeCwdFromTranscript returns the absolute cwd encoded in a
+// .../projects/<encoded>/<id>.jsonl path. Returns "" if the path does
+// not match.
+func decodeCwdFromTranscript(path string) string {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return ""
+	}
+	parts := strings.Split(filepath.ToSlash(abs), "/")
+	for i, p := range parts {
+		if p == "projects" && i+1 < len(parts) {
+			return DecodeCwd(parts[i+1])
+		}
+	}
+	return ""
+}

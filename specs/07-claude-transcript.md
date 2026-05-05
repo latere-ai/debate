@@ -1,5 +1,6 @@
 # Spec 07 — Claude session JSONL reader
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Verified primitives" for design intent.
 
 **Depends on:** [02](02-go-module.md), [04](04-cli-flags.md), [06](06-preflight.md).
@@ -126,7 +127,7 @@ Fixtures live under `testdata/transcripts/`.
 
 ## Acceptance criteria
 
-- [ ] `LocateTranscript` handles the four input combinations of `(transcript, sessionID)` defined in the preference order.
-- [ ] `ReadTranscript` is streaming (verified by reading a 50MB synthetic transcript with `MaxRSS < 50MB`).
-- [ ] All three error types are reachable in tests with their carried metadata.
-- [ ] Fallback `TaskContextViaResume` exists but is not used unless explicitly invoked; lint check ensures pre-flight does not import it.
+- [x] `LocateTranscript` handles the four input combinations of `(transcript, sessionID)` defined in the preference order.
+- [x] `ReadTranscript` is streaming (verified by reading a 50MB synthetic transcript with `MaxRSS < 50MB`).
+- [x] All three error types are reachable in tests with their carried metadata.
+- [x] Fallback `TaskContextViaResume` exists but is not used unless explicitly invoked; lint check ensures pre-flight does not import it.
