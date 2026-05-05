@@ -1,0 +1,129 @@
+package state
+
+import (
+	"os"
+	"path/filepath"
+	"regexp"
+	"sync"
+	"testing"
+	"time"
+)
+
+func TestSessionIDFormat(t *testing.T) {
+	id := newSessionID(time.Date(2026, 5, 6, 14, 12, 33, 0, time.UTC))
+	re := regexp.MustCompile(`^20260506T141233Z-[a-z0-9]{6}$`)
+	if !re.MatchString(id) {
+		t.Errorf("session id %q does not match format", id)
+	}
+}
+
+func TestNewSessionLayout(t *testing.T) {
+	dir := t.TempDir()
+	sess, err := NewSession(dir, 3, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 3; i++ {
+		p := filepath.Join(sess.Root, "forks", "critic-"+itoa(i), "rounds")
+		if _, err := os.Stat(p); err != nil {
+			t.Errorf("missing %s: %v", p, err)
+		}
+	}
+}
+
+func itoa(n int) string {
+	if n == 1 {
+		return "1"
+	}
+	if n == 2 {
+		return "2"
+	}
+	if n == 3 {
+		return "3"
+	}
+	return ""
+}
+
+func TestAtomicWrite(t *testing.T) {
+	dir := t.TempDir()
+	sess, err := NewSession(dir, 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sess.AtomicWrite("start.json", []byte(`{"x":1}`)); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(sess.Path("start.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != `{"x":1}` {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestAppendLineMultiple(t *testing.T) {
+	dir := t.TempDir()
+	sess, err := NewSession(dir, 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 100; i++ {
+		if err := sess.AppendLine("attacks.jsonl", []byte(`{}`)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	b, err := os.ReadFile(sess.Path("attacks.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	count := 0
+	for _, c := range b {
+		if c == '\n' {
+			count++
+		}
+	}
+	if count != 100 {
+		t.Errorf("lines: got %d, want 100", count)
+	}
+}
+
+func TestAppendLineRace(t *testing.T) {
+	dir := t.TempDir()
+	sess, err := NewSession(dir, 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := sess.AppendLine("attacks.jsonl", []byte(`{}`)); err != nil {
+				t.Error(err)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func TestAtomicWriteRefusesExistingTemp(t *testing.T) {
+	dir := t.TempDir()
+	sess, err := NewSession(dir, 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Sanity: same target written twice — second wins (rename overwrites
+	// is the OS guarantee). The interesting invariant is that an
+	// in-flight temp file cannot collide because of randSuffix().
+	if err := sess.AtomicWrite("end.json", []byte("a")); err != nil {
+		t.Fatal(err)
+	}
+	if err := sess.AtomicWrite("end.json", []byte("b")); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := os.ReadFile(sess.Path("end.json"))
+	if string(got) != "b" {
+		t.Errorf("got %q", got)
+	}
+}

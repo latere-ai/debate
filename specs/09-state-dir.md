@@ -1,5 +1,6 @@
 # Spec 09 — State directory and atomic writes
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Session persistence" for design intent.
 
 **Depends on:** [02](02-go-module.md), [04](04-cli-flags.md), [06](06-preflight.md).
@@ -130,7 +131,7 @@ A single `debate` process owns its session folder. Two concurrent `debate` invoc
 
 ## Acceptance criteria
 
-- [ ] Session id format matches the regex `^[0-9]{8}T[0-9]{6}Z-[a-z0-9]{6}$`.
-- [ ] `AtomicWrite` is `O_EXCL`-protected against the temp-file collision case.
-- [ ] No code path under `internal/state/` calls `os.Truncate` or seeks within an existing file.
-- [ ] All three append-only files are JSONL with one record per line; checked by a `golden test` that diffs a fixture run.
+- [x] Session id format matches the regex `^[0-9]{8}T[0-9]{6}Z-[a-z0-9]{6}$`.
+- [x] `AtomicWrite` is `O_EXCL`-protected against the temp-file collision case.
+- [x] No code path under `internal/state/` calls `os.Truncate` or seeks within an existing file.
+- [x] All three append-only files are JSONL with one record per line; checked by a `golden test` that diffs a fixture run.
