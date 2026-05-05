@@ -225,7 +225,7 @@ debate --max-turn=10 --main claude --side codex --side-count=3 \
        --aspect correctness,security,perf --session-id <claude-session>
 ```
 
-Uses `claude --resume <id>` to drive forks (claude-as-proposer mode) or fresh `codex exec` per round (codex-as-proposer mode). Required as-is for: codex-as-proposer mode, CI gating, scripted batch runs, and as the backend for Option B.
+In claude-as-proposer mode, the CLI **always injects into a fork, never the root**: `claude --resume <root> --fork-session -p "..."` for R1 (creates the fork and processes R1 in one shot), then `claude --resume <fork-id> -p "..."` for subsequent rounds in that same fork. Plain `claude --resume <root>` (without `--fork-session`) would append turns to the root and is forbidden. In codex-as-proposer mode the orchestrator runs fresh `codex exec` per round; codex has no non-mutating fork (see codex section). Required as-is for: codex-as-proposer mode, CI gating, scripted batch runs, and as the backend for Option B.
 
 ### Option B — CLI + Stop hook (default UX for claude-as-proposer)
 
