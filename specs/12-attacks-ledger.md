@@ -1,5 +1,6 @@
 # Spec 12 — Attacks ledger (`attacks.jsonl`)
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"`attacks.jsonl` schema" for design intent.
 
 **Depends on:** [09](09-state-dir.md).
@@ -158,7 +159,7 @@ A partial transition (e.g., the orchestrator crashed *between* writing the propo
 
 ## Acceptance criteria
 
-- [ ] All five `Status` values reachable end-to-end.
-- [ ] No code path under `internal/ledger/` opens `attacks.jsonl` for writing without `O_APPEND`.
-- [ ] Body spill triggers at exactly 64KB (test with 65535-byte and 65537-byte fixtures).
-- [ ] `Aggregate`'s output is deterministic for a given input (no map-iteration order leaks).
+- [x] All five `Status` values reachable end-to-end.
+- [x] No code path under `internal/ledger/` opens `attacks.jsonl` for writing without `O_APPEND`.
+- [x] Body spill triggers at exactly 64KB (test with 65535-byte and 65537-byte fixtures).
+- [x] `Aggregate`'s output is deterministic for a given input (no map-iteration order leaks).
