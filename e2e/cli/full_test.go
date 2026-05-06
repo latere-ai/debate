@@ -221,14 +221,16 @@ func TestFullE2E_HappyPath(t *testing.T) {
 
 	stateDir := filepath.Join(repo, ".debate")
 	env := patchedPATH(t, binDir)
-	env = append(env,
+	env = append(
+		env,
 		"MOCK_CLAUDE_SCRIPT="+scriptPath,
 		"MOCK_CODEX_CONTENT="+criticContent,
 		"MOCK_CODEX_THREAD_ID=mock-thread",
 		"HOME="+t.TempDir(),
 	)
 
-	res := runDebate(t, debate, env, repo,
+	res := runDebate(
+		t, debate, env, repo,
 		"--task-context", "search handler",
 		"--main", "claude",
 		"--side", "codex",
@@ -324,7 +326,8 @@ func TestFullE2E_TrivialDiffSkip(t *testing.T) {
 	stateDir := filepath.Join(repo, ".debate")
 	env := patchedPATH(t, binDir)
 
-	res := runDebate(t, debate, env, repo,
+	res := runDebate(
+		t, debate, env, repo,
 		"--task-context", "no changes",
 		"--side-count", "1", "--aspect", "security",
 		"--max-turn", "4", "--changed-lines-min", "10",
@@ -360,7 +363,8 @@ func TestFullE2E_RecursionGuard(t *testing.T) {
 	env := patchedPATH(t, binDir)
 	env = append(env, "DEBATE_IN_PROGRESS=1")
 
-	res := runDebate(t, debate, env, repo,
+	res := runDebate(
+		t, debate, env, repo,
 		"--task-context", "anything",
 		"--side-count", "1", "--aspect", "security",
 		"--state-dir", filepath.Join(repo, ".debate"),
@@ -383,7 +387,8 @@ func TestFullE2E_PreflightExitCode(t *testing.T) {
 	env := patchedPATH(t, binDir)
 
 	// --side-count != len(--aspect) → exit 120
-	res := runDebate(t, debate, env, repo,
+	res := runDebate(
+		t, debate, env, repo,
 		"--task-context", "x",
 		"--side-count", "3",
 		"--aspect", "security,functional-logic",

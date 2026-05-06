@@ -7,7 +7,7 @@ COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
 DATE    ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS := -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
 
-.PHONY: all pre lint vet test build install clean probe release-check
+.PHONY: all pre lint vet test build install clean probe release-check coverage e2e
 
 all: pre test build
 
@@ -38,6 +38,18 @@ probe:
 	  printf '== %s ==\n' "$$s"; \
 	  "$$s" || exit $$?; \
 	done
+
+# Run the full local end-to-end test suite (CLI integration + hook).
+e2e: pre build
+	go test -timeout 180s ./e2e/...
+
+# Coverage report. -coverpkg=./... so e2e tests count toward cmd/debate.
+coverage: pre
+	go test -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
+	@printf 'Total coverage: '
+	@go tool cover -func=coverage.out | tail -1
+	go tool cover -html=coverage.out -o coverage.html
+	@echo 'HTML report: coverage.html'
 
 # release-check is the local pre-tag gate: lint, vet, test, build,
 # version smoke. CI runs the same.
