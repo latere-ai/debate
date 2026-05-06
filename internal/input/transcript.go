@@ -35,14 +35,24 @@ var (
 )
 
 // EncodeCwd encodes an absolute cwd into the segment claude uses under
-// ~/.claude/projects/<encoded>/.
+// ~/.claude/projects/<encoded>/. Claude replaces both `/` and `.` with
+// `-`, so /Users/x/dev/changkun.de/agents-byzantine-tolerance becomes
+// -Users-x-dev-changkun-de-agents-byzantine-tolerance. The encoding is
+// many-to-one (a directory containing `-` or `.` cannot be
+// distinguished from a path boundary), so DecodeCwd is best-effort.
 //
 //	/Users/changkun/dev/foo  ->  -Users-changkun-dev-foo
 func EncodeCwd(cwd string) string {
-	return strings.ReplaceAll(filepath.ToSlash(cwd), "/", "-")
+	s := filepath.ToSlash(cwd)
+	s = strings.ReplaceAll(s, "/", "-")
+	s = strings.ReplaceAll(s, ".", "-")
+	return s
 }
 
-// DecodeCwd is the inverse of EncodeCwd.
+// DecodeCwd is a best-effort inverse of EncodeCwd. It replaces every
+// `-` with `/`, which loses information when the original cwd contained
+// `.` or `-` characters. Use the returned string only as a hint; for a
+// reliable equality check, compare encoded forms via EncodeCwd.
 func DecodeCwd(encoded string) string {
 	return strings.ReplaceAll(encoded, "-", "/")
 }
@@ -72,13 +82,14 @@ func LocateTranscript(home, cwd, sessionID, explicit string) (string, error) {
 }
 
 // FindSession scans ~/.claude/projects/*/<sessionID>.jsonl and returns
-// the on-disk path plus the cwd it was created in. claude's --resume is
-// cwd-scoped, so callers use the decoded cwd to verify that resume will
-// succeed before spending time on the rest of a run.
+// the on-disk path plus the encoded segment it lives under. The encoded
+// segment is the directory name claude assigned, which is reliable;
+// the decoded cwd is intrinsically lossy (see DecodeCwd) and is left to
+// the caller to compute as a hint.
 //
 // Returns ErrTranscriptNotFound if no project directory contains the
 // session.
-func FindSession(home, sessionID string) (path, decodedCwd string, err error) {
+func FindSession(home, sessionID string) (path, encodedSegment string, err error) {
 	if home == "" || sessionID == "" {
 		return "", "", fmt.Errorf("%w: missing home/sessionID", ErrTranscriptNotFound)
 	}
@@ -93,7 +104,7 @@ func FindSession(home, sessionID string) (path, decodedCwd string, err error) {
 		}
 		p := filepath.Join(projects, e.Name(), sessionID+".jsonl")
 		if _, err := os.Stat(p); err == nil {
-			return p, DecodeCwd(e.Name()), nil
+			return p, e.Name(), nil
 		}
 	}
 	return "", "", fmt.Errorf("%w: session %s not found under %s", ErrTranscriptNotFound, sessionID, projects)

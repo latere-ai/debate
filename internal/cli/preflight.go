@@ -75,16 +75,29 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 			}
 		}
 	} else if f.SessionID != "" {
-		// claude's --resume is cwd-scoped. Scan ~/.claude/projects/* to
-		// find the session and verify its cwd matches before any agent
-		// process runs. Saves the user a 30-90s critic round followed by
-		// "No conversation found" from the proposer.
+		// claude's --resume is cwd-scoped. We scan ~/.claude/projects/*
+		// only as a best-effort fast-fail: when the session file is at
+		// the documented layout AND its encoded directory disagrees
+		// with our cwd's encoded form, exit 101. Comparing in encoded
+		// space is reliable; decoding back to a path is lossy because
+		// claude maps both `/` and `.` to `-`. If the layout changes,
+		// the home dir is unreadable, or the session genuinely is not
+		// there, we fall through and let the actual claude --resume
+		// call surface the real error 30-90s later. The check never
+		// introduces a new failure mode; it only converts a slow-fail
+		// into a fast-fail on the documented layout.
 		if home, herr := os.UserHomeDir(); herr == nil {
-			if _, sessCwd, ferr := input.FindSession(home, f.SessionID); ferr == nil && sessCwd != cwd {
-				return nil, &PreflightError{
-					Code: 101,
-					Msg: fmt.Sprintf("--session-id %s was created in %s; cd there and rerun (claude --resume is cwd-scoped)",
-						f.SessionID, sessCwd),
+			if _, foundSeg, ferr := input.FindSession(home, f.SessionID); ferr == nil {
+				ourSeg := input.EncodeCwd(cwd)
+				if foundSeg != ourSeg {
+					return nil, &PreflightError{
+						Code: 101,
+						Msg: fmt.Sprintf(
+							"--session-id %s lives under projects/%s but the current cwd encodes to %s; "+
+								"the original directory is approximately %q (claude's encoding maps both `/` and `.` to `-` so this hint may need a `.` or a `-` swapped); "+
+								"cd there and rerun (claude --resume is cwd-scoped)",
+							f.SessionID, foundSeg, ourSeg, input.DecodeCwd(foundSeg)),
+					}
 				}
 			}
 		}
