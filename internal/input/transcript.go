@@ -78,7 +78,7 @@ func ReadTranscript(path string) (*Transcript, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	t := &Transcript{
 		Path:      path,

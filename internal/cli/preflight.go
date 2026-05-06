@@ -76,7 +76,7 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 
 	// 3. Env hygiene — never an error; informational only.
 	if os.Getenv("ANTHROPIC_API_KEY") != "" {
-		os.Unsetenv("ANTHROPIC_API_KEY")
+		_ = os.Unsetenv("ANTHROPIC_API_KEY")
 		if f.Verbose >= 1 {
 			fmt.Fprintln(os.Stderr, "debate: unset stale ANTHROPIC_API_KEY for this run (claude OAuth keychain will be used)")
 		}

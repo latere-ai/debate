@@ -13,8 +13,11 @@ import (
 // Scope picks where settings.json lives.
 type Scope int
 
+// Scope values.
 const (
+	// ScopeUser writes ~/.claude/settings.json.
 	ScopeUser Scope = iota
+	// ScopeProject writes ./.claude/settings.json.
 	ScopeProject
 )
 

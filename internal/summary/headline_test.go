@@ -11,10 +11,10 @@ func ptr(i int) *int { return &i }
 
 func recs() []ledger.Record {
 	return []ledger.Record{
-		{AttackID: "c1-1", RoundIntroduced: ptr(1), RoundLastTouched: 5, ReAttacked: true, Status: ledger.StatusUnresolved}, // 4+1=5
+		{AttackID: "c1-1", RoundIntroduced: ptr(1), RoundLastTouched: 5, ReAttacked: true, Status: ledger.StatusUnresolved},  // 4+1=5
 		{AttackID: "c1-3", RoundIntroduced: ptr(1), RoundLastTouched: 5, ReAttacked: false, Status: ledger.StatusUnresolved}, // 4
-		{AttackID: "c2-2", RoundIntroduced: ptr(3), RoundLastTouched: 5, ReAttacked: true, Status: ledger.StatusUnresolved}, // 2+1=3
-		{AttackID: "c1-7", RoundIntroduced: ptr(1), RoundLastTouched: 1, ReAttacked: false, Status: ledger.StatusConceded}, // skipped
+		{AttackID: "c2-2", RoundIntroduced: ptr(3), RoundLastTouched: 5, ReAttacked: true, Status: ledger.StatusUnresolved},  // 2+1=3
+		{AttackID: "c1-7", RoundIntroduced: ptr(1), RoundLastTouched: 1, ReAttacked: false, Status: ledger.StatusConceded},   // skipped
 	}
 }
 

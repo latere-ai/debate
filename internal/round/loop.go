@@ -60,10 +60,10 @@ type ForkOutcome struct {
 
 // Typed errors ([20]).
 var (
-	ErrInterrupted     = errors.New("debate interrupted")
-	ErrCostCap         = errors.New("debate cost cap reached")
-	ErrMalformedTwice  = errors.New("debate malformed output twice")
-	ErrAgentFatal      = errors.New("debate agent fatal error")
+	ErrInterrupted    = errors.New("debate interrupted")
+	ErrCostCap        = errors.New("debate cost cap reached")
+	ErrMalformedTwice = errors.New("debate malformed output twice")
+	ErrAgentFatal     = errors.New("debate agent fatal error")
 )
 
 var defenseLineRE = regexp.MustCompile(`(?m)^\s*(concede|rebut|push-back)\s+(c\d+-\d+)\b`)
@@ -118,9 +118,9 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 	cri := e.NewCritic(forkIdx)
 	a := critic.Lookup(aspect)
 	var (
-		forkID  string
-		hist    []ForkHistory
-		runStop TerminationReason
+		forkID   string
+		hist     []ForkHistory
+		runStop  TerminationReason
 		priorIDs []string
 	)
 
@@ -143,7 +143,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 			cost.Add(res.tokens)
 			hist = append(hist, ForkHistory{
 				Round: round, NewAttacks: stats.KeptIntroduce, ReAttacks: stats.KeptReAttack,
-				Withdrawn: stats.KeptWithdraw,
+				Withdrawn:     stats.KeptWithdraw,
 				MalformedFlag: stats.Total > 0 && (stats.KeptIntroduce+stats.KeptReAttack+stats.KeptWithdraw) == 0,
 			})
 			priorIDs = res.priorIDs
@@ -186,7 +186,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 			_ = state.AppendTranscript(e.Sess, &state.TranscriptRecord{
 				TS: time.Now().UTC(), Fork: forkIdx, Round: round, Role: "proposer",
 				Path: filepath.Join("forks", fmt.Sprintf("critic-%d", forkIdx), "rounds", fmt.Sprintf("r%d-proposer.md", round)),
-				MS: int(pr.Duration.Milliseconds()),
+				MS:   int(pr.Duration.Milliseconds()),
 			})
 			updateLedgerFromDefense(e.Sess, pr.Response, pr.ChangedFiles, round)
 		}
@@ -229,14 +229,14 @@ func (e *Engine) criticRound(ctx context.Context, cri agent.Critic, a critic.Asp
 		ri := at.RoundIntroduced
 		_ = ledger.Append(e.Sess, ledger.Record{
 			AttackID: at.AttackID, CriticIndex: forkIdx, Aspect: a.Name,
-			RoundIntroduced: ifNonZero(ri),
-			Location:        at.Location,
-			Claim:           at.Claim,
+			RoundIntroduced:   ifNonZero(ri),
+			Location:          at.Location,
+			Claim:             at.Claim,
 			ExpectedViolation: at.ExpectedViolation,
-			Reproduction:     at.Reproduction,
-			RoundLastTouched: round,
-			Status:           st,
-			ReAttacked:       at.Disposition == critic.DispReAttack,
+			Reproduction:      at.Reproduction,
+			RoundLastTouched:  round,
+			Status:            st,
+			ReAttacked:        at.Disposition == critic.DispReAttack,
 		})
 	}
 	_ = state.AppendTranscript(e.Sess, &state.TranscriptRecord{

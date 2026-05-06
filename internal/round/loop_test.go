@@ -11,16 +11,22 @@ import (
 	"github.com/latere-ai/debate/internal/state"
 )
 
-type stubProposer struct{ first, next func(string) (*agent.ProposerResult, error) }
+type stubProposer struct {
+	first, next func(string) (*agent.ProposerResult, error)
+}
 
 func (s *stubProposer) FirstRound(_ context.Context, pointer string) (*agent.ProposerResult, error) {
 	return s.first(pointer)
 }
+
 func (s *stubProposer) NextRound(_ context.Context, _ string, pointer string) (*agent.ProposerResult, error) {
 	return s.next(pointer)
 }
 
-type stubCritic struct{ rounds []string; idx int }
+type stubCritic struct {
+	rounds []string
+	idx    int
+}
 
 func (s *stubCritic) Round(_ context.Context, _ agent.CriticInput) (*agent.CriticResult, error) {
 	if s.idx >= len(s.rounds) {
@@ -37,17 +43,17 @@ func TestEngineSingleForkSteadyState(t *testing.T) {
 		t.Fatal(err)
 	}
 	r1 := "# Critic 1 — round 1 attacks\n\naspect: security\n\n## c1-1 [x.go:1]\n\nclaim: leaks token\n\nexpected violation: panic at runtime\n\nreproduction:\n```\ngo test\n```\n"
-	r3 := "# Critic 1 — round 3 attacks\n\naspect: security\n"  // empty: no new
-	r5 := "# Critic 1 — round 5 attacks\n\naspect: security\n"  // empty: steady state at R5
+	r3 := "# Critic 1 — round 3 attacks\n\naspect: security\n" // empty: no new
+	r5 := "# Critic 1 — round 5 attacks\n\naspect: security\n" // empty: steady state at R5
 
 	e := &Engine{
 		Sess: sess, Cwd: t.TempDir(),
-		Aspects:  []string{"security"},
+		Aspects: []string{"security"},
 		Proposer: &stubProposer{
-			first: func(p string) (*agent.ProposerResult, error) {
+			first: func(_ string) (*agent.ProposerResult, error) {
 				return &agent.ProposerResult{ForkID: "fork-1", Response: "rebut c1-1: framework escapes", Tokens: 10}, nil
 			},
-			next: func(p string) (*agent.ProposerResult, error) {
+			next: func(_ string) (*agent.ProposerResult, error) {
 				return &agent.ProposerResult{ForkID: "fork-1", Response: "no further action", Tokens: 10}, nil
 			},
 		},

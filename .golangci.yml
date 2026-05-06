@@ -1,22 +1,16 @@
+version: "2"
+
 run:
   timeout: 3m
-  go: "1.23"
 
 linters:
+  default: standard
   enable:
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
     - revive
-    - gofumpt
-    - gocritic
     - misspell
-    - prealloc
     - unconvert
+    - prealloc
 
-issues:
-  exclude-dirs:
-    - testdata
+formatters:
+  enable:
+    - gofumpt

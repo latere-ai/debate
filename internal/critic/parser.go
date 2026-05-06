@@ -10,9 +10,13 @@ import (
 // Disposition discriminates introduce / re-attack / withdraw.
 type Disposition int
 
+// Disposition values.
 const (
+	// DispIntroduce is a fresh attack.
 	DispIntroduce Disposition = iota
+	// DispReAttack continues a prior attack.
 	DispReAttack
+	// DispWithdraw retires a prior attack.
 	DispWithdraw
 )
 
@@ -49,11 +53,11 @@ type ParseOption struct {
 }
 
 var (
-	headerRE       = regexp.MustCompile(`^# Critic\s+\d+\s+—\s+round\s+\d+\s+attacks\s*$`)
-	aspectLineRE   = regexp.MustCompile(`^aspect:\s*(.+)$`)
-	sectionHeadRE  = regexp.MustCompile(`^##\s+(\S+)\s+\[(.+?)\](?:\s+\((re-attack|withdraw)\))?\s*$`)
-	idRE           = regexp.MustCompile(`^c(\d+)-(\d+)$`)
-	stylePatterns  = []*regexp.Regexp{
+	headerRE      = regexp.MustCompile(`^# Critic\s+\d+\s+—\s+round\s+\d+\s+attacks\s*$`)
+	aspectLineRE  = regexp.MustCompile(`^aspect:\s*(.+)$`)
+	sectionHeadRE = regexp.MustCompile(`^##\s+(\S+)\s+\[(.+?)\](?:\s+\((re-attack|withdraw)\))?\s*$`)
+	idRE          = regexp.MustCompile(`^c(\d+)-(\d+)$`)
+	stylePatterns = []*regexp.Regexp{
 		regexp.MustCompile(`(?i)should be (named|called|written as|shorter|more idiomatic|simpler)`),
 		regexp.MustCompile(`(?i)(naming|formatting|style) (preference|convention)`),
 		regexp.MustCompile(`(?i)consider (renaming|reformatting|restyling)`),

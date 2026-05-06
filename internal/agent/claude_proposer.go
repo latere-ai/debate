@@ -40,13 +40,13 @@ var (
 )
 
 type claudeJSON struct {
-	Type        string  `json:"type"`
-	Subtype     string  `json:"subtype"`
-	SessionID   string  `json:"session_id"`
-	Result      string  `json:"result"`
-	IsError     bool    `json:"is_error"`
+	Type         string  `json:"type"`
+	Subtype      string  `json:"subtype"`
+	SessionID    string  `json:"session_id"`
+	Result       string  `json:"result"`
+	IsError      bool    `json:"is_error"`
 	TotalCostUSD float64 `json:"total_cost_usd"`
-	Usage struct {
+	Usage        struct {
 		InputTokens  int `json:"input_tokens"`
 		OutputTokens int `json:"output_tokens"`
 	} `json:"usage"`

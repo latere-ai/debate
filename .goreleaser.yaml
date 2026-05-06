@@ -30,8 +30,64 @@ archives:
 checksum:
   name_template: "checksums.txt"
 
+# Categorize commit messages by Go-style prefix into release-note groups.
+changelog:
+  use: git
+  sort: asc
+  groups:
+    - title: "CLI & orchestration"
+      regexp: '^(cli|round|summary|debate)(\([^)]+\))?:'
+      order: 0
+    - title: "State & persistence"
+      regexp: '^(state|ledger|input)(\([^)]+\))?:'
+      order: 1
+    - title: "Critic protocol"
+      regexp: '^critic(\([^)]+\))?:'
+      order: 2
+    - title: "Subprocess drivers & hook"
+      regexp: '^(agent|hook)(\([^)]+\))?:'
+      order: 3
+    - title: "Spec / documentation"
+      regexp: '^(spec|docs)(\([^)]+\))?:'
+      order: 4
+    - title: "Tests, scripts & build"
+      regexp: '^(scripts|e2e|ci|test|build)(\([^)]+\))?:'
+      order: 5
+    - title: "Other"
+      order: 999
+  filters:
+    exclude:
+      - "^Merge"
+      - "^merge"
+      - "^chore:"
+
 release:
-  draft: true
+  draft: false
+  prerelease: auto
   github:
     owner: latere-ai
     name: debate
+  header: |
+    # debate {{.Tag}}
+
+    Adversarial review for Claude Code coding sessions.
+
+    Changes below are grouped by area, derived from the commit log
+    between {{.PreviousTag}} and {{.Tag}}.
+
+  footer: |
+    ## Install
+
+    ```sh
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m); [[ "$ARCH" == "x86_64" ]] && ARCH=amd64
+    curl -L "https://github.com/latere-ai/debate/releases/download/{{.Tag}}/debate_{{.Version}}_${OS}_${ARCH}.tar.gz" | tar xz
+    ./debate install-hook --scope user
+    ```
+
+    ## Verify
+
+    ```sh
+    debate --version
+    debate --help
+    ```

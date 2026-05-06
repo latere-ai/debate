@@ -13,20 +13,23 @@ import (
 // Role discriminates critic (odd rounds) from proposer (even rounds).
 type Role int
 
+// Role values.
 const (
+	// RoleCritic is the role for odd rounds.
 	RoleCritic Role = iota
+	// RoleProposer is the role for even rounds.
 	RoleProposer
 )
 
 // ProposerState mirrors specs/11-fork-artifacts.md. Two shapes,
 // discriminated by Agent.
 type ProposerState struct {
-	Schema          string          `json:"schema"`
-	Agent           string          `json:"agent"`
-	Model           string          `json:"model,omitempty"`
-	ForkSessionID   string          `json:"fork_session_id,omitempty"`
-	RootSessionID   string          `json:"root_session_id,omitempty"`
-	RoundThreadIDs  []RoundThreadID `json:"round_thread_ids,omitempty"`
+	Schema         string          `json:"schema"`
+	Agent          string          `json:"agent"`
+	Model          string          `json:"model,omitempty"`
+	ForkSessionID  string          `json:"fork_session_id,omitempty"`
+	RootSessionID  string          `json:"root_session_id,omitempty"`
+	RoundThreadIDs []RoundThreadID `json:"round_thread_ids,omitempty"`
 }
 
 // RoundThreadID records one codex thread per even round.
@@ -35,6 +38,8 @@ type RoundThreadID struct {
 	ThreadID string `json:"thread_id"`
 }
 
+// SchemaProposerState is the on-disk schema version for
+// proposer-state.json.
 const SchemaProposerState = "debate.proposer-state.v0"
 
 // ErrRoleParity is returned when round parity disagrees with role.
@@ -76,7 +81,9 @@ func WriteRound(s *Session, fork, round int, role Role, body []byte) error {
 // captured (or, when since is nil, every tracked-modified file vs HEAD
 // plus untracked).
 func ChangedFilesAfter(ctx context.Context, cwd string, since []string) ([]string, error) {
-	out, err := exec.CommandContext(ctx, "git", "status", "--porcelain").CombinedOutput()
+	cmd := exec.CommandContext(ctx, "git", "status", "--porcelain")
+	cmd.Dir = cwd
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, err
 	}

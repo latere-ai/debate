@@ -79,12 +79,12 @@ type Termination struct {
 
 // Stats summarizes counts by status, per-fork rounds, tokens, wall time.
 type Stats struct {
-	TotalAttacks           int            `json:"total_attacks"`
-	ByStatus               map[string]int `json:"by_status"`
-	RoundsExecutedPerFork  []int          `json:"rounds_executed_per_fork"`
-	TokensUsed             int            `json:"tokens_used"`
-	CostCap                int            `json:"cost_cap"`
-	WallSeconds            int            `json:"wall_seconds"`
+	TotalAttacks          int            `json:"total_attacks"`
+	ByStatus              map[string]int `json:"by_status"`
+	RoundsExecutedPerFork []int          `json:"rounds_executed_per_fork"`
+	TokensUsed            int            `json:"tokens_used"`
+	CostCap               int            `json:"cost_cap"`
+	WallSeconds           int            `json:"wall_seconds"`
 }
 
 // HeadlineRef points at the headline attack id and its score.
@@ -119,9 +119,12 @@ type LogRecord struct {
 	Threshold    int       `json:"threshold,omitempty"`
 }
 
+// On-disk schema versions.
 const (
+	// SchemaStart identifies the start.json schema.
 	SchemaStart = "debate.start.v0"
-	SchemaEnd   = "debate.end.v0"
+	// SchemaEnd identifies the end.json schema.
+	SchemaEnd = "debate.end.v0"
 )
 
 // WriteStart writes <session>/start.json. Idempotent within a fresh

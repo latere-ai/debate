@@ -134,10 +134,12 @@ func loadConfig(path string) (*configFile, error) {
 	return &c, nil
 }
 
-// ErrConfigDecodeWrap returns a sentinel error wrapping a path-aware
-// decode failure; callers can errors.Is against ErrConfigDecode.
+// ErrConfigDecode is the sentinel error wrapping a path-aware decode
+// failure; callers can errors.Is against it.
 var ErrConfigDecode = errors.New("config decode error")
 
+// ErrConfigDecodeWrap returns ErrConfigDecode; the path argument is
+// retained for future structured wrapping.
 func ErrConfigDecodeWrap(_ string) error { return ErrConfigDecode }
 
 func applyConfigToFlags(cmd *cobra.Command, f *Flags, c *configFile) {

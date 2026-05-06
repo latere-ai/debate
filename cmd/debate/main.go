@@ -30,13 +30,13 @@ func main() {
 	root.SetVersionTemplate("debate {{.Version}}\n")
 
 	flags := cli.Bind(root)
-	root.RunE = func(cmd *cobra.Command, _ []string) error {
-		if _, err := cli.Effective(cmd, flags); err != nil {
+	root.RunE = func(_ *cobra.Command, _ []string) error {
+		if _, err := cli.Effective(root, flags); err != nil {
 			return err
 		}
 		// Real run lands in spec 19 wired through the orchestrator
 		// once cmd/debate is fully integrated; pre-flight is the gate.
-		_, err := cli.Preflight(cmd.Context(), flags)
+		_, err := cli.Preflight(root.Context(), flags)
 		if err != nil {
 			if errIsRecursion(err) {
 				return nil
@@ -70,7 +70,7 @@ func installHookCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "install-hook",
 		Short: "Install the Stop hook into ~/.claude/settings.json (or project)",
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			s := hook.ScopeUser
 			if scope == "project" {
 				s = hook.ScopeProject

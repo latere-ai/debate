@@ -28,7 +28,7 @@ func main() {
 			"type": "result", "subtype": "success",
 			"session_id": "mock-session", "result": "ok",
 			"is_error": false,
-			"usage": map[string]any{"input_tokens": 1, "output_tokens": 1},
+			"usage":    map[string]any{"input_tokens": 1, "output_tokens": 1},
 		}, "", 0)
 		return
 	}

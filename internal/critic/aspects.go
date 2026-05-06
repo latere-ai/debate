@@ -62,28 +62,32 @@ func Builtin() map[string]Aspect {
 	return map[string]Aspect{
 		"functional-logic": {
 			Name: "functional-logic",
-			SystemPrompt: aspectPrompt("functional-logic",
+			SystemPrompt: aspectPrompt(
+				"functional-logic",
 				"3. Focus on what the diff is supposed to compute. Off-by-ones, missing\n   branches, silent-failure paths, edge cases the task implies but the\n   code missed, incorrect default values.\n4. Boundary inputs are fair game: empty collections, nil/None, negative\n   numbers, zero, max/min ints, leap years, time-zone transitions,\n   unicode at byte boundaries.",
 			),
 			ForbiddenKeywords: []string{"sql injection", "race condition", "deadlock", "auth", "rbac", "csrf", "xss", "n+1", "allocations", "blocking call", "hot path"},
 		},
 		"security": {
 			Name: "security",
-			SystemPrompt: aspectPrompt("security",
+			SystemPrompt: aspectPrompt(
+				"security",
 				"3. Focus on input validation, authn/authz, injection (SQL, shell,\n   template, deserialization), data exposure, secrets in logs, unsafe\n   deserialization, missing CSRF/HMAC checks, broken access control.\n4. Reproductions should be minimal exploit-shaped curls, payloads, or\n   test inputs. Theoretical attacks (\"if the attacker had the secret\n   key\") are dropped — name a concrete reachable path.",
 			),
 			ForbiddenKeywords: []string{"off-by-one", "missing branch", "n+1", "allocations", "blocking call", "long function", "unclear naming", "swallowed exception"},
 		},
 		"code-quality": {
 			Name: "code-quality",
-			SystemPrompt: aspectPrompt("code-quality",
+			SystemPrompt: aspectPrompt(
+				"code-quality",
 				"3. Focus on real maintainability impact: long functions that hide\n   bugs, swallowed exceptions that erase signal, dead branches, unclear\n   naming where it bites readability of THIS diff (not \"I'd prefer x\").\n   Functions that lie about their behavior in their name.\n4. NOT in scope: formatting, single/double quote choices, indent width,\n   comment style, \"I would have written it this way.\" Those are\n   dropped at parse time as style.",
 			),
 			ForbiddenKeywords: []string{"sql injection", "auth", "race condition", "deadlock", "off-by-one"},
 		},
 		"performance": {
 			Name: "performance",
-			SystemPrompt: aspectPrompt("performance",
+			SystemPrompt: aspectPrompt(
+				"performance",
 				"3. Focus on algorithmic complexity, N+1 IO patterns, unnecessary\n   allocations or copies, blocking calls in hot paths, unbounded\n   work-per-request.\n4. The reproduction must demonstrate the cost concretely: a benchmark\n   sketch, a load-test invocation, a calculation showing the\n   complexity blow-up. Vague \"this might be slow\" is dropped.",
 			),
 			ForbiddenKeywords: []string{"sql injection", "missing branch", "auth", "swallowed exception", "unclear naming"},
@@ -99,7 +103,8 @@ func Lookup(name string) Aspect {
 	}
 	return Aspect{
 		Name: name,
-		SystemPrompt: aspectPrompt(name,
+		SystemPrompt: aspectPrompt(
+			name,
 			fmt.Sprintf("3. Focus on the %s aspect of this code. Define what counts as a\n   bug in this aspect at the start of each attack's `claim` line.\n4. As above: concrete behavior or maintainability impact, runnable\n   reproduction.", name),
 		),
 	}
@@ -110,7 +115,7 @@ func Assemble(a Aspect, criticIndex, round int, priorRoundsNote string) string {
 	var b strings.Builder
 	b.WriteString(a.SystemPrompt)
 	b.WriteString("\n\nRound: ")
-	b.WriteString(fmt.Sprintf("%d (critic-%d)", round, criticIndex))
+	fmt.Fprintf(&b, "%d (critic-%d)", round, criticIndex)
 	if priorRoundsNote != "" {
 		b.WriteString("\n\n")
 		b.WriteString(priorRoundsNote)

@@ -64,21 +64,21 @@ func (s *Session) AtomicWrite(rel string, data []byte) error {
 		return err
 	}
 	if _, err := f.Write(data); err != nil {
-		f.Close()
-		os.Remove(tmp)
+		_ = f.Close()
+		_ = os.Remove(tmp)
 		return err
 	}
 	if err := f.Sync(); err != nil {
-		f.Close()
-		os.Remove(tmp)
+		_ = f.Close()
+		_ = os.Remove(tmp)
 		return err
 	}
 	if err := f.Close(); err != nil {
-		os.Remove(tmp)
+		_ = os.Remove(tmp)
 		return err
 	}
 	if err := os.Rename(tmp, abs); err != nil {
-		os.Remove(tmp)
+		_ = os.Remove(tmp)
 		return err
 	}
 	return fsync(filepath.Dir(abs))
@@ -95,7 +95,7 @@ func (s *Session) AppendLine(rel string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	if _, err := f.Write(data); err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func AppendCrossSessionLog(stateDirAbs string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	if _, err := f.Write(data); err != nil {
 		return err
 	}
@@ -139,6 +139,6 @@ func fsync(dir string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return f.Sync()
 }

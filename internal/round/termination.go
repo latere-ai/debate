@@ -5,12 +5,19 @@ package round
 // termination.reason field.
 type TerminationReason string
 
+// TerminationReason values.
 const (
-	TermSteadyState     TerminationReason = "steady-state"
-	TermMaxTurn         TerminationReason = "max-turn"
-	TermCostCap         TerminationReason = "cost-cap"
+	// TermSteadyState fires when no new attacks two rounds running.
+	TermSteadyState TerminationReason = "steady-state"
+	// TermMaxTurn fires at the per-fork turn cap.
+	TermMaxTurn TerminationReason = "max-turn"
+	// TermCostCap fires at the run-level token budget.
+	TermCostCap TerminationReason = "cost-cap"
+	// TermMalformedOutput fires after two consecutive malformed critic
+	// outputs.
 	TermMalformedOutput TerminationReason = "malformed-output"
-	TermInterrupted     TerminationReason = "interrupted"
+	// TermInterrupted fires on SIGINT/SIGTERM.
+	TermInterrupted TerminationReason = "interrupted"
 )
 
 // ForkHistory is the per-fork state the detector needs.
@@ -41,13 +48,13 @@ func (d *Detector) SteadyState(history []ForkHistory) bool {
 		prev.NewAttacks == 0 && prev.ReAttacks == 0
 }
 
-// MaxTurnReached: round number reached d.MaxTurn.
+// MaxTurnReached returns true once round number reaches d.MaxTurn.
 func (d *Detector) MaxTurnReached(round int) bool {
 	return round >= d.MaxTurn
 }
 
-// MalformedTwice: the last two critic rounds in history both have
-// MalformedFlag = true.
+// MalformedTwice returns true when the last two critic rounds in
+// history both have MalformedFlag = true.
 func (d *Detector) MalformedTwice(history []ForkHistory) bool {
 	if len(history) < 2 {
 		return false
@@ -55,7 +62,7 @@ func (d *Detector) MalformedTwice(history []ForkHistory) bool {
 	return history[len(history)-1].MalformedFlag && history[len(history)-2].MalformedFlag
 }
 
-// CostCapHit: totalTokens >= d.CostCap.
+// CostCapHit returns true once totalTokens >= d.CostCap.
 func (d *Detector) CostCapHit(totalTokens int) bool {
 	return totalTokens >= d.CostCap
 }

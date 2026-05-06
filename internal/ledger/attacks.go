@@ -17,11 +17,18 @@ import (
 // Status enumerates the on-disk values for the attack state machine.
 type Status string
 
+// Status values.
 const (
-	StatusOpen       Status = "open"
-	StatusConceded   Status = "conceded"
-	StatusRebutted   Status = "rebutted"
-	StatusWithdrawn  Status = "withdrawn"
+	// StatusOpen is the initial state when an attack is introduced.
+	StatusOpen Status = "open"
+	// StatusConceded is the proposer's concession + fix.
+	StatusConceded Status = "conceded"
+	// StatusRebutted is the proposer's rebuttal.
+	StatusRebutted Status = "rebutted"
+	// StatusWithdrawn is the critic's retraction.
+	StatusWithdrawn Status = "withdrawn"
+	// StatusUnresolved is the post-termination state for any open or
+	// rebutted attack at run end.
 	StatusUnresolved Status = "unresolved"
 )
 
@@ -33,24 +40,24 @@ const SpillThreshold = 64 * 1024
 
 // Record is one transition for an attack_id; many records may share an id.
 type Record struct {
-	Schema             string    `json:"schema"`
-	TS                 time.Time `json:"ts"`
-	AttackID           string    `json:"attack_id"`
-	CriticIndex        int       `json:"critic_index"`
-	Aspect             string    `json:"aspect"`
-	RoundIntroduced    *int      `json:"round_introduced,omitempty"`
-	Location           string    `json:"location,omitempty"`
-	Claim              string    `json:"claim,omitempty"`
-	ExpectedViolation  string    `json:"expected_violation,omitempty"`
-	Reproduction       string    `json:"reproduction,omitempty"`
-	RoundLastTouched   int       `json:"round_last_touched"`
-	Status             Status    `json:"status"`
-	RoundsSurvived     int       `json:"rounds_survived"`
-	ReAttacked         bool      `json:"re_attacked"`
-	ConcessionFiles    []string  `json:"concession_files,omitempty"`
-	IntroducedIn       string    `json:"introduced_in,omitempty"`
-	LastTouchedIn      string    `json:"last_touched_in,omitempty"`
-	BodyPath           string    `json:"body_path,omitempty"`
+	Schema            string    `json:"schema"`
+	TS                time.Time `json:"ts"`
+	AttackID          string    `json:"attack_id"`
+	CriticIndex       int       `json:"critic_index"`
+	Aspect            string    `json:"aspect"`
+	RoundIntroduced   *int      `json:"round_introduced,omitempty"`
+	Location          string    `json:"location,omitempty"`
+	Claim             string    `json:"claim,omitempty"`
+	ExpectedViolation string    `json:"expected_violation,omitempty"`
+	Reproduction      string    `json:"reproduction,omitempty"`
+	RoundLastTouched  int       `json:"round_last_touched"`
+	Status            Status    `json:"status"`
+	RoundsSurvived    int       `json:"rounds_survived"`
+	ReAttacked        bool      `json:"re_attacked"`
+	ConcessionFiles   []string  `json:"concession_files,omitempty"`
+	IntroducedIn      string    `json:"introduced_in,omitempty"`
+	LastTouchedIn     string    `json:"last_touched_in,omitempty"`
+	BodyPath          string    `json:"body_path,omitempty"`
 }
 
 // Append writes one transition record to <session>/attacks.jsonl.
@@ -90,7 +97,7 @@ func Aggregate(s *state.Session) (map[string]Record, error) {
 		}
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	out := map[string]Record{}
 	sc := bufio.NewScanner(f)
