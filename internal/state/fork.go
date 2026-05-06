@@ -62,6 +62,17 @@ func WriteForkDiff(s *Session, fork int, patch string) error {
 	return s.AtomicWrite(forkPath(fork, "diff.patch"), []byte(patch))
 }
 
+// WriteForkStats writes <session>/forks/critic-<i>/stats.json. Body is
+// any JSON-serializable shape; the round engine uses it for token-usage
+// breakdowns.
+func WriteForkStats(s *Session, fork int, stats any) error {
+	b, err := json.MarshalIndent(stats, "", "  ")
+	if err != nil {
+		return err
+	}
+	return s.AtomicWrite(forkPath(fork, "stats.json"), append(b, '\n'))
+}
+
 // WriteRunDiff writes <session>/diff.patch (the run-level initial snapshot).
 func WriteRunDiff(s *Session, patch string) error {
 	return s.AtomicWrite("diff.patch", []byte(patch))

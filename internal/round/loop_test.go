@@ -2,6 +2,8 @@ package round
 
 import (
 	"context"
+	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -157,6 +159,95 @@ func TestCriticRoundPriorFiles(t *testing.T) {
 	if r3in.PriorRoundFiles[1].Path != wantProposer || r3in.PriorRoundFiles[1].Role != "proposer" || r3in.PriorRoundFiles[1].Round != 2 {
 		t.Errorf("R3 PriorRoundFiles[1]: got %+v, want path=%s round=2 role=proposer", r3in.PriorRoundFiles[1], wantProposer)
 	}
+}
+
+func TestEnginePerForkUsageStats(t *testing.T) {
+	sess, err := state.NewSession(t.TempDir(), 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	r1 := "# Critic 1 - round 1 attacks\n\naspect: security\n\n## c1-1 [x.go:1]\n\nclaim: leaks token\n\nexpected violation: panic at runtime\n\nreproduction:\n```\ngo test\n```\n"
+	r3 := "# Critic 1 - round 3 attacks\n\naspect: security\n"
+	r5 := "# Critic 1 - round 5 attacks\n\naspect: security\n"
+	cu := agent.TokenUsage{Input: 1000, Output: 200, CacheCreate: 800, CacheRead: 4000}
+	pu := agent.TokenUsage{Input: 500, Output: 150, CacheCreate: 0, CacheRead: 3000}
+	sc := &usageCritic{
+		rounds: []string{r1, r3, r5},
+		usage:  cu,
+	}
+	e := &Engine{
+		Sess: sess, Cwd: t.TempDir(),
+		Aspects: []string{"security"},
+		Proposer: &stubProposer{
+			first: func(string) (*agent.ProposerResult, error) {
+				return &agent.ProposerResult{ForkID: "fork-1", Response: "rebut c1-1: ok", Tokens: 10, Usage: pu}, nil
+			},
+			next: func(string) (*agent.ProposerResult, error) {
+				return &agent.ProposerResult{ForkID: "fork-1", Response: "no further action", Tokens: 10, Usage: pu}, nil
+			},
+		},
+		NewCritic: func(_ int) agent.Critic { return sc },
+		MaxTurn:   6, CostCap: 1_000_000, TaskContext: "task", DiffPatch: "diff",
+	}
+	sum, err := e.Run(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sum.Forks) != 1 {
+		t.Fatalf("want 1 fork, got %d", len(sum.Forks))
+	}
+	got := sum.Forks[0].Usage
+	criticRounds := sc.idx
+	wantCritic := agent.TokenUsage{
+		Input:       cu.Input * criticRounds,
+		Output:      cu.Output * criticRounds,
+		CacheCreate: cu.CacheCreate * criticRounds,
+		CacheRead:   cu.CacheRead * criticRounds,
+	}
+	if got.Critic != wantCritic {
+		t.Errorf("critic usage: got %+v, want %+v", got.Critic, wantCritic)
+	}
+	if got.Total.Total() != got.Critic.Total()+got.Proposer.Total() {
+		t.Errorf("total mismatch: got %+v", got.Total)
+	}
+	if sum.Usage != got.Total {
+		t.Errorf("run-level usage: got %+v, want %+v", sum.Usage, got.Total)
+	}
+	statsBytes, err := os.ReadFile(filepath.Join(sess.Root, "forks", "critic-1", "stats.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var on map[string]any
+	if err := json.Unmarshal(statsBytes, &on); err != nil {
+		t.Fatalf("stats.json invalid JSON: %v", err)
+	}
+	if on["schema"] != "debate.fork-stats.v0" {
+		t.Errorf("stats.json schema: %v", on["schema"])
+	}
+	if on["aspect"] != "security" {
+		t.Errorf("stats.json aspect: %v", on["aspect"])
+	}
+}
+
+type usageCritic struct {
+	rounds []string
+	idx    int
+	usage  agent.TokenUsage
+}
+
+func (s *usageCritic) Round(_ context.Context, _ agent.CriticInput) (*agent.CriticResult, error) {
+	if s.idx >= len(s.rounds) {
+		return &agent.CriticResult{
+			Markdown: "# Critic 1 - round 99 attacks\n\naspect: security\n",
+			Duration: time.Millisecond, Usage: s.usage, Tokens: s.usage.Input + s.usage.Output,
+		}, nil
+	}
+	out := &agent.CriticResult{
+		Markdown: s.rounds[s.idx], Duration: time.Millisecond,
+		Usage: s.usage, Tokens: s.usage.Input + s.usage.Output,
+	}
+	s.idx++
+	return out, nil
 }
 
 func TestDefenseLineParsing(t *testing.T) {

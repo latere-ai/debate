@@ -58,6 +58,7 @@ type Summary struct {
 	Termination TerminationReason
 	Forks       []ForkOutcome
 	TokensUsed  int
+	Usage       agent.TokenUsage
 	WallSeconds int
 	Headline    *ledger.Record
 	Unresolved  int
@@ -69,6 +70,29 @@ type ForkOutcome struct {
 	Aspect      string
 	Rounds      int
 	Termination TerminationReason
+	Usage       ForkUsage
+}
+
+// ForkUsage aggregates one fork's token consumption split by role.
+// Critic and Proposer both contain TokenUsage broken down into input,
+// output, cache_creation, cache_read; Total is the convenience sum.
+// Stored to <session>/forks/critic-N/stats.json and surfaced on the
+// completion progress line.
+type ForkUsage struct {
+	Critic   agent.TokenUsage `json:"critic"`
+	Proposer agent.TokenUsage `json:"proposer"`
+	Total    agent.TokenUsage `json:"total"`
+	// Rounds is the per-round breakdown in execution order, useful for
+	// spotting the round where the cache went cold.
+	Rounds []RoundUsage `json:"rounds"`
+}
+
+// RoundUsage records one critic-or-proposer round's tokens.
+type RoundUsage struct {
+	Round int              `json:"round"`
+	Role  string           `json:"role"`
+	Usage agent.TokenUsage `json:"usage"`
+	MS    int              `json:"ms"`
 }
 
 // Typed errors ([20]).
@@ -122,6 +146,9 @@ func (e *Engine) Run(ctx context.Context) (*Summary, error) {
 		}
 	}
 	sum.TokensUsed = cost.Used()
+	for _, f := range sum.Forks {
+		sum.Usage.Add(f.Usage.Total)
+	}
 	sum.WallSeconds = int(time.Since(start).Seconds())
 	return sum, nil
 }
@@ -158,6 +185,12 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 				return out, "", fmt.Errorf("%w: critic %d round %d: %v", ErrAgentFatal, forkIdx, round, err)
 			}
 			cost.Add(res.tokens)
+			out.Usage.Critic.Add(res.usage)
+			out.Usage.Total.Add(res.usage)
+			out.Usage.Rounds = append(out.Usage.Rounds, RoundUsage{
+				Round: round, Role: "critic", Usage: res.usage,
+				MS: int(time.Since(roundStart).Milliseconds()),
+			})
 			e.progf("[debate] fork %d/%d %s: R%d critic done in %s (new=%d, re-attack=%d, withdraw=%d, dropped=%d)",
 				forkIdx, len(e.Aspects), aspect, round, fmtDur(time.Since(roundStart)),
 				stats.KeptIntroduce, stats.KeptReAttack, stats.KeptWithdraw,
@@ -199,6 +232,12 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 				return out, "", fmt.Errorf("%w: proposer fork %d round %d: %v", ErrAgentFatal, forkIdx, round, err)
 			}
 			cost.Add(pr.Tokens)
+			out.Usage.Proposer.Add(pr.Usage)
+			out.Usage.Total.Add(pr.Usage)
+			out.Usage.Rounds = append(out.Usage.Rounds, RoundUsage{
+				Round: round, Role: "proposer", Usage: pr.Usage,
+				MS: int(pr.Duration.Milliseconds()),
+			})
 			body := pr.Response + "\n\n---\nmodified-files:\n"
 			for _, f := range pr.ChangedFiles {
 				body += "  - " + f + "\n"
@@ -220,10 +259,32 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 	if out.Rounds >= e.MaxTurn && runStop == "" {
 		out.Termination = TermMaxTurn
 	}
-	e.progf("[debate] fork %d/%d %s: terminated %s after R%d (tokens used: %d)",
+	if err := state.WriteForkStats(e.Sess, forkIdx, forkStatsFile{
+		Schema:      schemaForkStats,
+		ForkIndex:   forkIdx,
+		Aspect:      aspect,
+		Rounds:      out.Rounds,
+		Termination: ifEmpty(string(runStop), string(out.Termination)),
+		Usage:       out.Usage,
+	}); err != nil {
+		return out, "", err
+	}
+	u := out.Usage.Total
+	e.progf("[debate] fork %d/%d %s: terminated %s after R%d (in=%d out=%d cache_create=%d cache_read=%d total=%d)",
 		forkIdx, len(e.Aspects), aspect, ifEmpty(string(runStop), string(out.Termination)),
-		out.Rounds, cost.Used())
+		out.Rounds, u.Input, u.Output, u.CacheCreate, u.CacheRead, u.Total())
 	return out, runStop, nil
+}
+
+const schemaForkStats = "debate.fork-stats.v0"
+
+type forkStatsFile struct {
+	Schema      string    `json:"schema"`
+	ForkIndex   int       `json:"fork_index"`
+	Aspect      string    `json:"aspect"`
+	Rounds      int       `json:"rounds"`
+	Termination string    `json:"termination"`
+	Usage       ForkUsage `json:"usage"`
 }
 
 func fmtDur(d time.Duration) string {
@@ -242,6 +303,7 @@ func ifEmpty(a, b string) string {
 
 type criticRoundResult struct {
 	tokens   int
+	usage    agent.TokenUsage
 	priorIDs []string
 }
 
@@ -279,11 +341,11 @@ func (e *Engine) criticRound(ctx context.Context, cri agent.Critic, a critic.Asp
 	}
 	attacks, stats, err := critic.Parse(res.Markdown, a.Name, forkIdx, round, priorIDs, critic.ParseOption{})
 	if err != nil {
-		return criticRoundResult{tokens: res.Tokens}, stats, err
+		return criticRoundResult{tokens: res.Tokens, usage: res.Usage}, stats, err
 	}
 	rendered := critic.Render(forkIdx, round, a.Name, attacks)
 	if err := state.WriteRound(e.Sess, forkIdx, round, state.RoleCritic, rendered); err != nil {
-		return criticRoundResult{tokens: res.Tokens}, stats, err
+		return criticRoundResult{tokens: res.Tokens, usage: res.Usage}, stats, err
 	}
 	for _, at := range attacks {
 		st := ledger.StatusOpen
@@ -312,6 +374,7 @@ func (e *Engine) criticRound(ctx context.Context, cri agent.Critic, a critic.Asp
 	if tokens == 0 {
 		tokens = EstimateTokens(in.SystemPrompt + res.Markdown)
 	}
+	usage := res.Usage
 	// Compute new priorIDs as the union of priorIDs + new ids (excl. withdrawals).
 	idSet := map[string]bool{}
 	for _, id := range priorIDs {
@@ -328,7 +391,7 @@ func (e *Engine) criticRound(ctx context.Context, cri agent.Critic, a critic.Asp
 	for id := range idSet {
 		out = append(out, id)
 	}
-	return criticRoundResult{tokens: tokens, priorIDs: out}, stats, nil
+	return criticRoundResult{tokens: tokens, usage: usage, priorIDs: out}, stats, nil
 }
 
 func ifNonZero(v int) *int {

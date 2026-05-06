@@ -53,6 +53,16 @@ func (r *Render) Bytes(s *round.Summary, agg map[string]ledger.Record) ([]byte, 
 	fmt.Fprintf(&b, "## Stats\n")
 	fmt.Fprintf(&b, "critic-found-bug rate: %d/%d attacks led to a fix\n", conceded, total)
 	fmt.Fprintf(&b, "debate cost: %d tokens, %d rounds, %d critics\n", tokens, totalRounds(s), len(s.Forks))
+	u := s.Usage
+	if u.Total() > 0 {
+		fmt.Fprintf(&b, "token usage (run): in=%d out=%d cache_create=%d cache_read=%d total=%d\n",
+			u.Input, u.Output, u.CacheCreate, u.CacheRead, u.Total())
+		for _, f := range s.Forks {
+			fu := f.Usage.Total
+			fmt.Fprintf(&b, "  - fork %d (%s): in=%d out=%d cache_create=%d cache_read=%d total=%d\n",
+				f.Index, f.Aspect, fu.Input, fu.Output, fu.CacheCreate, fu.CacheRead, fu.Total())
+		}
+	}
 	if s.Sess != nil {
 		fmt.Fprintf(&b, "session: %s\n", s.Sess.Root)
 	}
@@ -202,7 +212,13 @@ func Persist(s *round.Summary, agg map[string]ledger.Record, exitCode int) error
 			TotalAttacks: len(agg),
 			ByStatus:     statusCounts(agg),
 			TokensUsed:   s.TokensUsed,
-			WallSeconds:  s.WallSeconds,
+			TokenUsage: &state.TokenUsage{
+				Input:       s.Usage.Input,
+				Output:      s.Usage.Output,
+				CacheCreate: s.Usage.CacheCreate,
+				CacheRead:   s.Usage.CacheRead,
+			},
+			WallSeconds: s.WallSeconds,
 		},
 		ExitCode:    exitCode,
 		SummaryPath: "summary.md",

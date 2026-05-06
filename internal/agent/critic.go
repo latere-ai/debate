@@ -42,6 +42,7 @@ type CriticResult struct {
 	Markdown string
 	ThreadID string
 	Tokens   int
+	Usage    TokenUsage
 	USD      float64
 	Stdout   []byte
 	Duration time.Duration
@@ -286,10 +287,12 @@ func (c *ClaudeCritic) Round(ctx context.Context, in CriticInput) (*CriticResult
 	if parsed.Result == "" {
 		return nil, ErrEmptyContent
 	}
+	use := parsed.usage()
 	return &CriticResult{
 		Markdown: parsed.Result,
 		ThreadID: parsed.SessionID,
-		Tokens:   parsed.Usage.InputTokens + parsed.Usage.OutputTokens,
+		Tokens:   use.Input + use.Output,
+		Usage:    use,
 		USD:      parsed.TotalCostUSD,
 		Stdout:   res.Stdout,
 		Duration: res.Duration,
