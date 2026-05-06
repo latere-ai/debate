@@ -19,17 +19,7 @@ happens in branched forks off the root.
 ## Installation
 
 ```sh
-go install latere.ai/x/debate/cmd/debate@latest
-debate install-hook --scope user
-```
-
-Or grab a pre-built tarball from a tagged release:
-
-```sh
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-ARCH=$(uname -m); [ "$ARCH" = "x86_64" ] && ARCH=amd64
-curl -L "https://github.com/latere-ai/debate/releases/download/v0.0.1/debate_v0.0.1_${OS}_${ARCH}.tar.gz" | tar xz
-./debate install-hook --scope user
+go install latere.ai/x/debate/cmd/debate@latest && debate install-hook --scope user
 ```
 
 `install-hook` merges the verbose-format Stop hook entry into
