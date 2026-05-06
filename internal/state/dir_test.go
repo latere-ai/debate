@@ -170,6 +170,52 @@ func TestAppendCrossSessionLogCreatesDir(t *testing.T) {
 	}
 }
 
+func TestAtomicWrite_OpenError_DirIsAFile(t *testing.T) {
+	// Trigger MkdirAll's error path: pre-create a regular file at the
+	// dir we'd need to make. AtomicWrite then can't create a directory
+	// where a file already exists.
+	dir := t.TempDir()
+	sess, err := NewSession(dir, 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Create a regular file at the path that AtomicWrite would try to
+	// turn into a directory.
+	conflict := sess.Path("conflict")
+	if err := os.WriteFile(conflict, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := sess.AtomicWrite("conflict/sub/file", nil); err == nil {
+		t.Error("expected MkdirAll to fail when path is a file")
+	}
+}
+
+func TestAppendLine_DirIsAFile(t *testing.T) {
+	dir := t.TempDir()
+	sess, err := NewSession(dir, 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	conflict := sess.Path("c")
+	if err := os.WriteFile(conflict, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := sess.AppendLine("c/sub/file", nil); err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestAppendCrossSessionLog_PathIsAFile(t *testing.T) {
+	dir := t.TempDir()
+	conflict := filepath.Join(dir, "blocker")
+	if err := os.WriteFile(conflict, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := AppendCrossSessionLog(filepath.Join(conflict, "nested"), nil); err == nil {
+		t.Error("expected MkdirAll error")
+	}
+}
+
 func TestWriteForkStats(t *testing.T) {
 	dir := t.TempDir()
 	sess, err := NewSession(dir, 2, time.Now())
