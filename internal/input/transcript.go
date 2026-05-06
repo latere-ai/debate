@@ -71,6 +71,34 @@ func LocateTranscript(home, cwd, sessionID, explicit string) (string, error) {
 	return "", fmt.Errorf("%w: %s", ErrTranscriptNotFound, p)
 }
 
+// FindSession scans ~/.claude/projects/*/<sessionID>.jsonl and returns
+// the on-disk path plus the cwd it was created in. claude's --resume is
+// cwd-scoped, so callers use the decoded cwd to verify that resume will
+// succeed before spending time on the rest of a run.
+//
+// Returns ErrTranscriptNotFound if no project directory contains the
+// session.
+func FindSession(home, sessionID string) (path, decodedCwd string, err error) {
+	if home == "" || sessionID == "" {
+		return "", "", fmt.Errorf("%w: missing home/sessionID", ErrTranscriptNotFound)
+	}
+	projects := filepath.Join(home, ".claude", "projects")
+	entries, err := os.ReadDir(projects)
+	if err != nil {
+		return "", "", fmt.Errorf("%w: %v", ErrTranscriptNotFound, err)
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		p := filepath.Join(projects, e.Name(), sessionID+".jsonl")
+		if _, err := os.Stat(p); err == nil {
+			return p, DecodeCwd(e.Name()), nil
+		}
+	}
+	return "", "", fmt.Errorf("%w: session %s not found under %s", ErrTranscriptNotFound, sessionID, projects)
+}
+
 // ReadTranscript opens a JSONL transcript and returns a populated
 // *Transcript. Streaming line-by-line; bounded memory.
 func ReadTranscript(path string) (*Transcript, error) {

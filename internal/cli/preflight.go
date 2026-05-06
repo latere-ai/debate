@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"latere.ai/x/debate/internal/input"
 )
 
 // Plan summarizes what one debate run will do; produced by Preflight.
@@ -70,6 +72,20 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 			return nil, &PreflightError{
 				Code: 101,
 				Msg:  fmt.Sprintf("--transcript points at a session whose cwd does not match the current directory; cd to %s and retry", expected),
+			}
+		}
+	} else if f.SessionID != "" {
+		// claude's --resume is cwd-scoped. Scan ~/.claude/projects/* to
+		// find the session and verify its cwd matches before any agent
+		// process runs. Saves the user a 30-90s critic round followed by
+		// "No conversation found" from the proposer.
+		if home, herr := os.UserHomeDir(); herr == nil {
+			if _, sessCwd, ferr := input.FindSession(home, f.SessionID); ferr == nil && sessCwd != cwd {
+				return nil, &PreflightError{
+					Code: 101,
+					Msg: fmt.Sprintf("--session-id %s was created in %s; cd there and rerun (claude --resume is cwd-scoped)",
+						f.SessionID, sessCwd),
+				}
 			}
 		}
 	}
