@@ -1,0 +1,95 @@
+# debate v0.0.1
+
+Release-cut evidence for `v0.0.1`. See `specs/27-release.md` for the gate
+process. The auto-generated GitHub release body covers code changes; this
+file covers release-cut evidence (probe outcomes, smoke recordings) per
+`specs/35-release-notes-channel.md`.
+
+Each block below is appended verbatim by the corresponding follow-up
+spec when its gate runs. Empty blocks are placeholders to be filled in
+before the GA tag is pushed.
+
+## Probe outcomes
+
+### no-output-stop-hook (G4) - specs/28
+
+```
+probe: no-output-stop-hook
+claude_version: TBD
+host_os: TBD
+exit_code: TBD
+verdict: TBD
+hook_attachments: TBD
+```
+
+### signal-latency (G5) - specs/29
+
+```
+probe: signal-latency
+host_os: TBD
+binary_sha256: TBD
+wall_seconds: TBD
+verdict: TBD
+runs: TBD
+```
+
+### trivial-diff-perf (G6) - specs/30
+
+```
+probe: trivial-diff-perf
+host_os: TBD
+host_cpu: TBD
+binary_sha256: TBD
+wall_ms: TBD
+verdict: TBD
+```
+
+### interactive-stdout (G7) - specs/31
+
+```
+probe: interactive-stdout
+host_os: TBD
+claude_version: TBD
+verdict: TBD
+captured_line_present: TBD
+skip_reason: TBD
+```
+
+## Test gates
+
+### real-e2e (G13) - specs/32
+
+```
+gate: real-e2e
+host_os: TBD
+claude_version: TBD
+codex_version: TBD
+verdict: TBD
+```
+
+## UX gates
+
+### install-hook smoke (G15) - specs/33
+
+```
+gate: install-hook-smoke
+host_os: TBD
+binary_sha256: TBD
+fresh_install_valid: TBD
+generated_command: TBD
+idempotent_second_run: TBD
+```
+
+### real-claude end-to-end (G16) - specs/34
+
+```
+gate: real-claude-end-to-end
+host_os: TBD
+claude_version: TBD
+codex_version: TBD
+session_dir: TBD
+termination: TBD
+forks: TBD
+max_per_fork_wall: TBD
+verdict: TBD
+```

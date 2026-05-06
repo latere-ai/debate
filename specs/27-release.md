@@ -105,13 +105,15 @@ grouped by Go-style prefix (`cli:`, `state:`, `agent:`, `spec:`, …) per
 the `changelog.groups` block in `.goreleaser.yaml`.
 
 The release header (`.goreleaser.yaml` `release.header`) and footer
-(install + verify snippets) are templated. There is **no** static
-`release-notes-vX.md` file in the repo: that would duplicate state and
-diverge.
+(install + verify snippets) are templated.
 
-Probe outcomes (see [25](25-probes.md)) are recorded by appending a
-short note to the GitHub release body via the GH UI or `gh release
-edit` after `make probe` finishes - they are not committed.
+Probe and gate outcomes (G4–G7, G13, G15, G16) are committed to
+`release-notes-v<version>.md` alongside the tag. The auto-generated
+GitHub release body covers code changes; the in-repo notes file covers
+release-cut evidence. Rationale: this project's audit-trail posture
+([01-overview.md](01-overview.md) §"Lifecycle invariants") is on-disk
+evidence, not a mutable GH release body. Decision recorded in
+[35](35-release-notes-channel.md).
 
 ## Rollback
 
