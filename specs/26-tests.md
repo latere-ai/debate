@@ -1,5 +1,6 @@
 # Spec 26 — Test strategy and mock harnesses
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) for design intent.
 
 **Depends on:** every implementation spec from [04](04-cli-flags.md) through [24](24-stop-hook.md).
@@ -155,8 +156,8 @@ E2E mock tests are inside `internal/...` and `e2e/mock/...` — both run by defa
 
 ## Acceptance criteria
 
-- [ ] All four golden subdirectories present with at least one fixture each.
-- [ ] Mock harnesses build via `go test`'s build cache; no manual `make`.
-- [ ] CI runs `-race`; suite green.
-- [ ] Each spec from 02–25 has a `*_test.go` file in its package implementing its required test types (audit-via-grep).
-- [ ] Real-e2e workflow exists but is opt-in; no PR is blocked on it.
+- [x] All four golden subdirectories present with at least one fixture each.
+- [x] Mock harnesses build via `go test`'s build cache; no manual `make`.
+- [x] CI runs `-race`; suite green.
+- [x] Each spec from 02–25 has a `*_test.go` file in its package implementing its required test types (audit-via-grep).
+- [x] Real-e2e workflow exists but is opt-in; no PR is blocked on it.
