@@ -1,5 +1,6 @@
 # Spec 25 — Probes (incl. v0 GA blocker)
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"v0 release blockers" and §"Constraints uncovered by the probe" for design intent.
 
 **Depends on:** [16](16-subprocess-infra.md), [21](21-signals.md), [24](24-stop-hook.md).
@@ -188,8 +189,8 @@ Exit code 0 iff all non-skipped probes pass. `make probe` is *not* part of CI (p
 
 ## Acceptance criteria
 
-- [ ] `make probe` runs all four scripts; results recorded in `release-notes-v0.0.1.md`.
-- [ ] `no-output-stop-hook.sh` produces a definitive PASS/FAIL with reasoning printed.
-- [ ] All probe scripts pass `shellcheck -e SC1091` (sourcing common.sh is allowed).
-- [ ] No probe modifies state outside its temp dir (audit by `find` after run).
-- [ ] [27](27-release.md)'s GA checklist references the probe outputs by file path.
+- [x] `make probe` runs all four scripts; results recorded in `release-notes-v0.0.1.md`.
+- [x] `no-output-stop-hook.sh` produces a definitive PASS/FAIL with reasoning printed.
+- [x] All probe scripts pass `shellcheck -e SC1091` (sourcing common.sh is allowed).
+- [x] No probe modifies state outside its temp dir (audit by `find` after run).
+- [x] [27](27-release.md)'s GA checklist references the probe outputs by file path.

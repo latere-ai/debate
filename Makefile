@@ -2,7 +2,7 @@ SHELL := /bin/bash
 BIN   := bin/debate
 PKG   := ./cmd/debate
 
-.PHONY: all build install test lint vet clean
+.PHONY: all build install test lint vet clean probe
 
 all: lint vet test build
 
@@ -29,3 +29,9 @@ vet:
 
 clean:
 	rm -rf bin coverage.txt
+
+probe:
+	@for s in scripts/probes/*.sh; do \
+	  printf '== %s ==\n' "$$s"; \
+	  "$$s" || exit $$?; \
+	done
