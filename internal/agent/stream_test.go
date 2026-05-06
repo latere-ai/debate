@@ -74,14 +74,48 @@ func TestFormatClaudeStreamEventDrops(t *testing.T) {
 }
 
 func TestFormatClaudeStreamEventLongInputClipped(t *testing.T) {
-	long := strings.Repeat("x", 200)
+	long := strings.Repeat("x", 300)
 	line := `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"` + long + `"}}]}}`
 	got := FormatClaudeStreamEvent([]byte(line))
-	if len(got) > 100 {
-		t.Errorf("expected clip; got %d chars: %q", len(got), got)
-	}
 	if !strings.Contains(got, "…") {
 		t.Errorf("expected ellipsis on clipped output: %q", got)
+	}
+	// Width budget is summaryWidth+prefix; assert the content body
+	// stays under that ceiling (allow some slack for the prefix).
+	if len(got) > summaryWidth+30 {
+		t.Errorf("clip too wide; got %d chars: %q", len(got), got)
+	}
+}
+
+// TestFormatClaudeStreamEventEmptyThinkingDropped: a thinking block
+// with empty content (claude code emits these as block-start
+// markers / partials) must NOT produce a "thinking:" line.
+// Reproduces the noisy "thinking:" with-no-body output a real run
+// hit.
+func TestFormatClaudeStreamEventEmptyThinkingDropped(t *testing.T) {
+	for _, line := range []string{
+		`{"type":"assistant","message":{"content":[{"type":"thinking","thinking":""}]}}`,
+		`{"type":"assistant","message":{"content":[{"type":"thinking","thinking":"   \n  "}]}}`,
+		`{"type":"assistant","message":{"content":[{"type":"text","text":""}]}}`,
+	} {
+		if got := FormatClaudeStreamEvent([]byte(line)); got != "" {
+			t.Errorf("empty content should drop; got %q", got)
+		}
+	}
+}
+
+// TestFormatClaudeStreamEventLongPathFitsInBudget asserts a typical
+// absolute path stays intact: was clipped at 80 chars before, now
+// fits because summaryWidth is 120.
+func TestFormatClaudeStreamEventLongPathFitsInBudget(t *testing.T) {
+	path := "/Users/changkun/dev/changkun.de/agents-byzantine-tolerance/results/07_debate/README.md"
+	line := `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"` + path + `"}}]}}`
+	got := FormatClaudeStreamEvent([]byte(line))
+	if strings.Contains(got, "…") {
+		t.Errorf("path of length %d should fit in budget %d, got clipped: %q", len(path), summaryWidth, got)
+	}
+	if !strings.Contains(got, path) {
+		t.Errorf("path missing from output: %q", got)
 	}
 }
 
@@ -100,6 +134,44 @@ func TestFormatCodexStreamEventToolCall(t *testing.T) {
 			"command_execution",
 			`{"type":"item.completed","item":{"type":"command_execution","command":"ls -la"}}`,
 			"  → shell: ls -la",
+		},
+		// item.started fires when codex BEGINS a command - this is
+		// the live signal that was missing during long critic calls.
+		// Captured from real codex-cli 0.128.0 stream.
+		{
+			"item.started command_execution",
+			`{"type":"item.started","item":{"id":"item_1","type":"command_execution","command":"/bin/zsh -lc 'wc -l /etc/hosts'","status":"in_progress"}}`,
+			"  → shell: /bin/zsh -lc 'wc -l /etc/hosts'",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := FormatCodexStreamEvent([]byte(tc.line)); got != tc.want {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestFormatCodexStreamEventReasoning surfaces the agent's
+// reasoning summaries as "thinking:" lines. Without this, codex
+// critic calls using o1/o3-style reasoning models showed nothing
+// for the entire 100+ second wait.
+func TestFormatCodexStreamEventReasoning(t *testing.T) {
+	cases := []struct {
+		name string
+		line string
+		want string
+	}{
+		{
+			"reasoning with summary",
+			`{"type":"item.completed","item":{"type":"reasoning","summary":"Plan: read diff, scan README for inconsistencies"}}`,
+			"  thinking: Plan: read diff, scan README for inconsistencies",
+		},
+		{
+			"agent_reasoning text field",
+			`{"type":"item.completed","item":{"type":"agent_reasoning","text":"Looking at experiments/07_debate.py first"}}`,
+			"  thinking: Looking at experiments/07_debate.py first",
 		},
 	}
 	for _, tc := range cases {

@@ -50,9 +50,22 @@ func FormatClaudeStreamEvent(line []byte) string {
 		case "tool_use":
 			return fmt.Sprintf("  → %s: %s", p.Name, summarizeToolInput(p.Input))
 		case "thinking":
-			return "  thinking: " + previewLine(p.Thinking)
+			pv := previewLine(p.Thinking)
+			if pv == "" {
+				// Claude code occasionally emits a thinking block
+				// with empty text (block-start markers, partials
+				// without --include-partial-messages). Surfacing
+				// these as "  thinking:" with no content is pure
+				// noise; drop.
+				return ""
+			}
+			return "  thinking: " + pv
 		case "text":
-			return "  text: " + previewLine(p.Text)
+			pv := previewLine(p.Text)
+			if pv == "" {
+				return ""
+			}
+			return "  text: " + pv
 		}
 	}
 	return ""
@@ -70,21 +83,28 @@ func summarizeToolInput(input json.RawMessage) string {
 	}
 	for _, key := range []string{"file_path", "path", "command", "pattern", "url", "query"} {
 		if v, ok := generic[key].(string); ok && v != "" {
-			return clip(v, 80)
+			return clip(v, summaryWidth)
 		}
 	}
-	return clip(string(input), 80)
+	return clip(string(input), summaryWidth)
 }
 
-// previewLine returns the first line of s, ellipsized at 80 chars.
-// Used for thinking/text events where the full body is usually
-// multi-paragraph and would dominate the progress stream.
+// summaryWidth is the column budget for tool/command/text
+// previews. Wide enough that a typical absolute path or shell
+// command fits in full; tight enough that a single line still
+// matches a normal terminal column count.
+const summaryWidth = 120
+
+// previewLine returns the first line of s, ellipsized at the
+// summaryWidth budget. Used for thinking/text events where the full
+// body is usually multi-paragraph and would dominate the progress
+// stream.
 func previewLine(s string) string {
 	s = strings.TrimSpace(s)
 	if i := strings.IndexByte(s, '\n'); i >= 0 {
 		s = s[:i]
 	}
-	return clip(s, 80)
+	return clip(s, summaryWidth)
 }
 
 func clip(s string, n int) string {
@@ -95,11 +115,13 @@ func clip(s string, n int) string {
 }
 
 // FormatCodexStreamEvent is the codex counterpart of
-// FormatClaudeStreamEvent. Codex emits item.completed events whose
-// item.type discriminates kind: agent_message, tool_call,
-// command_execution, etc. We surface tool_call and
-// command_execution and drop the rest (agent_message is the final
-// answer the orchestrator already records).
+// FormatClaudeStreamEvent. Codex emits item.started when a tool or
+// command BEGINS and item.completed when it finishes. We surface
+// item.started for tool/command kinds because that is the live
+// signal an operator wants ("agent is now running X"), and skip
+// item.completed for those same kinds to avoid duplicate lines.
+// agent_message item.completed is the final answer the
+// orchestrator already records, so we drop it too.
 func FormatCodexStreamEvent(line []byte) string {
 	var ev struct {
 		Type string `json:"type"`
@@ -108,6 +130,9 @@ func FormatCodexStreamEvent(line []byte) string {
 			Name    string          `json:"name"`
 			Command string          `json:"command"`
 			Path    string          `json:"path"`
+			Text    string          `json:"text"`
+			Content string          `json:"content"`
+			Summary string          `json:"summary"`
 			Input   json.RawMessage `json:"input"`
 			Args    json.RawMessage `json:"args"`
 		} `json:"item"`
@@ -115,7 +140,10 @@ func FormatCodexStreamEvent(line []byte) string {
 	if err := json.Unmarshal(line, &ev); err != nil {
 		return ""
 	}
-	if ev.Type != "item.completed" {
+	// Live signal preferred (item.started); fall through to
+	// item.completed for shapes that don't have a started variant
+	// (some codex versions only emit completed).
+	if ev.Type != "item.started" && ev.Type != "item.completed" {
 		return ""
 	}
 	switch ev.Item.Type {
@@ -129,7 +157,19 @@ func FormatCodexStreamEvent(line []byte) string {
 		}
 		return fmt.Sprintf("  → %s: %s", firstNonEmpty(ev.Item.Name, "tool"), summary)
 	case "command_execution", "shell_command":
-		return "  → shell: " + clip(ev.Item.Command, 80)
+		return "  → shell: " + clip(ev.Item.Command, summaryWidth)
+	case "reasoning", "agent_reasoning", "reasoning_summary":
+		// Reasoning models (o1/o3 family) emit summary-shaped
+		// reasoning events. Surfacing them as "thinking:" lines
+		// gives the operator a glimpse of the agent's plan during
+		// long calls that would otherwise show no activity.
+		text := firstNonEmpty(ev.Item.Summary, ev.Item.Text)
+		text = firstNonEmpty(text, ev.Item.Content)
+		pv := previewLine(text)
+		if pv == "" {
+			return ""
+		}
+		return "  thinking: " + pv
 	}
 	return ""
 }
