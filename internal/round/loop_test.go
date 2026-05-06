@@ -843,3 +843,21 @@ func TestDefenseLineParsing(t *testing.T) {
 		t.Errorf("second: %v", out[1])
 	}
 }
+
+func TestFmtDur(t *testing.T) {
+	cases := []struct {
+		in   time.Duration
+		want string
+	}{
+		{500 * time.Millisecond, "500ms"},
+		{999 * time.Millisecond, "999ms"},
+		{1 * time.Second, "1.0s"},
+		{1500 * time.Millisecond, "1.5s"},
+		{15 * time.Second, "15.0s"},
+	}
+	for _, c := range cases {
+		if got := fmtDur(c.in); got != c.want {
+			t.Errorf("fmtDur(%v) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
