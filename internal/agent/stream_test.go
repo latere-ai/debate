@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -213,13 +214,11 @@ func TestFormatCodexStreamEventDrops(t *testing.T) {
 	}
 }
 
-// TestFormatCodexStreamEventAgentMessage covers the missing visibility
-// case from the user's session: a codex critic that reasoned via cat
-// commands but emitted no reasoning items. Without surfacing
-// agent_message, only the shell calls would show and the user
-// couldn't tell the agent finished any actual analysis.
-func TestFormatCodexStreamEventAgentMessage(t *testing.T) {
-	line := `{"type":"item.completed","item":{"type":"agent_message","text":"Looking at line 33 of results/07_debate/README.md, the bolded label is ambiguous because the README also calls a different command \"the first non-smoke run\"."}}`
+// TestFormatCodexStreamEventAgentMessageSingleLine covers the
+// short-prose shape: an intermediate "Let me check X" message
+// surfaces as one "  text: " line.
+func TestFormatCodexStreamEventAgentMessageSingleLine(t *testing.T) {
+	line := `{"type":"item.completed","item":{"type":"agent_message","text":"Looking at line 33 of results/07_debate/README.md, the bolded label is ambiguous."}}`
 	got := FormatCodexStreamEvent([]byte(line))
 	if !strings.HasPrefix(got, "  text: ") {
 		t.Errorf("agent_message should surface as text preview; got %q", got)
@@ -227,6 +226,57 @@ func TestFormatCodexStreamEventAgentMessage(t *testing.T) {
 	if !strings.Contains(got, "line 33") {
 		t.Errorf("preview missing content: %q", got)
 	}
+}
+
+// TestFormatCodexStreamEventAgentMessageMarkdownDoc covers the
+// dominant codex critic shape: the entire markdown attack doc
+// arrives in ONE agent_message item.completed event at turn end.
+// Reproduces the silent-critic bug from the user's session where
+// previewLine cut at the first \n and showed only the
+// "# Critic 1 - round 1 attacks" boilerplate header. After the
+// fix, the header is skipped and several meaningful lines are
+// surfaced, each on its own "text:" line.
+func TestFormatCodexStreamEventAgentMessageMarkdownDoc(t *testing.T) {
+	body := "# Critic 1 - round 1 attacks\n\n" +
+		"aspect: run-instruction sufficiency\n\n" +
+		"## c1-1 [results/07_debate/README.md:33]\n\n" +
+		"claim: The bolded label conflicts with line 47\n\n" +
+		"expected violation: ambiguity in the run order\n"
+	line := `{"type":"item.completed","item":{"type":"agent_message","text":` + jsonString(body) + `}}`
+	got := FormatCodexStreamEvent([]byte(line))
+
+	// Boilerplate header must NOT survive.
+	if strings.Contains(got, "# Critic 1 - round 1 attacks") {
+		t.Errorf("'# Critic ...' header should be dropped; got:\n%s", got)
+	}
+	// Multiple "  text: " lines so the user sees the structure.
+	n := strings.Count(got, "  text: ")
+	if n < 3 {
+		t.Errorf("expected ≥3 'text:' lines; got %d in:\n%s", n, got)
+	}
+	// Concrete content lines must be there.
+	for _, want := range []string{
+		"aspect: run-instruction sufficiency",
+		"## c1-1 [results/07_debate/README.md:33]",
+		"claim: The bolded label conflicts with line 47",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("preview missing %q; got:\n%s", want, got)
+		}
+	}
+	// Cap respected: a 5-line preview means 4 newlines between
+	// the "text:" prefixes.
+	if c := strings.Count(got, "\n"); c >= agentMessagePreviewLines {
+		t.Errorf("expected at most %d preview lines (separated by %d newlines); got %d newlines in:\n%s",
+			agentMessagePreviewLines, agentMessagePreviewLines-1, c, got)
+	}
+}
+
+// jsonString escapes s for embedding in a JSON string literal.
+// Avoids the test fixtures becoming a maze of `+"`+\`+...
+func jsonString(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
 }
 
 // TestDecodeClaudeStreamResult verifies the result line is

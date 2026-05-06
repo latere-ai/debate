@@ -176,24 +176,54 @@ func FormatCodexStreamEvent(line []byte) string {
 		}
 		return "  thinking: " + pv
 	case "agent_message":
-		// agent_message carries the model's prose - either an
-		// intermediate "Let me look at X" message or the final
-		// answer. Without surfacing it, a codex critic that
-		// reasons via cat/grep but doesn't emit reasoning items
-		// shows only shell commands and looks unfinished. Skip
-		// item.started here because text is empty until the
-		// message completes.
+		// agent_message carries the model's prose - for codex
+		// critics this is the full markdown attack doc emitted at
+		// turn end. previewLine would cut at the first \n and
+		// surface only the "# Critic 1 - round 1 attacks" boilerplate
+		// header, hiding every claim below it. Walk the doc and
+		// emit several meaningful lines so the user sees the
+		// actual content the critic produced.
 		if ev.Type != "item.completed" {
 			return ""
 		}
 		text := firstNonEmpty(ev.Item.Text, ev.Item.Content)
-		pv := previewLine(text, textPreviewWidth)
-		if pv == "" {
-			return ""
-		}
-		return "  text: " + pv
+		return formatAgentMessageLines(text)
 	}
 	return ""
+}
+
+// agentMessagePreviewLines caps how many lines of an agent_message
+// body we surface. Five fits a typical critic-round preview (aspect
+// line + one attack with claim/expected/repro markers) without
+// dumping the entire markdown onto the progress stream.
+const agentMessagePreviewLines = 5
+
+// formatAgentMessageLines walks an agent_message body and emits up
+// to agentMessagePreviewLines meaningful lines, each prefixed with
+// "  text: ". Blank lines are skipped. The standard "# Critic ..."
+// header is dropped because it carries no information beyond what
+// the orchestrator's own progress line already shows. The result is
+// a single string with embedded newlines so the caller's Fprintln
+// produces a multi-line block.
+func formatAgentMessageLines(text string) string {
+	var out []string
+	for _, line := range strings.Split(text, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "# Critic ") {
+			continue
+		}
+		out = append(out, "  text: "+clip(line, textPreviewWidth))
+		if len(out) >= agentMessagePreviewLines {
+			break
+		}
+	}
+	if len(out) == 0 {
+		return ""
+	}
+	return strings.Join(out, "\n")
 }
 
 func firstNonEmpty(a, b string) string {
