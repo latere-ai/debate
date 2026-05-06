@@ -109,6 +109,30 @@ func TestDefaultFlagsMaxTurn(t *testing.T) {
 	}
 }
 
+// TestPreflightLogModeUnknownRejected asserts that an unknown
+// --log-mode value is caught at preflight, not silently accepted
+// (which would leave Engine.HeartbeatInterval at 0 with the user
+// thinking they had asked for verbose).
+func TestPreflightLogModeUnknownRejected(t *testing.T) {
+	f := validFlags()
+	f.LogMode = "thinking"
+	_, err := Preflight(context.Background(), f)
+	var pe *PreflightError
+	if !errors.As(err, &pe) || pe.Code != 125 {
+		t.Errorf("expected exit 125 for unknown log-mode, got %v", err)
+	}
+}
+
+func TestPreflightLogModeAcceptsAll(t *testing.T) {
+	for _, m := range ValidLogModes {
+		f := validFlags()
+		f.LogMode = m
+		if _, err := Preflight(context.Background(), f); err != nil {
+			t.Errorf("--log-mode %q should be valid; got %v", m, err)
+		}
+	}
+}
+
 func TestPreflightNoTaskContext(t *testing.T) {
 	f := DefaultFlags()
 	_, err := Preflight(context.Background(), f)

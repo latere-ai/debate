@@ -149,6 +149,12 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 	if f.ChangedLinesMin < 0 {
 		return nil, &PreflightError{Code: 124, Msg: "--changed-lines-min must be ≥ 0"}
 	}
+	if f.LogMode != "" && !IsValidLogMode(f.LogMode) {
+		return nil, &PreflightError{
+			Code: 125,
+			Msg:  "--log-mode must be one of: silent, concise, verbose",
+		}
+	}
 
 	// 7. Task-context source.
 	if f.SessionID == "" && f.Transcript == "" && f.TaskContext == "" {

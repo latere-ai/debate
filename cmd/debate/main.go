@@ -156,10 +156,15 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 	}
 	criticFactory := func(_ int) agent.Critic { return agent.NewCritic(flags.Side) }
 	// Progress lines: Stop-hook path swallows stderr so leave it nil
-	// there; manual invocation gets per-fork/per-round status on stderr.
+	// there; manual invocation gets per-fork/per-round status on stderr
+	// unless --log-mode silent was passed.
 	var progress io.Writer
-	if !flags.HookMode {
+	if !flags.HookMode && flags.LogMode != cli.LogModeSilent {
 		progress = os.Stderr
+	}
+	heartbeat := round.DefaultHeartbeatInterval
+	if flags.LogMode == cli.LogModeVerbose {
+		heartbeat = 5 * time.Second
 	}
 	eng := &round.Engine{
 		Sess: sess, Cwd: plan.Cwd, ForkCount: len(plan.Forks),
@@ -167,7 +172,8 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 		NewCritic: criticFactory,
 		MaxRounds: cli.MaxRoundsFor(flags.MaxTurn), CostCap: flags.CostCap, HookMode: flags.HookMode,
 		TaskContext: taskCtx, DiffPatch: diff.Patch,
-		Progress: progress,
+		Progress:          progress,
+		HeartbeatInterval: heartbeat,
 	}
 	sumRes, err := eng.Run(ctx)
 	if err != nil {

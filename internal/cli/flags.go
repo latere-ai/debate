@@ -3,6 +3,7 @@ package cli
 
 import (
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -31,6 +32,33 @@ type Flags struct {
 	HookMode        bool
 	Config          string
 	Verbose         int
+	LogMode         string
+}
+
+// LogMode constants for --log-mode. See Flags.LogMode for the
+// exact contract behind each value.
+const (
+	// LogModeSilent suppresses all per-round progress and the heartbeat.
+	// Useful for CI runs where stderr should stay clean. Hook-mode
+	// gets this implicitly.
+	LogModeSilent = "silent"
+	// LogModeConcise is the default: one progress line per round +
+	// a 10s heartbeat while an agent call is in flight.
+	LogModeConcise = "concise"
+	// LogModeVerbose is concise plus a faster heartbeat and per-call
+	// stderr surfacing when the underlying CLI complained. Stops
+	// short of stream-json "live thinking" - that lives behind a
+	// separate, future flag.
+	LogModeVerbose = "verbose"
+)
+
+// ValidLogModes lists the values --log-mode accepts; preflight uses
+// it both for validation and for the error message.
+var ValidLogModes = []string{LogModeSilent, LogModeConcise, LogModeVerbose}
+
+// IsValidLogMode reports whether s is one of the accepted modes.
+func IsValidLogMode(s string) bool {
+	return slices.Contains(ValidLogModes, s)
 }
 
 // MaxRoundsFor translates the user-facing --max-turn (number of
@@ -54,6 +82,7 @@ func DefaultFlags() *Flags {
 		ChangedLinesMin: 10,
 		StateDir:        ".debate",
 		Format:          "markdown",
+		LogMode:         LogModeConcise,
 	}
 }
 
@@ -81,6 +110,7 @@ func Bind(cmd *cobra.Command) *Flags {
 	cmd.Flags().BoolVar(&f.HookMode, "hook-mode", f.HookMode, "force exit 0; used by the default Stop hook")
 	cmd.Flags().StringVar(&f.Config, "config", f.Config, "explicit .debate.toml path; empty = search")
 	cmd.Flags().CountVarP(&f.Verbose, "verbose", "v", "verbose: -v, -vv")
+	cmd.Flags().StringVar(&f.LogMode, "log-mode", f.LogMode, "progress detail: silent | concise | verbose")
 
 	return f
 }

@@ -68,6 +68,30 @@ func TestEnvDoesNotOverrideExplicitFlag(t *testing.T) {
 	}
 }
 
+// TestIsValidLogMode pins the accepted set. Adding or removing a
+// value here is a UX change and must not be silent.
+func TestIsValidLogMode(t *testing.T) {
+	for _, ok := range []string{LogModeSilent, LogModeConcise, LogModeVerbose} {
+		if !IsValidLogMode(ok) {
+			t.Errorf("%q should be valid", ok)
+		}
+	}
+	for _, bad := range []string{"", "loud", "thinking", "VERBOSE"} {
+		if IsValidLogMode(bad) {
+			t.Errorf("%q should be invalid", bad)
+		}
+	}
+}
+
+// TestDefaultLogMode locks the default in. Hook-mode and CI users
+// should never have to pass --log-mode just to keep current
+// behaviour.
+func TestDefaultLogMode(t *testing.T) {
+	if got := DefaultFlags().LogMode; got != LogModeConcise {
+		t.Errorf("default LogMode: got %q, want %q", got, LogModeConcise)
+	}
+}
+
 // TestMaxRoundsFor pins the doubling rule cmd/debate/main.go relies
 // on: --max-turn N pairs translates to 2N internal rounds. A
 // regression here would silently halve or double how long the engine
