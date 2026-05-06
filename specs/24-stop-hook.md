@@ -1,5 +1,6 @@
 # Spec 24 — Stop hook script and install
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Trigger via Stop hook" for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [16](16-subprocess-infra.md), [23](23-summary-render.md).
@@ -134,8 +135,8 @@ Idempotent: running `install-hook` twice leaves the file in the same state as ru
 
 ## Acceptance criteria
 
-- [ ] `debate-stop-hook.sh` ships in the release tarball ([03](03-ci-lint-release.md)).
-- [ ] `debate install-hook --scope user` installs and `debate uninstall-hook --scope user` cleanly removes.
-- [ ] Recursion guard works (the canonical "if X then exit 0" sequence is the *first* statement after `set -e`).
-- [ ] No stdout from the hook script during a normal run.
-- [ ] settings.json edits are atomic (test crash between write and rename leaves the prior file intact).
+- [x] `debate-stop-hook.sh` ships in the release tarball ([03](03-ci-lint-release.md)).
+- [x] `debate install-hook --scope user` installs and `debate uninstall-hook --scope user` cleanly removes.
+- [x] Recursion guard works (the canonical "if X then exit 0" sequence is the *first* statement after `set -e`).
+- [x] No stdout from the hook script during a normal run.
+- [x] settings.json edits are atomic (test crash between write and rename leaves the prior file intact).
