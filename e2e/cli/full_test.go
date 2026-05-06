@@ -294,6 +294,24 @@ func TestFullE2E_HappyPath(t *testing.T) {
 		t.Errorf("attacks.jsonl missing c1-1: %s", atkBody)
 	}
 
+	// Verify rendered summary was printed to stdout. Captured stdout
+	// (a strings.Builder, not a TTY) goes through the plain branch of
+	// summary.PrintRendered, so the bytes must contain the summary
+	// markdown verbatim and must NOT contain ANSI escapes.
+	if !strings.Contains(res.Stdout, "## Stats") {
+		t.Errorf("stdout missing rendered summary 'Stats' section. stdout=%q", res.Stdout)
+	}
+	if !strings.Contains(res.Stdout, "critic-found-bug rate") {
+		t.Errorf("stdout missing 'critic-found-bug rate' line. stdout=%q", res.Stdout)
+	}
+	if strings.Contains(res.Stdout, "\x1b[") {
+		t.Errorf("stdout contains ANSI escape codes despite non-TTY capture: %q", res.Stdout)
+	}
+	// And the existing call-to-action line must still be present.
+	if !strings.Contains(res.Stdout, "see ") || !strings.Contains(res.Stdout, "summary.md") {
+		t.Errorf("stdout missing decide.StdoutLine pointer: %q", res.Stdout)
+	}
+
 	// Verify cross-session log has the run line.
 	logBody, err := os.ReadFile(filepath.Join(stateDir, "log.jsonl"))
 	if err != nil {

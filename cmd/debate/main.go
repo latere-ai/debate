@@ -186,6 +186,15 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 		Tokens: sumRes.TokensUsed, WallSeconds: sumRes.WallSeconds,
 		Summary: sess.Path("summary.md"),
 	})
+	// Print the rendered summary to stdout (TTY-styled when
+	// interactive, plain markdown when piped). The hook-mode path
+	// stays silent: claude swallows stdout there.
+	if !flags.HookMode {
+		if body, readErr := os.ReadFile(sess.Path("summary.md")); readErr == nil {
+			_, _ = summary.PrintRendered(os.Stdout, body, summary.IsTerminal(os.Stdout))
+			fmt.Println()
+		}
+	}
 	if decide.StdoutLine != "" {
 		fmt.Println(decide.StdoutLine)
 	}
