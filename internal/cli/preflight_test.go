@@ -76,6 +76,39 @@ func TestPreflightSideCountInvalid(t *testing.T) {
 	}
 }
 
+// TestPreflightMaxTurnZeroRejected pins the new lower bound: with
+// --max-turn re-interpreted as critic↔proposer pairs, the minimum
+// meaningful value is 1 (one full exchange). Zero is rejected with
+// exit 122.
+func TestPreflightMaxTurnZeroRejected(t *testing.T) {
+	f := validFlags()
+	f.MaxTurn = 0
+	_, err := Preflight(context.Background(), f)
+	var pe *PreflightError
+	if !errors.As(err, &pe) || pe.Code != 122 {
+		t.Errorf("expected exit 122, got %v", err)
+	}
+}
+
+// TestPreflightMaxTurnOneAccepted: a single exchange is now the
+// minimum, where pre-rename it would have been rejected ("must be
+// >= 2" was rounds, not turns).
+func TestPreflightMaxTurnOneAccepted(t *testing.T) {
+	f := validFlags()
+	f.MaxTurn = 1
+	if _, err := Preflight(context.Background(), f); err != nil {
+		t.Errorf("--max-turn 1 should be valid in pair semantics; got %v", err)
+	}
+}
+
+// TestDefaultFlagsMaxTurn locks in the default change from 6 (rounds)
+// to 3 (pairs). Same engine behaviour, less ambiguous unit.
+func TestDefaultFlagsMaxTurn(t *testing.T) {
+	if got := DefaultFlags().MaxTurn; got != 3 {
+		t.Errorf("default --max-turn: got %d, want 3 (pairs)", got)
+	}
+}
+
 func TestPreflightNoTaskContext(t *testing.T) {
 	f := DefaultFlags()
 	_, err := Preflight(context.Background(), f)

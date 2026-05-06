@@ -140,8 +140,8 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 	if f.SideCount < 1 {
 		return nil, &PreflightError{Code: 121, Msg: "--side-count must be ≥ 1"}
 	}
-	if f.MaxTurn < 2 {
-		return nil, &PreflightError{Code: 122, Msg: "--max-turn must be ≥ 2 (one attack + one defense minimum)"}
+	if f.MaxTurn < 1 {
+		return nil, &PreflightError{Code: 122, Msg: "--max-turn must be ≥ 1 (one critic↔proposer exchange minimum)"}
 	}
 	if f.CostCap < 1 {
 		return nil, &PreflightError{Code: 123, Msg: "--cost-cap must be ≥ 1"}

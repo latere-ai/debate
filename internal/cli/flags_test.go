@@ -67,3 +67,18 @@ func TestEnvDoesNotOverrideExplicitFlag(t *testing.T) {
 		t.Errorf("CLI flag should win: got %d, want 2", f.SideCount)
 	}
 }
+
+// TestMaxRoundsFor pins the doubling rule cmd/debate/main.go relies
+// on: --max-turn N pairs translates to 2N internal rounds. A
+// regression here would silently halve or double how long the engine
+// runs.
+func TestMaxRoundsFor(t *testing.T) {
+	cases := []struct{ turn, rounds int }{
+		{1, 2}, {2, 4}, {3, 6}, {10, 20},
+	}
+	for _, c := range cases {
+		if got := MaxRoundsFor(c.turn); got != c.rounds {
+			t.Errorf("MaxRoundsFor(%d): got %d, want %d", c.turn, got, c.rounds)
+		}
+	}
+}

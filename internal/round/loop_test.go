@@ -64,7 +64,7 @@ func TestEngineSingleForkSteadyState(t *testing.T) {
 			},
 		},
 		NewCritic: func(_ int) agent.Critic { return &stubCritic{rounds: []string{r1, r3, r5}} },
-		MaxTurn:   6, CostCap: 100000, TaskContext: "task", DiffPatch: "diff",
+		MaxRounds: 6, CostCap: 100000, TaskContext: "task", DiffPatch: "diff",
 	}
 	sum, err := e.Run(context.Background())
 	if err != nil {
@@ -99,7 +99,7 @@ func TestEngineCostCap(t *testing.T) {
 		NewCritic: func(_ int) agent.Critic {
 			return &stubCritic{rounds: []string{r1, r1, r1, r1, r1}}
 		},
-		MaxTurn: 6, CostCap: 10000, TaskContext: "t", DiffPatch: "d",
+		MaxRounds: 6, CostCap: 10000, TaskContext: "t", DiffPatch: "d",
 	}
 	sum, err := e.Run(context.Background())
 	if err != nil {
@@ -136,7 +136,7 @@ func TestCriticRoundPriorFiles(t *testing.T) {
 			},
 		},
 		NewCritic: func(_ int) agent.Critic { return cri },
-		MaxTurn:   6, CostCap: 100000, TaskContext: "task", DiffPatch: "diff",
+		MaxRounds: 6, CostCap: 100000, TaskContext: "task", DiffPatch: "diff",
 	}
 	if _, err := e.Run(context.Background()); err != nil {
 		t.Fatal(err)
@@ -191,7 +191,7 @@ func TestEnginePerForkUsageStats(t *testing.T) {
 			},
 		},
 		NewCritic: func(_ int) agent.Critic { return sc },
-		MaxTurn:   6, CostCap: 1_000_000, TaskContext: "task", DiffPatch: "diff",
+		MaxRounds: 6, CostCap: 1_000_000, TaskContext: "task", DiffPatch: "diff",
 	}
 	sum, err := e.Run(context.Background())
 	if err != nil {
@@ -300,6 +300,88 @@ func (s *usageCritic) Round(_ context.Context, _ agent.CriticInput) (*agent.Crit
 	return out, nil
 }
 
+// TestTurnOf locks in the round-to-turn mapping. Because --max-turn
+// re-interprets to pairs, R1+R2 must collapse to T1, R3+R4 to T2, etc.
+// A regression here would silently double or halve what users think
+// they're paying for.
+func TestTurnOf(t *testing.T) {
+	cases := []struct{ round, turn int }{
+		{1, 1},
+		{2, 1},
+		{3, 2},
+		{4, 2},
+		{5, 3},
+		{6, 3},
+		{7, 4},
+		{100, 50},
+	}
+	for _, c := range cases {
+		if got := turnOf(c.round); got != c.turn {
+			t.Errorf("turnOf(R%d): got T%d, want T%d", c.round, got, c.turn)
+		}
+	}
+}
+
+// TestEngineProgressUsesTurnLabel asserts the user-facing label is
+// T<turn>, not R<round>. Was a UX complaint: with R1=critic and
+// R2=proposer, "--max-turn 3" reads to a user as "three messages"
+// when it actually meant three rounds = 1.5 exchanges.
+func TestEngineProgressUsesTurnLabel(t *testing.T) {
+	sess, err := state.NewSession(t.TempDir(), 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	r1 := "# Critic 1 - round 1 attacks\n\naspect: security\n\n## c1-1 [x.go:1]\n\nclaim: leaks token\n\nexpected violation: panic at runtime\n\nreproduction:\n```\ngo test\n```\n"
+	r3 := "# Critic 1 - round 3 attacks\n\naspect: security\n\n## c1-1 [x.go:1] (re-attack)\n\nclaim: still leaks\n\nexpected violation: panic\n\nreproduction:\n```\ngo test\n```\n"
+
+	var buf strings.Builder
+	e := &Engine{
+		Sess: sess, Cwd: t.TempDir(),
+		ForkCount: 1,
+		Proposer: &stubProposer{
+			first: func(string) (*agent.ProposerResult, error) {
+				return &agent.ProposerResult{ForkID: "f", Response: "rebut c1-1: ok", Tokens: 10}, nil
+			},
+			next: func(string) (*agent.ProposerResult, error) {
+				return &agent.ProposerResult{ForkID: "f", Response: "rebut c1-1: ok", Tokens: 10}, nil
+			},
+		},
+		NewCritic: func(_ int) agent.Critic {
+			return &stubCritic{rounds: []string{r1, r3}}
+		},
+		// MaxRounds=4 is exactly 2 pairs (--max-turn 2 in user terms).
+		MaxRounds: 4, CostCap: 100000, TaskContext: "task", DiffPatch: "diff",
+		Progress: &buf,
+	}
+	if _, err := e.Run(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	for _, want := range []string{
+		"T1 critic running",
+		"T1 critic done",
+		"T1 proposer running",
+		"T1 proposer done",
+		"T2 critic running",
+		"T2 proposer running",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("progress missing %q. full output:\n%s", want, out)
+		}
+	}
+	// And: no stray R<n> labels in done/running lines (they were the
+	// old shape).
+	for _, line := range strings.Split(out, "\n") {
+		if !strings.Contains(line, " running...") && !strings.Contains(line, " done in ") {
+			continue
+		}
+		if strings.Contains(line, " R1 ") || strings.Contains(line, " R2 ") ||
+			strings.Contains(line, " R3 ") || strings.Contains(line, " R4 ") {
+			t.Errorf("progress line still uses R<n> label: %s", line)
+		}
+	}
+}
+
 // TestEngineProgressIncludesPerRoundTokens captures one of the UX
 // asks: every "R<n> {role} done" progress line must show the per-call
 // in/out/cache_create/cache_read so an operator can see the cache
@@ -332,7 +414,7 @@ func TestEngineProgressIncludesPerRoundTokens(t *testing.T) {
 		NewCritic: func(_ int) agent.Critic {
 			return &usageCritic{rounds: []string{r1, r3, r5}, usage: cu, usd: 0.0125}
 		},
-		MaxTurn: 6, CostCap: 1_000_000, TaskContext: "task", DiffPatch: "diff",
+		MaxRounds: 6, CostCap: 1_000_000, TaskContext: "task", DiffPatch: "diff",
 		Progress: &buf,
 	}
 	if _, err := e.Run(context.Background()); err != nil {
@@ -418,7 +500,7 @@ func TestEnginePromptCachingPerFork(t *testing.T) {
 		NewCritic: func(_ int) agent.Critic {
 			return &cachingCritic{rounds: []string{r1, r3, r5}, usages: criticUsages}
 		},
-		MaxTurn: 6, CostCap: 1_000_000, TaskContext: "task", DiffPatch: "diff",
+		MaxRounds: 6, CostCap: 1_000_000, TaskContext: "task", DiffPatch: "diff",
 	}
 
 	sum, err := e.Run(context.Background())

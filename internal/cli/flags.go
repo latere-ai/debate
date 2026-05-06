@@ -33,13 +33,20 @@ type Flags struct {
 	Verbose         int
 }
 
+// MaxRoundsFor translates the user-facing --max-turn (number of
+// critic↔proposer pairs) into the internal round-cap the engine
+// uses. One turn is two rounds: a critic message followed by the
+// proposer's reply. Lives here so the doubling rule is unit-testable
+// without standing up the full Engine.
+func MaxRoundsFor(maxTurn int) int { return 2 * maxTurn }
+
 // DefaultFlags returns the built-in defaults.
 func DefaultFlags() *Flags {
 	return &Flags{
 		Main:            "claude",
 		Side:            "codex",
 		SideCount:       4,
-		MaxTurn:         6,
+		MaxTurn:         3,
 		DiffFrom:        "HEAD",
 		DiffTo:          ".",
 		Judge:           "none",
@@ -60,7 +67,7 @@ func Bind(cmd *cobra.Command) *Flags {
 	cmd.Flags().IntVar(&f.SideCount, "side-count", f.SideCount, "number of critic forks; each declares its own topic in R1")
 	cmd.Flags().StringVar(&f.MainModel, "main-model", f.MainModel, "proposer model; required (and must differ from --side-model) when same family")
 	cmd.Flags().StringVar(&f.SideModel, "side-model", f.SideModel, "critic model; required (and must differ from --main-model) when same family")
-	cmd.Flags().IntVar(&f.MaxTurn, "max-turn", f.MaxTurn, "per-fork cap on P+C exchanges")
+	cmd.Flags().IntVar(&f.MaxTurn, "max-turn", f.MaxTurn, "per-fork cap on critic↔proposer exchanges (1 turn = 1 critic message + 1 proposer reply)")
 	cmd.Flags().StringVar(&f.SessionID, "session-id", f.SessionID, "claude root session id (claude-as-proposer auto-trigger)")
 	cmd.Flags().StringVar(&f.Transcript, "transcript", f.Transcript, "path to root claude JSONL transcript")
 	cmd.Flags().StringVar(&f.DiffFrom, "diff-from", f.DiffFrom, "git ref for diff base")

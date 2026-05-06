@@ -32,8 +32,8 @@ type ForkHistory struct {
 
 // Detector is a value-typed bundle of detection rules.
 type Detector struct {
-	MaxTurn int
-	CostCap int
+	MaxRounds int
+	CostCap   int
 }
 
 // SteadyState requires at least three critic rounds in history; returns
@@ -48,9 +48,10 @@ func (d *Detector) SteadyState(history []ForkHistory) bool {
 		prev.NewAttacks == 0 && prev.ReAttacks == 0
 }
 
-// MaxTurnReached returns true once round number reaches d.MaxTurn.
-func (d *Detector) MaxTurnReached(round int) bool {
-	return round >= d.MaxTurn
+// MaxRoundsReached returns true once the round number reaches the
+// per-fork round cap (which is 2 * --max-turn).
+func (d *Detector) MaxRoundsReached(round int) bool {
+	return round >= d.MaxRounds
 }
 
 // MalformedTwice returns true when the last two critic rounds in

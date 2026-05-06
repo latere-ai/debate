@@ -165,7 +165,7 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 		Sess: sess, Cwd: plan.Cwd, ForkCount: len(plan.Forks),
 		Proposer:  proposer,
 		NewCritic: criticFactory,
-		MaxTurn:   flags.MaxTurn, CostCap: flags.CostCap, HookMode: flags.HookMode,
+		MaxRounds: cli.MaxRoundsFor(flags.MaxTurn), CostCap: flags.CostCap, HookMode: flags.HookMode,
 		TaskContext: taskCtx, DiffPatch: diff.Patch,
 		Progress: progress,
 	}

@@ -27,13 +27,18 @@ type CriticFactory func(forkIdx int) agent.Critic
 
 // Engine is the orchestration core; it integrates [09]-[18] and emits
 // the *Summary that [22]/[23] consume.
+//
+// MaxRounds is the per-fork cap on internal rounds. Each fork
+// alternates critic (odd rounds) and proposer (even rounds), so a
+// user-facing "turn" (one critic message + one proposer message) is
+// two internal rounds. cmd/debate sets MaxRounds = 2 * --max-turn.
 type Engine struct {
 	Sess        *state.Session
 	Cwd         string
 	ForkCount   int
 	Proposer    Proposer
 	NewCritic   CriticFactory
-	MaxTurn     int
+	MaxRounds   int
 	CostCap     int
 	HookMode    bool
 	TaskContext string
@@ -122,7 +127,7 @@ var defenseLineRE = regexp.MustCompile(`(?m)^\s*(concede|rebut|push-back)\s+(c\d
 
 // Run executes the orchestrator. Forks run serially.
 func (e *Engine) Run(ctx context.Context) (*Summary, error) {
-	det := &Detector{MaxTurn: e.MaxTurn, CostCap: e.CostCap}
+	det := &Detector{MaxRounds: e.MaxRounds, CostCap: e.CostCap}
 	cost := NewCostMeter(e.CostCap)
 	start := time.Now()
 	sum := &Summary{Sess: e.Sess, Termination: TermSteadyState}
@@ -186,7 +191,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 
 	e.progf("[debate] fork %d/%d: starting (topic to be declared in R1)", forkIdx, e.ForkCount)
 
-	for round := 1; round <= e.MaxTurn; round++ {
+	for round := 1; round <= e.MaxRounds; round++ {
 		if ctx.Err() != nil {
 			runStop = TermInterrupted
 			break
@@ -199,7 +204,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 		roundStart := time.Now()
 		if round%2 == 1 {
 			// Critic round.
-			e.progf("[debate] fork %d/%d %s: R%d critic running...", forkIdx, e.ForkCount, forkLabel(out.Topic), round)
+			e.progf("[debate] fork %d/%d %s: T%d critic running...", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
 			res, stats, err := e.criticRound(ctx, cri, a, forkIdx, round, priorIDs)
 			if err != nil {
 				return out, "", fmt.Errorf("%w: critic %d round %d: %v", ErrAgentFatal, forkIdx, round, err)
@@ -220,8 +225,8 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 				Round: round, Role: "critic", Usage: res.usage, USD: res.usd,
 				MS: int(time.Since(roundStart).Milliseconds()),
 			})
-			e.progf("[debate] fork %d/%d %s: R%d critic done in %s (new=%d, re-attack=%d, withdraw=%d, dropped=%d) %s",
-				forkIdx, e.ForkCount, forkLabel(out.Topic), round, fmtDur(time.Since(roundStart)),
+			e.progf("[debate] fork %d/%d %s: T%d critic done in %s (new=%d, re-attack=%d, withdraw=%d, dropped=%d) %s",
+				forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round), fmtDur(time.Since(roundStart)),
 				stats.KeptIntroduce, stats.KeptReAttack, stats.KeptWithdraw,
 				stats.DroppedNoReproduce+stats.DroppedStyle+stats.DroppedCrossAspect,
 				fmtUsage(res.usage, res.usd))
@@ -237,12 +242,12 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 			}
 			if det.SteadyState(hist) {
 				out.Termination = TermSteadyState
-				e.progf("[debate] fork %d/%d %s: steady state reached at R%d", forkIdx, e.ForkCount, forkLabel(out.Topic), round)
+				e.progf("[debate] fork %d/%d %s: steady state reached at T%d", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
 				break
 			}
 		} else {
 			// Proposer round.
-			e.progf("[debate] fork %d/%d %s: R%d proposer running...", forkIdx, e.ForkCount, forkLabel(out.Topic), round)
+			e.progf("[debate] fork %d/%d %s: T%d proposer running...", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
 			pointer := fmt.Sprintf("Some comments at @forks/critic-%d/rounds/r%d-critic.md. Please resolve or respond. If you disagree, please raise it.",
 				forkIdx, round-1)
 			var pr *agent.ProposerResult
@@ -283,12 +288,12 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 				MS:   int(pr.Duration.Milliseconds()),
 			})
 			conceded, rebutted := updateLedgerFromDefense(e.Sess, pr.Response, pr.ChangedFiles, round)
-			e.progf("[debate] fork %d/%d %s: R%d proposer done in %s (conceded=%d, rebutted=%d, files=%d) %s",
-				forkIdx, e.ForkCount, forkLabel(out.Topic), round, fmtDur(time.Since(roundStart)),
+			e.progf("[debate] fork %d/%d %s: T%d proposer done in %s (conceded=%d, rebutted=%d, files=%d) %s",
+				forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round), fmtDur(time.Since(roundStart)),
 				conceded, rebutted, len(pr.ChangedFiles), fmtUsage(pr.Usage, pr.USD))
 		}
 	}
-	if out.Rounds >= e.MaxTurn && runStop == "" {
+	if out.Rounds >= e.MaxRounds && runStop == "" {
 		out.Termination = TermMaxTurn
 	}
 	if err := state.WriteForkStats(e.Sess, forkIdx, forkStatsFile{
@@ -339,6 +344,13 @@ func forkLabel(topic string) string {
 		return "(topic pending)"
 	}
 	return topic
+}
+
+// turnOf maps an internal round number to its user-facing turn. Turns
+// pair odd (critic) and even (proposer) rounds: R1+R2 = T1, R3+R4 =
+// T2, ... This is the number a user types into --max-turn.
+func turnOf(round int) int {
+	return (round + 1) / 2
 }
 
 func fmtDur(d time.Duration) string {
