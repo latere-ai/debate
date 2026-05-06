@@ -262,10 +262,13 @@ func main() {
 			t.Errorf("codex verbose EventOut missing %q. full:\n%s", want, out)
 		}
 	}
-	// Sanity: the agent_message item.completed must NOT appear as a
-	// "→ ..." line - it's the final answer, not a tool call.
-	if strings.Contains(out, "agent_message") {
-		t.Errorf("agent_message leaked into verbose stream:\n%s", out)
+	// agent_message now surfaces as a "text:" preview (was dropped
+	// before; the user's session had a codex critic that emitted
+	// only shell + agent_message and looked silent). Make sure
+	// it's there so a regression doesn't return us to the silent
+	// state.
+	if !strings.Contains(out, "  text: ") {
+		t.Errorf("expected agent_message to surface as 'text:' preview; got:\n%s", out)
 	}
 	if res.Usage.Input != 500 { // 1000 - 500 cached
 		t.Errorf("Usage.Input from turn.completed: got %d, want 500", res.Usage.Input)

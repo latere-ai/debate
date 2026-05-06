@@ -119,6 +119,22 @@ func TestFormatClaudeStreamEventLongPathFitsInBudget(t *testing.T) {
 	}
 }
 
+// TestFormatClaudeStreamEventTextPreviewIsWide pins the wider text
+// budget. A real proposer reply averaged ~200 chars on the first
+// "text:" line; clipping at 120 lost the actionable half. Now we
+// fit ~260 chars before the ellipsis kicks in.
+func TestFormatClaudeStreamEventTextPreviewIsWide(t *testing.T) {
+	body := strings.Repeat("a sentence about the diff. ", 8) // ~216 chars
+	line := `{"type":"assistant","message":{"content":[{"type":"text","text":"` + body + `"}]}}`
+	got := FormatClaudeStreamEvent([]byte(line))
+	if strings.Contains(got, "…") {
+		t.Errorf("text of length %d should fit in textPreviewWidth=%d, got clipped: %q", len(body), textPreviewWidth, got)
+	}
+	if !strings.HasPrefix(got, "  text: ") {
+		t.Errorf("expected 'text:' prefix, got %q", got)
+	}
+}
+
 func TestFormatCodexStreamEventToolCall(t *testing.T) {
 	cases := []struct {
 		name string
@@ -187,11 +203,29 @@ func TestFormatCodexStreamEventDrops(t *testing.T) {
 	for _, line := range []string{
 		`{"type":"thread.started","thread_id":"x"}`,
 		`{"type":"turn.completed","usage":{"input_tokens":1}}`,
-		`{"type":"item.completed","item":{"type":"agent_message","text":"hi"}}`,
+		// item.started agent_message has no text yet; must not produce
+		// a stub line.
+		`{"type":"item.started","item":{"type":"agent_message"}}`,
 	} {
 		if got := FormatCodexStreamEvent([]byte(line)); got != "" {
 			t.Errorf("expected drop for %q, got %q", line, got)
 		}
+	}
+}
+
+// TestFormatCodexStreamEventAgentMessage covers the missing visibility
+// case from the user's session: a codex critic that reasoned via cat
+// commands but emitted no reasoning items. Without surfacing
+// agent_message, only the shell calls would show and the user
+// couldn't tell the agent finished any actual analysis.
+func TestFormatCodexStreamEventAgentMessage(t *testing.T) {
+	line := `{"type":"item.completed","item":{"type":"agent_message","text":"Looking at line 33 of results/07_debate/README.md, the bolded label is ambiguous because the README also calls a different command \"the first non-smoke run\"."}}`
+	got := FormatCodexStreamEvent([]byte(line))
+	if !strings.HasPrefix(got, "  text: ") {
+		t.Errorf("agent_message should surface as text preview; got %q", got)
+	}
+	if !strings.Contains(got, "line 33") {
+		t.Errorf("preview missing content: %q", got)
 	}
 }
 

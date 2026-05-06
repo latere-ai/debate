@@ -50,7 +50,7 @@ func FormatClaudeStreamEvent(line []byte) string {
 		case "tool_use":
 			return fmt.Sprintf("  → %s: %s", p.Name, summarizeToolInput(p.Input))
 		case "thinking":
-			pv := previewLine(p.Thinking)
+			pv := previewLine(p.Thinking, textPreviewWidth)
 			if pv == "" {
 				// Claude code occasionally emits a thinking block
 				// with empty text (block-start markers, partials
@@ -61,7 +61,7 @@ func FormatClaudeStreamEvent(line []byte) string {
 			}
 			return "  thinking: " + pv
 		case "text":
-			pv := previewLine(p.Text)
+			pv := previewLine(p.Text, textPreviewWidth)
 			if pv == "" {
 				return ""
 			}
@@ -89,22 +89,27 @@ func summarizeToolInput(input json.RawMessage) string {
 	return clip(string(input), summaryWidth)
 }
 
-// summaryWidth is the column budget for tool/command/text
+// summaryWidth is the column budget for tool/command/path
 // previews. Wide enough that a typical absolute path or shell
-// command fits in full; tight enough that a single line still
-// matches a normal terminal column count.
+// command fits in full.
 const summaryWidth = 120
 
-// previewLine returns the first line of s, ellipsized at the
-// summaryWidth budget. Used for thinking/text events where the full
-// body is usually multi-paragraph and would dominate the progress
-// stream.
-func previewLine(s string) string {
+// textPreviewWidth is the column budget for prose-shaped previews:
+// claude text/thinking blocks and codex agent_message /
+// reasoning items. Wider than summaryWidth because a one-sentence
+// preview is rarely useful at 120 chars when the agent is
+// reasoning about a multi-clause claim.
+const textPreviewWidth = 280
+
+// previewLine returns the first line of s, ellipsized at width.
+// Used for thinking/text events where the full body is usually
+// multi-paragraph and would dominate the progress stream.
+func previewLine(s string, width int) string {
 	s = strings.TrimSpace(s)
 	if i := strings.IndexByte(s, '\n'); i >= 0 {
 		s = s[:i]
 	}
-	return clip(s, summaryWidth)
+	return clip(s, width)
 }
 
 func clip(s string, n int) string {
@@ -165,11 +170,28 @@ func FormatCodexStreamEvent(line []byte) string {
 		// long calls that would otherwise show no activity.
 		text := firstNonEmpty(ev.Item.Summary, ev.Item.Text)
 		text = firstNonEmpty(text, ev.Item.Content)
-		pv := previewLine(text)
+		pv := previewLine(text, textPreviewWidth)
 		if pv == "" {
 			return ""
 		}
 		return "  thinking: " + pv
+	case "agent_message":
+		// agent_message carries the model's prose - either an
+		// intermediate "Let me look at X" message or the final
+		// answer. Without surfacing it, a codex critic that
+		// reasons via cat/grep but doesn't emit reasoning items
+		// shows only shell commands and looks unfinished. Skip
+		// item.started here because text is empty until the
+		// message completes.
+		if ev.Type != "item.completed" {
+			return ""
+		}
+		text := firstNonEmpty(ev.Item.Text, ev.Item.Content)
+		pv := previewLine(text, textPreviewWidth)
+		if pv == "" {
+			return ""
+		}
+		return "  text: " + pv
 	}
 	return ""
 }
