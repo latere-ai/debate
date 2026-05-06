@@ -1,4 +1,4 @@
-# Spec 10 — Run-level artifacts
+# Spec 10 - Run-level artifacts
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Session persistence" → Layout for design intent.
@@ -68,7 +68,7 @@ Written atomically before any agent process spawns. Once written, never modified
 Rules:
 
 - The `task_context` field is the verbatim string from [07](07-claude-transcript.md). Do not summarize, truncate, or pretty-print.
-- `diff.patch_path` always points at `<session>/diff.patch`, written by [11](11-fork-artifacts.md)'s `WriteRunDiff` (because the per-fork capture reuses the helper) — but the run-level snapshot here is the *initial* one before any fork runs.
+- `diff.patch_path` always points at `<session>/diff.patch`, written by [11](11-fork-artifacts.md)'s `WriteRunDiff` (because the per-fork capture reuses the helper) - but the run-level snapshot here is the *initial* one before any fork runs.
 - `proposer` and `critic` use the same `agent` discriminator (`claude` | `codex`); v0 only writes `proposer.agent == "claude"` (see [06](06-preflight.md)).
 - Schema version is `debate.start.v0`; bumped on any breaking change.
 
@@ -122,7 +122,7 @@ Rules:
 
 ## transcript.jsonl
 
-Per-session, append-only, one line per round dispatch. Acts as a forward index of round files for human/audit consumption. Critically, this is **not** the root claude transcript — that name was reused once and we now consistently call this `transcript.jsonl` to match [01-overview.md](01-overview.md).
+Per-session, append-only, one line per round dispatch. Acts as a forward index of round files for human/audit consumption. Critically, this is **not** the root claude transcript - that name was reused once and we now consistently call this `transcript.jsonl` to match [01-overview.md](01-overview.md).
 
 ```jsonc
 {"ts":"2026-05-06T14:12:34Z","fork":1,"round":1,"role":"critic","path":"forks/critic-1/rounds/r1-critic.md","ms":4823}
@@ -133,12 +133,12 @@ Per-session, append-only, one line per round dispatch. Acts as a forward index o
 
 Fields:
 
-- `ts` — RFC3339 UTC, when the round file was persisted.
-- `fork` — 1-based critic index.
-- `round` — 1-based round number within that fork.
-- `role` — `"critic"` (odd rounds) or `"proposer"` (even rounds).
-- `path` — relative to the session root.
-- `ms` — wall time spent producing this round (subprocess invocation + parse).
+- `ts` - RFC3339 UTC, when the round file was persisted.
+- `fork` - 1-based critic index.
+- `round` - 1-based round number within that fork.
+- `role` - `"critic"` (odd rounds) or `"proposer"` (even rounds).
+- `path` - relative to the session root.
+- `ms` - wall time spent producing this round (subprocess invocation + parse).
 
 Order is time-of-write; under v0's serial fork execution this is also lex-by-fork-then-round.
 
@@ -156,7 +156,7 @@ Two record shapes:
 {"ts":"2026-05-06T14:09:11Z","kind":"skipped","reason":"trivial-diff","changed_lines":3,"threshold":10}
 
 // Interrupted run (no end.json was written; entry recovered by a future spec or kept absent in v0)
-// v0 does NOT write a "kind":"run" line for interrupted runs — the absence of one is the signal.
+// v0 does NOT write a "kind":"run" line for interrupted runs - the absence of one is the signal.
 ```
 
 Rules:

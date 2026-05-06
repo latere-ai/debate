@@ -1,7 +1,7 @@
 // Package cli_test runs end-to-end tests against the actual `bin/debate`
 // binary, with claude and codex resolved via PATH to mock harnesses.
 //
-// Coverage: the full v0 happy path — preflight, transcript locate +
+// Coverage: the full v0 happy path - preflight, transcript locate +
 // task context extraction, working-tree diff, per-fork serial loop,
 // critic → proposer round trips through the real subprocess layer,
 // ledger writes, summary.md render, log.jsonl append, exit code
@@ -212,7 +212,7 @@ func TestFullE2E_HappyPath(t *testing.T) {
 
 	// Mock codex: emit a 1-attack critic markdown that the proposer
 	// (mock claude above) will concede.
-	criticContent := "# Critic 1 — round 1 attacks\n\n" +
+	criticContent := "# Critic 1 - round 1 attacks\n\n" +
 		"aspect: security\n\n" +
 		"## c1-1 [search.go:1]\n\n" +
 		"claim: SQL injection via unparameterized LIKE.\n\n" +

@@ -53,7 +53,7 @@ type ParseOption struct {
 }
 
 var (
-	headerRE      = regexp.MustCompile(`^# Critic\s+\d+\s+—\s+round\s+\d+\s+attacks\s*$`)
+	headerRE      = regexp.MustCompile(`^# Critic\s+\d+\s+-\s+round\s+\d+\s+attacks\s*$`)
 	aspectLineRE  = regexp.MustCompile(`^aspect:\s*(.+)$`)
 	sectionHeadRE = regexp.MustCompile(`^##\s+(\S+)\s+\[(.+?)\](?:\s+\((re-attack|withdraw)\))?\s*$`)
 	idRE          = regexp.MustCompile(`^c(\d+)-(\d+)$`)
@@ -245,7 +245,7 @@ func Parse(raw string, expectedAspect string, criticIndex, round int, priorAttac
 // Render is the canonical writer; the inverse of Parse.
 func Render(criticIndex, round int, aspect string, attacks []Attack) []byte {
 	var b strings.Builder
-	fmt.Fprintf(&b, "# Critic %d — round %d attacks\n\n", criticIndex, round)
+	fmt.Fprintf(&b, "# Critic %d - round %d attacks\n\n", criticIndex, round)
 	fmt.Fprintf(&b, "aspect: %s\n\n", aspect)
 	for i, a := range attacks {
 		var dispTag string

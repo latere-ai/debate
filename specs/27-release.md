@@ -1,4 +1,4 @@
-# Spec 27 — v0 release process and GA gates
+# Spec 27 - v0 release process and GA gates
 
 > **Status: ✅ implemented** (process + checklist landed; the gate
 > outcomes themselves are filled in at release-cut time).
@@ -111,7 +111,7 @@ diverge.
 
 Probe outcomes (see [25](25-probes.md)) are recorded by appending a
 short note to the GitHub release body via the GH UI or `gh release
-edit` after `make probe` finishes — they are not committed.
+edit` after `make probe` finishes - they are not committed.
 
 ## Rollback
 

@@ -20,7 +20,7 @@ func (r *Render) Bytes(s *round.Summary, agg map[string]ledger.Record) ([]byte, 
 		panic("json format not implemented in v0")
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "# Debate review — terminated: %s\n\n", s.Termination)
+	fmt.Fprintf(&b, "# Debate review - terminated: %s\n\n", s.Termination)
 
 	hl := PickHeadline(values(agg))
 	if hl != nil {

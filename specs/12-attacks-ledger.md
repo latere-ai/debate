@@ -1,4 +1,4 @@
-# Spec 12 — Attacks ledger (`attacks.jsonl`)
+# Spec 12 - Attacks ledger (`attacks.jsonl`)
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"`attacks.jsonl` schema" for design intent.
@@ -125,7 +125,7 @@ func Append(sess *state.Session, r Record) error
 // supersede earlier ones; the last status wins.
 func Aggregate(sess *state.Session) (map[string]Record, error)
 
-// Pending returns the subset of Aggregate whose status is open or rebutted —
+// Pending returns the subset of Aggregate whose status is open or rebutted -
 // i.e., attacks still alive and eligible for further rounds. Used by [20]'s
 // steady-state detector.
 func Pending(agg map[string]Record) []Record

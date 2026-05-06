@@ -80,7 +80,7 @@ func AssemblePrompt(in CriticInput) string {
 	if len(in.PriorRoundFiles) > 0 {
 		b.WriteString("\n# Prior rounds\n\n")
 		for _, r := range in.PriorRoundFiles {
-			fmt.Fprintf(&b, "- @%s — round %d %s\n", r.Path, r.Round, r.Role)
+			fmt.Fprintf(&b, "- @%s - round %d %s\n", r.Path, r.Round, r.Role)
 		}
 	}
 	return b.String()
@@ -162,7 +162,7 @@ func (c *CodexCritic) Round(ctx context.Context, in CriticInput) (*CriticResult,
 }
 
 // ClaudeCritic invokes a fresh `claude -p` per round (no --resume,
-// no --fork-session — see spec 18).
+// no --fork-session - see spec 18).
 type ClaudeCritic struct {
 	Bin string
 }

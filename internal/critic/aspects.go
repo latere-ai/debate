@@ -31,7 +31,7 @@ Hard rules:
 
 Output format:
 
-# Critic <i> — round <n> attacks
+# Critic <i> - round <n> attacks
 
 aspect: %s
 
@@ -72,7 +72,7 @@ func Builtin() map[string]Aspect {
 			Name: "security",
 			SystemPrompt: aspectPrompt(
 				"security",
-				"3. Focus on input validation, authn/authz, injection (SQL, shell,\n   template, deserialization), data exposure, secrets in logs, unsafe\n   deserialization, missing CSRF/HMAC checks, broken access control.\n4. Reproductions should be minimal exploit-shaped curls, payloads, or\n   test inputs. Theoretical attacks (\"if the attacker had the secret\n   key\") are dropped — name a concrete reachable path.",
+				"3. Focus on input validation, authn/authz, injection (SQL, shell,\n   template, deserialization), data exposure, secrets in logs, unsafe\n   deserialization, missing CSRF/HMAC checks, broken access control.\n4. Reproductions should be minimal exploit-shaped curls, payloads, or\n   test inputs. Theoretical attacks (\"if the attacker had the secret\n   key\") are dropped - name a concrete reachable path.",
 			),
 			ForbiddenKeywords: []string{"off-by-one", "missing branch", "n+1", "allocations", "blocking call", "long function", "unclear naming", "swallowed exception"},
 		},

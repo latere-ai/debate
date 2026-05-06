@@ -1,4 +1,4 @@
-# Spec 07 — Claude session JSONL reader
+# Spec 07 - Claude session JSONL reader
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Verified primitives" for design intent.
@@ -64,9 +64,9 @@ func ExtractFirstUser(records [][]byte) (string, error)
 
 Errors:
 
-- `ErrTranscriptNotFound` — wraps `os.ErrNotExist`; carries the path searched.
-- `ErrTranscriptMalformed` — wraps the line number and underlying JSON error.
-- `ErrNoUserTurn` — transcript contains zero records of `type == "user"`.
+- `ErrTranscriptNotFound` - wraps `os.ErrNotExist`; carries the path searched.
+- `ErrTranscriptMalformed` - wraps the line number and underlying JSON error.
+- `ErrNoUserTurn` - transcript contains zero records of `type == "user"`.
 
 ## Record shape
 

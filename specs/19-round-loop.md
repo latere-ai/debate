@@ -1,4 +1,4 @@
-# Spec 19 — Round loop and per-fork orchestration
+# Spec 19 - Round loop and per-fork orchestration
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Rounds" and "Lifecycle invariants" for design intent.
@@ -80,7 +80,7 @@ for each forkIdx:
     cri := e.NewCritic(forkIdx)
     var forkID string                                             # claude fork session id
 
-    # R1 — attack
+    # R1 - attack
     raw1, _ := cri.Round(ctx, CriticInput{
         Aspect: aspect, CriticIndex: forkIdx, Round: 1,
         SystemPrompt: critic.Assemble(aspect, forkIdx, 1, ""),
@@ -93,7 +93,7 @@ for each forkIdx:
     for a in attacks1: ledger.Append(sess, recordFromAttack(a))    # [12]
     state.AppendTranscript(sess, forkIdx, 1, "critic", ...)        # [10]
 
-    # R2 — defense
+    # R2 - defense
     pointer := buildPointer(sess, forkIdx, 1)
     if no fork yet:
         res2, _ := proposer.FirstRound(ctx, pointer)               # [17]
@@ -147,7 +147,7 @@ Every pointer message dispatched to either agent references a file already on di
 
 | Round | Pointer points at | File written when |
 |---|---|---|
-| R1's call | (none — system prompt embeds task + diff) | n/a |
+| R1's call | (none - system prompt embeds task + diff) | n/a |
 | R2's call | `r1-critic.md` | written by [11](11-fork-artifacts.md) before `proposer.FirstRound` |
 | R3's call | `r2-proposer.md` and `r1-critic.md` | both already on disk |
 | R4's call | `r3-critic.md` | written before `proposer.NextRound` |

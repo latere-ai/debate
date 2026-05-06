@@ -1,4 +1,4 @@
-# Spec 18 — Critic drivers (codex + claude)
+# Spec 18 - Critic drivers (codex + claude)
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Mechanism" → "Driving the critic" for design intent.
@@ -43,7 +43,7 @@ type RoundFileRef struct {
 }
 
 type CriticResult struct {
-    Markdown   string         // raw stdout — the critic's emitted document
+    Markdown   string         // raw stdout - the critic's emitted document
     ThreadID   string         // codex: from thread.started; claude: session_id
     Tokens     int
     USD        float64
@@ -88,8 +88,8 @@ Prompt assembly (single string):
 ```
 
 # Prior rounds (round 3+)
-- @<rel-path-of-r2-proposer.md> — proposer's R2 defense
-- @<rel-path-of-r3-critic.md>   — your R3 attack list (your own prior round)
+- @<rel-path-of-r2-proposer.md> - proposer's R2 defense
+- @<rel-path-of-r3-critic.md>   - your R3 attack list (your own prior round)
 ...
 ```
 
@@ -119,7 +119,7 @@ claude --output-format json --print <full prompt>
        [--permission-mode <mode>]   # only if env requests it
 ```
 
-**No `--resume`, no `--fork-session`.** Each round is a fresh session. Reasoning: same as in [01-overview.md](01-overview.md) — freshness blocks the critic from inheriting any other session's conversation.
+**No `--resume`, no `--fork-session`.** Each round is a fresh session. Reasoning: same as in [01-overview.md](01-overview.md) - freshness blocks the critic from inheriting any other session's conversation.
 
 Prompt: same string as `CodexCritic`. Claude reads `@<path>` references via its built-in file tool; paths are absolute or relative to `Run.Cwd`.
 
@@ -155,7 +155,7 @@ Hook for v1: when [01-overview.md](01-overview.md)'s strict-isolation v1 lands, 
 
 ## Behavior
 
-- The drivers do *not* parse the markdown — they return raw stdout. Parsing is [14](14-attack-parser.md).
+- The drivers do *not* parse the markdown - they return raw stdout. Parsing is [14](14-attack-parser.md).
 - `Tokens` accumulator usable by [20](20-termination.md)'s cost-cap gate; for codex the field comes from `usage` events when present, else 0 (best-effort).
 - For codex, `--sandbox read-only` is *always* set; lint test verifies.
 

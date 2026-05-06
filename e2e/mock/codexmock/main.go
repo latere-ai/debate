@@ -16,7 +16,7 @@ func main() {
 	}
 	content := os.Getenv("MOCK_CODEX_CONTENT")
 	if content == "" {
-		content = "# Critic 1 — round 1 attacks\n\naspect: security\n"
+		content = "# Critic 1 - round 1 attacks\n\naspect: security\n"
 	}
 
 	emit("thread.started", map[string]any{"thread_id": thread})

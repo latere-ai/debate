@@ -6,14 +6,14 @@ After Claude finishes a coding task, `debate` forks the session for
 one or more critic agents (Codex by default), runs a multi-round
 cross-examination per critic, applies any concessions the proposer
 makes, and surfaces only the unresolved disputes for human attention.
-No debate content ever lands in the root Claude session — debate
+No debate content ever lands in the root Claude session - debate
 happens in branched forks off the root.
 
 > Status: v0 implementation complete. Design lives in
 > [specs/01-overview.md](specs/01-overview.md); per-component
 > contracts under [specs/](specs/). v0 GA is gated on upstream
 > [agents-byzantine-tolerance](https://github.com/changkun/agents-byzantine-tolerance)
-> 07a per-aspect rates and the no-output Stop-hook probe — see
+> 07a per-aspect rates and the no-output Stop-hook probe - see
 > [specs/27-release.md](specs/27-release.md).
 
 ## Installation
@@ -47,7 +47,7 @@ $ # ...claude does its thing...
 [debate] 2 unresolved; see /repo/.debate/sessions/20260506T140905Z-q3a9f1/summary.md
 
 $ cat .debate/sessions/*/summary.md
-# Debate review — terminated: steady-state
+# Debate review - terminated: steady-state
 
 ## Headline (most contested unresolved)
 - [security/api.go:88] SQL injection via unparameterized LIKE
@@ -111,7 +111,7 @@ Five load-bearing pieces (full design in
 - **Forked debate, no debate content in root.** Each critic gets its
   own claude fork via `--fork-session`. The user's root transcript
   never sees a debate turn. (The Stop-hook path may add a single
-  hook-status attachment per run — probe owed before v0 GA.)
+  hook-status attachment per run - probe owed before v0 GA.)
 - **Verbatim channel.** Critic output reaches the proposer-clone as a
   plain user turn pointing at a file: `Some comments at @<path>.
   Please resolve or respond.` No skill, slash-command, or
@@ -119,13 +119,13 @@ Five load-bearing pieces (full design in
   defense behavior.
 - **Aspect-specialized critics.** Default coverage splits across
   `functional-logic`, `security`, `code-quality`, `performance`. The
-  debate-theoretic property — one competent honest player suffices
-  for soundness — means a lazy critic on one aspect doesn't break the
+  debate-theoretic property - one competent honest player suffices
+  for soundness - means a lazy critic on one aspect doesn't break the
   others.
 - **Persisted ledger.** Every attack carries a stable id (`c<critic>-<seq>`),
   every transition is appended to `attacks.jsonl`. Headlines are
   picked by a pure contention score (`rounds_survived + (1 if
-  re-attacked)`) — no LLM judging at this layer.
+  re-attacked)`) - no LLM judging at this layer.
 - **Best-effort critic isolation.** v0 enforces "diff + task only" by
   aspect prompt and `codex --sandbox read-only`, not OS isolation;
   strict per-fork sandbox dirs are v1.
@@ -133,12 +133,12 @@ Five load-bearing pieces (full design in
 ## Related work
 
 - [agents-byzantine-tolerance](https://github.com/changkun/agents-byzantine-tolerance)
-  — research repo studying multi-agent Byzantine fault tolerance,
+  - research repo studying multi-agent Byzantine fault tolerance,
   including
   [spec 07 / Adversarial Debate](https://github.com/changkun/agents-byzantine-tolerance/blob/main/specs/07-adversarial-debate.md),
   the architecture this tool productizes.
 - Irving, Christiano & Amodei,
-  [*AI Safety via Debate*](https://arxiv.org/abs/1805.00899) (2018) —
+  [*AI Safety via Debate*](https://arxiv.org/abs/1805.00899) (2018) -
   one agent proposes, another finds flaws, a judge inspects only the
   single disputed claim that decides the debate. The
   complexity-theoretic intuition (debate ≈ PSPACE under optimal

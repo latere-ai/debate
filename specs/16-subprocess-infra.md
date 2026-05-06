@@ -1,4 +1,4 @@
-# Spec 16 — Subprocess infrastructure
+# Spec 16 - Subprocess infrastructure
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Constraints uncovered by the probe" for design intent.
@@ -8,7 +8,7 @@
 
 ## Scope
 
-In: shared subprocess primitives — environment scrubbing, JSON output decoding tolerant to control characters, deadlines, child-tree teardown on signal, recursion-guard env propagation, structured stderr capture.
+In: shared subprocess primitives - environment scrubbing, JSON output decoding tolerant to control characters, deadlines, child-tree teardown on signal, recursion-guard env propagation, structured stderr capture.
 
 Out: any specific agent's invocation arguments ([17](17-claude-proposer.md), [18](18-critic-drivers.md)).
 
@@ -59,7 +59,7 @@ func StreamJSON(stdout io.Reader, visit func(json.RawMessage) error) error
 `CleanEnv` always:
 
 - Removes `ANTHROPIC_API_KEY` (see [01-overview.md](01-overview.md) §"Constraints uncovered").
-- Sets `DEBATE_IN_PROGRESS=1` (recursion guard contract — see [06](06-preflight.md), [24](24-stop-hook.md)).
+- Sets `DEBATE_IN_PROGRESS=1` (recursion guard contract - see [06](06-preflight.md), [24](24-stop-hook.md)).
 - Sets `LC_ALL=C` for stable command output where it matters ([08](08-diff.md) git wrapper).
 - Preserves `HOME`, `PATH`, `XDG_*`, `CLAUDE_*` (other than the API key), `CODEX_*`.
 
@@ -106,7 +106,7 @@ If a subprocess produces no stdout for 60 seconds, the orchestrator emits a stde
 debate: <agent>: no output for 60s, still waiting (pid <n>)
 ```
 
-This is a heartbeat, not a kill — only context cancellation kills.
+This is a heartbeat, not a kill - only context cancellation kills.
 
 ## Stderr handling
 

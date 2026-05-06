@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# debate-stop-hook.sh — Stop hook for the `debate` CLI.
+# debate-stop-hook.sh - Stop hook for the `debate` CLI.
 # See specs/24-stop-hook.md and specs/01-overview.md for design.
 
 set -e

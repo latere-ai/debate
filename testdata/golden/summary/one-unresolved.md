@@ -1,4 +1,4 @@
-# Debate review — terminated: steady-state
+# Debate review - terminated: steady-state
 
 ## Headline (most contested unresolved)
 - [security/x.go:1] leak

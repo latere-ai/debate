@@ -1,4 +1,4 @@
-# Spec 08 — Working-tree diff and trivial-diff gate
+# Spec 08 - Working-tree diff and trivial-diff gate
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Risks" → flow disruption for design intent.

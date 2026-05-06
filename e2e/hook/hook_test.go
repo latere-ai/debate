@@ -61,7 +61,7 @@ func TestHookForwardsArgsAndEnv(t *testing.T) {
 		"PATH=" + binDir + ":" + os.Getenv("PATH"),
 		"RECORD_FILE=" + recordFile,
 		"ANTHROPIC_API_KEY=stale", // hook script must scrub this
-		// no DEBATE_IN_PROGRESS — should be set by the hook before exec
+		// no DEBATE_IN_PROGRESS - should be set by the hook before exec
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

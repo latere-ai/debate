@@ -1,4 +1,4 @@
-# Spec 20 — Termination conditions and cost-cap accounting
+# Spec 20 - Termination conditions and cost-cap accounting
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Termination conditions" for design intent.
@@ -25,7 +25,7 @@ const (
 )
 ```
 
-`steady-state` and `max-turn` are per-fork (a fork can hit one of these and the next fork still runs). `cost-cap`, `malformed-output`, and `interrupted` are run-level — the orchestrator stops scheduling new forks and rolls remaining attacks into `unresolved`.
+`steady-state` and `max-turn` are per-fork (a fork can hit one of these and the next fork still runs). `cost-cap`, `malformed-output`, and `interrupted` are run-level - the orchestrator stops scheduling new forks and rolls remaining attacks into `unresolved`.
 
 ## Public Go interfaces
 
@@ -50,7 +50,7 @@ type Detector struct {
 
 // SteadyState returns true iff the last two critic rounds in this fork
 // produced zero new attacks AND zero re-attacks. (Pure new attacks
-// dropping to zero isn't enough — re-attacks also count as "still
+// dropping to zero isn't enough - re-attacks also count as "still
 // disputing.")
 func (d *Detector) SteadyState(history []ForkHistory) bool
 
@@ -141,7 +141,7 @@ Per-fork termination (`steady-state`, `max-turn`) closes that fork only; the loo
 
 Run-level termination (`cost-cap`, `malformed-output`, `interrupted`) breaks the outer loop. Forks not yet started never run. The active fork's already-persisted state stays; pending attacks in that fork become `unresolved`.
 
-The summary's `Termination` field is the *run-level* reason if any was hit; otherwise it's `steady-state` (every fork either hit steady-state or max-turn naturally). Per-fork outcomes are recorded in `Summary.Forks[i].Termination` (`steady-state` vs `max-turn` only — run-level termination is reflected at the summary level, not per-fork).
+The summary's `Termination` field is the *run-level* reason if any was hit; otherwise it's `steady-state` (every fork either hit steady-state or max-turn naturally). Per-fork outcomes are recorded in `Summary.Forks[i].Termination` (`steady-state` vs `max-turn` only - run-level termination is reflected at the summary level, not per-fork).
 
 ## Test contract
 

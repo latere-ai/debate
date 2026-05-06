@@ -1,4 +1,4 @@
-# Spec 25 — Probes (incl. v0 GA blocker)
+# Spec 25 - Probes (incl. v0 GA blocker)
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"v0 release blockers" and §"Constraints uncovered by the probe" for design intent.
@@ -132,7 +132,7 @@ fi
 Outcome consumed by [27](27-release.md):
 
 - **PASS**: GA can claim the strict "byte-identical root JSONL" form of root-preservation in non-Stop-hook modes AND in Option B. The spec's caveat at [01-overview.md](01-overview.md) §"Lifecycle invariants" can be tightened.
-- **FAIL**: GA proceeds with the existing "no debate-content pollution" wording. No code change needed — the spec is already correct under this branch.
+- **FAIL**: GA proceeds with the existing "no debate-content pollution" wording. No code change needed - the spec is already correct under this branch.
 
 Either way, GA is unblocked once the probe runs and its result is recorded in the release notes.
 

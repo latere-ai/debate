@@ -1,4 +1,4 @@
-# Spec 13 — Critic output format (the contract)
+# Spec 13 - Critic output format (the contract)
 
 > **Status: ✅ implemented** (validated by spec 14's parser tests).
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Rounds" → R1 Attack for design intent.
@@ -21,7 +21,7 @@ Two readers ([14](14-attack-parser.md) the parser, [15](15-aspect-prompts.md) th
 The critic emits a single markdown document. Whitespace outside section bodies is irrelevant. Headers must use `#`-style (not setext). Field names are lowercase.
 
 ```markdown
-# Critic <critic-index> — round <round-number> attacks
+# Critic <critic-index> - round <round-number> attacks
 
 aspect: <aspect-name>
 
@@ -95,7 +95,7 @@ The disposition tag goes after the location bracket, in parentheses. `re-attack`
 ## Worked example
 
 ```markdown
-# Critic 2 — round 1 attacks
+# Critic 2 - round 1 attacks
 
 aspect: security
 

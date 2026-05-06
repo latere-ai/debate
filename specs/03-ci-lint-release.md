@@ -1,4 +1,4 @@
-# Spec 03 — CI, lint, version, release
+# Spec 03 - CI, lint, version, release
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) for design intent.

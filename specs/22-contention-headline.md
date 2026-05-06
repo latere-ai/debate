@@ -1,4 +1,4 @@
-# Spec 22 — Contention scoring and headline selection
+# Spec 22 - Contention scoring and headline selection
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Headline contradicting signal" for design intent.
@@ -62,7 +62,7 @@ Three keys, in priority order:
 2. **`RoundIntroduced` ASC.** Earlier discovery wins; the bug that survived the most rounds since R1 is more contested than one introduced at R5.
 3. **`AttackID` ASC** (lexicographic). Final disambiguator; deterministic.
 
-The third key is required so the sort is total — without it, ties would surface as nondeterministic across runs (Go's `sort.Slice` is not stable; even `sort.SliceStable` doesn't help when input order varies).
+The third key is required so the sort is total - without it, ties would surface as nondeterministic across runs (Go's `sort.Slice` is not stable; even `sort.SliceStable` doesn't help when input order varies).
 
 ## Cross-fork rule
 
@@ -101,4 +101,4 @@ This spec deliberately keeps `Score` as a pure function so swapping its implemen
 - [x] `Score` is a pure function (no I/O, no clock, no rand).
 - [x] `PickHeadline` returns nil iff no record has `Status == "unresolved"`.
 - [x] Determinism property holds across 100 random shuffles in the test suite.
-- [x] No semantic ranking, no LLM call, no embeddings — the rule is arithmetic only.
+- [x] No semantic ranking, no LLM call, no embeddings - the rule is arithmetic only.

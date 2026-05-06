@@ -1,4 +1,4 @@
-# Spec 09 — State directory and atomic writes
+# Spec 09 - State directory and atomic writes
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Session persistence" for design intent.

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-const sampleR1 = "# Critic 2 — round 1 attacks\n\n" +
+const sampleR1 = "# Critic 2 - round 1 attacks\n\n" +
 	"aspect: security\n\n" +
 	"## c2-1 [src/api.py:88]\n\n" +
 	"claim: The search handler concatenates user-supplied input directly into a SQL `LIKE` pattern without escaping.\n\n" +
@@ -34,7 +34,7 @@ func TestParseHappy(t *testing.T) {
 }
 
 func TestDropNoReproduction(t *testing.T) {
-	doc := "# Critic 1 — round 1 attacks\n\naspect: security\n\n## c1-1 [x.py:1]\n\nclaim: x\n\nexpected violation: panic in y\n"
+	doc := "# Critic 1 - round 1 attacks\n\naspect: security\n\n## c1-1 [x.py:1]\n\nclaim: x\n\nexpected violation: panic in y\n"
 	_, stats, err := Parse(doc, "security", 1, 1, nil, ParseOption{})
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +45,7 @@ func TestDropNoReproduction(t *testing.T) {
 }
 
 func TestDropStyle(t *testing.T) {
-	doc := "# Critic 1 — round 1 attacks\n\naspect: code-quality\n\n## c1-1 [x.py:1]\n\nclaim: This function should be named more idiomatic.\n\nexpected violation: it bothers me\n\nreproduction:\n```\nrun it\n```\n"
+	doc := "# Critic 1 - round 1 attacks\n\naspect: code-quality\n\n## c1-1 [x.py:1]\n\nclaim: This function should be named more idiomatic.\n\nexpected violation: it bothers me\n\nreproduction:\n```\nrun it\n```\n"
 	_, stats, err := Parse(doc, "code-quality", 1, 1, nil, ParseOption{})
 	if err != nil {
 		t.Fatal(err)
@@ -56,7 +56,7 @@ func TestDropStyle(t *testing.T) {
 }
 
 func TestDropCrossAspect(t *testing.T) {
-	doc := "# Critic 1 — round 1 attacks\n\naspect: performance\n\n## c1-1 [x.py:1]\n\nclaim: SQL injection in the search handler.\n\nexpected violation: panic\n\nreproduction:\n```\ngo\n```\n"
+	doc := "# Critic 1 - round 1 attacks\n\naspect: performance\n\n## c1-1 [x.py:1]\n\nclaim: SQL injection in the search handler.\n\nexpected violation: panic\n\nreproduction:\n```\ngo\n```\n"
 	_, stats, err := Parse(doc, "performance", 1, 1, nil, ParseOption{})
 	if err != nil {
 		t.Fatal(err)
@@ -87,7 +87,7 @@ func TestRoundTripRender(t *testing.T) {
 }
 
 func TestNormalizerCollision(t *testing.T) {
-	doc := "# Critic 1 — round 1 attacks\n\naspect: security\n\n" +
+	doc := "# Critic 1 - round 1 attacks\n\naspect: security\n\n" +
 		"## c1-1 [x:1]\n\nclaim: a\n\nexpected violation: panic\n\nreproduction:\n```\na\n```\n\n" +
 		"## c1-1 [y:1]\n\nclaim: b\n\nexpected violation: panic\n\nreproduction:\n```\nb\n```\n"
 	out, stats, err := Parse(doc, "security", 1, 1, nil, ParseOption{})

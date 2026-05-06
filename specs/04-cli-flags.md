@@ -1,4 +1,4 @@
-# Spec 04 — CLI flags
+# Spec 04 - CLI flags
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"CLI surface" for design intent.
@@ -8,7 +8,7 @@
 
 ## Scope
 
-In: every flag's exact name, type, default, env-var override, help text, and the `cobra`-style command tree. Flag parsing only — no validation logic, no behavior side-effects.
+In: every flag's exact name, type, default, env-var override, help text, and the `cobra`-style command tree. Flag parsing only - no validation logic, no behavior side-effects.
 
 Out: validation and pre-flight checks ([06](06-preflight.md)), config-file layering ([05](05-config-file.md)), the actual subprocess invocations.
 
@@ -44,8 +44,8 @@ All flags exposed on the root command:
 | `--hook-mode` | bool | `false` | `DEBATE_HOOK_MODE` | force exit 0; see [23](23-summary-render.md). |
 | `--config` | string | `""` | `DEBATE_CONFIG` | explicit `.debate.toml` path; overrides search ([05](05-config-file.md)). |
 | `--verbose` | count | `0` | `DEBATE_VERBOSE` | `-v`, `-vv` for log levels. |
-| `--version` | bool | — | — | prints version (see [03](03-ci-lint-release.md)) and exits 0. |
-| `--help`, `-h` | bool | — | — | cobra default. |
+| `--version` | bool | - | - | prints version (see [03](03-ci-lint-release.md)) and exits 0. |
+| `--help`, `-h` | bool | - | - | cobra default. |
 
 ## Env-var rule
 

@@ -1,4 +1,4 @@
-# Spec 23 — `summary.md` rendering, surfacing rule, exit codes
+# Spec 23 - `summary.md` rendering, surfacing rule, exit codes
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Output format" and §"Surfacing rule" for design intent.
@@ -15,7 +15,7 @@ Out: contention scoring ([22](22-contention-headline.md)), the `--format json` a
 ## summary.md template (v0)
 
 ```markdown
-# Debate review — terminated: <termination>
+# Debate review - terminated: <termination>
 
 ## Headline (most contested unresolved)
 - [<aspect>/<location>] <one-line restatement of claim>
@@ -74,7 +74,7 @@ func Decide(s *round.Summary) SurfacingDecision
 ## Renderer rules
 
 - Fields with embedded newlines (e.g., `claim` paragraphs) are indented by two spaces under their bullet so the markdown stays well-formed when rendered.
-- Code-fenced blocks inside `reproduction` are escaped via the markdown renderer's "raw" mode — the renderer emits them verbatim, not re-fenced.
+- Code-fenced blocks inside `reproduction` are escaped via the markdown renderer's "raw" mode - the renderer emits them verbatim, not re-fenced.
 - Aspect names are passed through unchanged (free-form per [15](15-aspect-prompts.md)).
 - `<comma-separated concession_files>` joins with `, ` (comma + space). Lists ≥ 5 truncate to "first three, ..., last" (`api.py, util.py, ..., db.py`).
 - "rounds survived" displays `r.RoundsSurvived` (numeric); the human-readable phrase is the same as the [22](22-contention-headline.md) score.
@@ -108,7 +108,7 @@ Decide(s):
     }
 ```
 
-The stdout line is *exactly one line*, no leading whitespace. It goes to the orchestrator's stdout (which `exec`s through to the surrounding shell under the Stop hook — see [24](24-stop-hook.md)).
+The stdout line is *exactly one line*, no leading whitespace. It goes to the orchestrator's stdout (which `exec`s through to the surrounding shell under the Stop hook - see [24](24-stop-hook.md)).
 
 ## Exit-code matrix (recap from [21](21-signals.md))
 

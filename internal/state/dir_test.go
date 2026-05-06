@@ -113,7 +113,7 @@ func TestAtomicWriteRefusesExistingTemp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Sanity: same target written twice — second wins (rename overwrites
+	// Sanity: same target written twice - second wins (rename overwrites
 	// is the OS guarantee). The interesting invariant is that an
 	// in-flight temp file cannot collide because of randSuffix().
 	if err := sess.AtomicWrite("end.json", []byte("a")); err != nil {

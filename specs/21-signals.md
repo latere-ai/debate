@@ -1,4 +1,4 @@
-# Spec 21 — Signal handling and graceful exit
+# Spec 21 - Signal handling and graceful exit
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Cancellable" and §"Termination conditions" → User interrupt.
@@ -27,7 +27,7 @@ package round
 //   2. The Engine's main loop observes ctx.Err() at the next round
 //      boundary and breaks out with TerminationReason = "interrupted".
 //   3. Engine writes end.json + appends a NON-"kind:run" line is NOT
-//      written — log.jsonl absence is the interrupt signal (see [10]).
+//      written - log.jsonl absence is the interrupt signal (see [10]).
 //   4. The finalize function the caller deferred restores the default
 //      handlers; a second SIGINT during finalize triggers os.Exit(130)
 //      to honor the user's "I really mean it" cadence.
@@ -47,7 +47,7 @@ T+0..2s   Children handle SIGINT and exit (claude/codex have their own
 T+2s      [16] sends SIGKILL to any still-running child
 T+~       Engine.Run's outer loop returns ErrInterrupted
 T+~       buildSummary(...) runs; Termination = "interrupted"
-T+~       state.WriteEnd(sess, e) — atomic, fsynced
+T+~       state.WriteEnd(sess, e) - atomic, fsynced
 T+~       Engine.Run returns
 T+~       finalize() restores default handlers
 T+~       cmd/debate/main.go exits with the right code (see [23])

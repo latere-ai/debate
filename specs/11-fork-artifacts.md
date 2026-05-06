@@ -1,4 +1,4 @@
-# Spec 11 — Per-fork artifacts
+# Spec 11 - Per-fork artifacts
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Session persistence" → Layout for design intent.
@@ -63,7 +63,7 @@ Write rules:
 
 The unified-diff text from [08](08-diff.md)'s `Compute`, written verbatim to `<fork>/diff.patch`. Refreshed per fork at fork start (after prior critics' concession-fixes have landed in the working tree); not modified mid-fork.
 
-The orchestrator also writes the *initial* run-level diff to `<session>/diff.patch` once at R0 setup — separate file, same on-disk format.
+The orchestrator also writes the *initial* run-level diff to `<session>/diff.patch` once at R0 setup - separate file, same on-disk format.
 
 ## Round files
 
@@ -71,7 +71,7 @@ The orchestrator also writes the *initial* run-level diff to `<session>/diff.pat
 
 Convention: odd rounds are critic outputs, even rounds are proposer outputs. R1 is always `r1-critic.md`; R2 is always `r2-proposer.md`; etc. (See [19](19-round-loop.md) for round numbering.)
 
-For critic rounds, the file content is the *normalized* output from [14](14-attack-parser.md) — not the raw critic stdout. Normalization (id reassignment, style-drop, reproduction-required filter) runs *before* the file is written, since this file is the one the proposer reads via `@<path>` pointer (see [01-overview.md](01-overview.md)).
+For critic rounds, the file content is the *normalized* output from [14](14-attack-parser.md) - not the raw critic stdout. Normalization (id reassignment, style-drop, reproduction-required filter) runs *before* the file is written, since this file is the one the proposer reads via `@<path>` pointer (see [01-overview.md](01-overview.md)).
 
 For proposer rounds, the file content is the proposer-clone's chat response, captured from claude's JSON `result` field. Plus, on the same `AtomicWrite` call, a trailing block of working-tree-modification metadata appended by the orchestrator:
 
@@ -91,7 +91,7 @@ The `modified-files` block is computed by diffing the working tree against its s
 The file the proposer reads. Markdown with one section per surviving attack:
 
 ```markdown
-# Critic <i> — round <n> attacks
+# Critic <i> - round <n> attacks
 
 aspect: <aspect>
 

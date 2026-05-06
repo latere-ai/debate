@@ -1,4 +1,4 @@
-# Spec 24 — Stop hook script and install
+# Spec 24 - Stop hook script and install
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Trigger via Stop hook" for design intent.
@@ -18,7 +18,7 @@ Out: the no-output Stop-hook probe ([25](25-probes.md)).
 
 ```bash
 #!/usr/bin/env bash
-# debate-stop-hook.sh — Stop hook for the `debate` CLI.
+# debate-stop-hook.sh - Stop hook for the `debate` CLI.
 # See specs/24-stop-hook.md and specs/01-overview.md for design.
 
 set -e
@@ -65,7 +65,7 @@ Properties (verified by [25](25-probes.md)):
 - Recursion guard checks `DEBATE_IN_PROGRESS` first thing.
 - `unset ANTHROPIC_API_KEY` runs before `exec`.
 - `cd "$CWD"` runs before `exec`.
-- The script writes nothing to stdout (no JSON `systemMessage` etc. — pollution per [01-overview.md](01-overview.md) §"Constraints uncovered").
+- The script writes nothing to stdout (no JSON `systemMessage` etc. - pollution per [01-overview.md](01-overview.md) §"Constraints uncovered").
 - Uses `exec` so the orchestrator inherits stdout/stderr.
 
 ## Install paths
@@ -97,7 +97,7 @@ The verbose form (with `matcher` and a `hooks` array) is required; the simpler `
 
 ## CLI subcommand for install
 
-`debate install-hook` (added to [04](04-cli-flags.md)'s command tree as a separate cobra subcommand — but flag-only no-config dependency, so cleanly bolts on):
+`debate install-hook` (added to [04](04-cli-flags.md)'s command tree as a separate cobra subcommand - but flag-only no-config dependency, so cleanly bolts on):
 
 ```
 debate install-hook [--scope user|project] [--script-path <path>]

@@ -1,4 +1,4 @@
-# Spec 05 — Config file (`.debate.toml`)
+# Spec 05 - Config file (`.debate.toml`)
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §Configuration for design intent.
@@ -49,7 +49,7 @@ When `--config` is empty, `debate` looks for `.debate.toml` in this order and us
 1. Current working directory (`./.debate.toml`).
 2. The git repo root, if cwd is inside a repo (`git rev-parse --show-toplevel`).
 3. `$XDG_CONFIG_HOME/debate/config.toml`, falling back to `$HOME/.config/debate/config.toml`.
-4. None — built-in defaults only.
+4. None - built-in defaults only.
 
 When `--config <path>` is set, that path is used; missing file is an error.
 

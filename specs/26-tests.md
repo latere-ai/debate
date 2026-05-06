@@ -1,4 +1,4 @@
-# Spec 26 — Test strategy and mock harnesses
+# Spec 26 - Test strategy and mock harnesses
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) for design intent.
@@ -37,7 +37,7 @@ package main
 //
 // Behavior driven by a fixture file at $MOCK_CLAUDE_SCRIPT (a JSON list
 // of {"args_glob": "...", "stdout": {...}, "stderr": "...", "exit": 0}
-// matchers) — first-match wins.
+// matchers) - first-match wins.
 ```
 
 Capabilities (because [17](17-claude-proposer.md) and [18](18-critic-drivers.md) drive `claude` in three modes):
@@ -145,7 +145,7 @@ testdata/
 go test -race -tags integration ./...
 ```
 
-E2E mock tests are inside `internal/...` and `e2e/mock/...` — both run by default. Real-e2e (`//go:build real_e2e`) is opted in via a separate workflow gated on a workflow-dispatch event.
+E2E mock tests are inside `internal/...` and `e2e/mock/...` - both run by default. Real-e2e (`//go:build real_e2e`) is opted in via a separate workflow gated on a workflow-dispatch event.
 
 ## Test contract
 

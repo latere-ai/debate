@@ -48,7 +48,7 @@ var ErrRecursionGuard = errors.New("recursion guard triggered")
 // Preflight runs every pre-flight check against f. On success it
 // returns *Plan; on failure a *PreflightError or ErrRecursionGuard.
 func Preflight(_ context.Context, f *Flags) (*Plan, error) {
-	// 1. Recursion guard — exit 0 fast path.
+	// 1. Recursion guard - exit 0 fast path.
 	if os.Getenv("DEBATE_IN_PROGRESS") != "" {
 		return nil, ErrRecursionGuard
 	}
@@ -74,7 +74,7 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 		}
 	}
 
-	// 3. Env hygiene — never an error; informational only.
+	// 3. Env hygiene - never an error; informational only.
 	if os.Getenv("ANTHROPIC_API_KEY") != "" {
 		_ = os.Unsetenv("ANTHROPIC_API_KEY")
 		if f.Verbose >= 1 {
@@ -148,9 +148,9 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 		}
 	}
 
-	// 9. .gitignore advisory — never an error.
+	// 9. .gitignore advisory - never an error.
 	if missingFromGitignore(stateDir) {
-		fmt.Fprintln(os.Stderr, "debate: warning: .debate/ is not in .gitignore — consider adding it before committing")
+		fmt.Fprintln(os.Stderr, "debate: warning: .debate/ is not in .gitignore - consider adding it before committing")
 	}
 
 	// Build forks plan.

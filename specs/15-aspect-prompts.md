@@ -1,4 +1,4 @@
-# Spec 15 — Aspect prompts
+# Spec 15 - Aspect prompts
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Critic specialization" for design intent.
@@ -104,7 +104,7 @@ Aspect-specific rules:
    deserialization, missing CSRF/HMAC checks, broken access control.
 4. Reproductions should be minimal exploit-shaped curls, payloads, or
    test inputs. Theoretical attacks ("if the attacker had the secret
-   key") are dropped — name a concrete reachable path.
+   key") are dropped - name a concrete reachable path.
 ```
 
 ForbiddenKeywords: `["off-by-one", "missing branch", "n+1", "allocations", "blocking call", "long function", "unclear naming", "swallowed exception"]`.

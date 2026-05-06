@@ -1,10 +1,10 @@
-# Spec 06 — Pre-flight checks
+# Spec 06 - Pre-flight checks
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"CLI surface" notes for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [05](05-config-file.md).
-**Consumed by:** every spec downstream of CLI parsing — pre-flight is the gate before any agent process spawns or any state-dir file is written.
+**Consumed by:** every spec downstream of CLI parsing - pre-flight is the gate before any agent process spawns or any state-dir file is written.
 
 ## Scope
 
@@ -133,7 +133,7 @@ Pre-flight does not create the dir (see [09](09-state-dir.md)); it only stat-che
 If cwd is inside a git repo and the repo's `.gitignore` does not list `.debate/` (or a parent thereof), emit a warning to stderr (always, regardless of `--verbose`):
 
 ```
-debate: warning: .debate/ is not in .gitignore — consider adding it before committing
+debate: warning: .debate/ is not in .gitignore - consider adding it before committing
 ```
 
 Not an error. Does not auto-edit ([01-overview.md](01-overview.md) §`.gitignore`).

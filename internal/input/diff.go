@@ -113,7 +113,7 @@ func runGit(ctx context.Context, cwd string, args []string) (string, error) {
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
 	if err != nil {
-		// `git diff --no-index` exits 1 when files differ — that's data,
+		// `git diff --no-index` exits 1 when files differ - that's data,
 		// not failure. The caller decides how to interpret.
 		return string(out), &ErrGit{Args: args, Stderr: stderr.String(), Err: err}
 	}

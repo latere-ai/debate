@@ -6,7 +6,7 @@ import (
 )
 
 func TestWithdrawValidAndInvalid(t *testing.T) {
-	docInvalid := "# Critic 1 — round 3 attacks\n\naspect: security\n\n## c1-9 [x:1] (withdraw)\n\nreason: not real\n"
+	docInvalid := "# Critic 1 - round 3 attacks\n\naspect: security\n\n## c1-9 [x:1] (withdraw)\n\nreason: not real\n"
 	out, stats, err := Parse(docInvalid, "security", 1, 3, nil, ParseOption{})
 	if err != nil {
 		t.Fatal(err)
@@ -18,7 +18,7 @@ func TestWithdrawValidAndInvalid(t *testing.T) {
 	}
 	_ = out
 
-	docValid := "# Critic 1 — round 3 attacks\n\naspect: security\n\n## c1-2 [x:1] (withdraw)\n\nreason: false positive\n"
+	docValid := "# Critic 1 - round 3 attacks\n\naspect: security\n\n## c1-2 [x:1] (withdraw)\n\nreason: false positive\n"
 	out, stats, err = Parse(docValid, "security", 1, 3, []string{"c1-2"}, ParseOption{})
 	if err != nil {
 		t.Fatal(err)
@@ -32,7 +32,7 @@ func TestWithdrawValidAndInvalid(t *testing.T) {
 }
 
 func TestReAttackUnknownIdFallsBack(t *testing.T) {
-	doc := "# Critic 1 — round 3 attacks\n\naspect: security\n\n" +
+	doc := "# Critic 1 - round 3 attacks\n\naspect: security\n\n" +
 		"## c1-99 [x:1] (re-attack)\n\nclaim: tighter\n\nexpected violation: panic\n\nreproduction:\n```\ngo\n```\n"
 	out, stats, err := Parse(doc, "security", 1, 3, []string{"c1-1"}, ParseOption{})
 	if err != nil {
@@ -68,7 +68,7 @@ func TestRenderRoundTripWithWithdraw(t *testing.T) {
 }
 
 func TestStyleAttackKeptWhenAllowed(t *testing.T) {
-	doc := "# Critic 1 — round 1 attacks\n\naspect: code-quality\n\n## c1-1 [x:1]\n\nclaim: This function should be named more idiomatic.\n\nexpected violation: it bothers me\n\nreproduction:\n```\nrun\n```\n"
+	doc := "# Critic 1 - round 1 attacks\n\naspect: code-quality\n\n## c1-1 [x:1]\n\nclaim: This function should be named more idiomatic.\n\nexpected violation: it bothers me\n\nreproduction:\n```\nrun\n```\n"
 	out, stats, err := Parse(doc, "code-quality", 1, 1, nil, ParseOption{AllowStyleAttacks: true})
 	if err != nil {
 		t.Fatal(err)

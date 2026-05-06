@@ -1,4 +1,4 @@
-# Spec 14 — Attack parser, normalizer, filters
+# Spec 14 - Attack parser, normalizer, filters
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Rounds" → R1 Attack for design intent.
@@ -78,11 +78,11 @@ Mechanical, no LLM:
 
 ## Filters
 
-### F1 — reproduction-required
+### F1 - reproduction-required
 
 If a section has no fenced block immediately following the `reproduction:` label, drop it. Counter: `DroppedNoReproduce`.
 
-### F2 — style-shape heuristic
+### F2 - style-shape heuristic
 
 Drop a section whose `claim:` matches *any* of the following and whose `expected violation:` does **not** name a concrete behavior:
 
@@ -96,7 +96,7 @@ re.MatchString(`(?i)consider (renaming|reformatting|restyling)`)
 
 (`allow_style_attacks = true` in [05](05-config-file.md) skips this filter.)
 
-### F3 — cross-aspect
+### F3 - cross-aspect
 
 Each aspect carries a forbidden-keyword set in [15](15-aspect-prompts.md). If the section's `claim` matches a keyword from another aspect *and* none from its own, drop it. Counter: `DroppedCrossAspect`.
 

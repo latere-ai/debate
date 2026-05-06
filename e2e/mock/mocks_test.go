@@ -35,7 +35,7 @@ func repoRoot(t *testing.T) string {
 
 func TestCodexMockEndToEnd(t *testing.T) {
 	bin := buildMock(t, "codexmock")
-	t.Setenv("MOCK_CODEX_CONTENT", "# Critic 1 — round 1 attacks\n\naspect: security\n\n## c1-1 [x.go:1]\n\nclaim: leak\n\nexpected violation: panic\n\nreproduction:\n```\ngo test\n```\n")
+	t.Setenv("MOCK_CODEX_CONTENT", "# Critic 1 - round 1 attacks\n\naspect: security\n\n## c1-1 [x.go:1]\n\nclaim: leak\n\nexpected violation: panic\n\nreproduction:\n```\ngo test\n```\n")
 
 	c := &agent.CodexCritic{Bin: bin}
 	res, err := c.Round(context.Background(), agent.CriticInput{

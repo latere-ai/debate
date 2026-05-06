@@ -30,7 +30,7 @@ type stubCritic struct {
 
 func (s *stubCritic) Round(_ context.Context, _ agent.CriticInput) (*agent.CriticResult, error) {
 	if s.idx >= len(s.rounds) {
-		return &agent.CriticResult{Markdown: "# Critic 1 — round 99 attacks\n\naspect: security\n", Duration: time.Millisecond}, nil
+		return &agent.CriticResult{Markdown: "# Critic 1 - round 99 attacks\n\naspect: security\n", Duration: time.Millisecond}, nil
 	}
 	out := &agent.CriticResult{Markdown: s.rounds[s.idx], Duration: time.Millisecond}
 	s.idx++
@@ -42,9 +42,9 @@ func TestEngineSingleForkSteadyState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r1 := "# Critic 1 — round 1 attacks\n\naspect: security\n\n## c1-1 [x.go:1]\n\nclaim: leaks token\n\nexpected violation: panic at runtime\n\nreproduction:\n```\ngo test\n```\n"
-	r3 := "# Critic 1 — round 3 attacks\n\naspect: security\n" // empty: no new
-	r5 := "# Critic 1 — round 5 attacks\n\naspect: security\n" // empty: steady state at R5
+	r1 := "# Critic 1 - round 1 attacks\n\naspect: security\n\n## c1-1 [x.go:1]\n\nclaim: leaks token\n\nexpected violation: panic at runtime\n\nreproduction:\n```\ngo test\n```\n"
+	r3 := "# Critic 1 - round 3 attacks\n\naspect: security\n" // empty: no new
+	r5 := "# Critic 1 - round 5 attacks\n\naspect: security\n" // empty: steady state at R5
 
 	e := &Engine{
 		Sess: sess, Cwd: t.TempDir(),
@@ -78,7 +78,7 @@ func TestEngineCostCap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r1 := "# Critic 1 — round 1 attacks\n\naspect: security\n\n## c1-1 [x:1]\n\nclaim: leaks\n\nexpected violation: panic\n\nreproduction:\n```\nx\n```\n"
+	r1 := "# Critic 1 - round 1 attacks\n\naspect: security\n\n## c1-1 [x:1]\n\nclaim: leaks\n\nexpected violation: panic\n\nreproduction:\n```\nx\n```\n"
 	e := &Engine{
 		Sess: sess, Cwd: t.TempDir(),
 		Aspects: []string{"security"},

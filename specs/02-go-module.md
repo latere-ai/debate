@@ -1,10 +1,10 @@
-# Spec 02 — Go module and layout
+# Spec 02 - Go module and layout
 
 > **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) for design intent.
 
 **Depends on:** none.
-**Consumed by:** every other implementation spec — this defines the skeleton everything else fills in.
+**Consumed by:** every other implementation spec - this defines the skeleton everything else fills in.
 
 ## Scope
 
