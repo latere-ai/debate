@@ -102,3 +102,30 @@ func TestAssembleR3DispositionContract(t *testing.T) {
 		}
 	}
 }
+
+func TestAuto_WithPriorTopics(t *testing.T) {
+	a := Auto(2, 4, []string{"security", "performance", "  ", ""})
+	if !strings.Contains(a.SystemPrompt, "security") {
+		t.Errorf("Auto should include prior topic 'security' in avoid list")
+	}
+	if !strings.Contains(a.SystemPrompt, "performance") {
+		t.Errorf("Auto should include prior topic 'performance' in avoid list")
+	}
+}
+
+func TestAuto_FirstCritic(t *testing.T) {
+	a := Auto(1, 4, nil)
+	if !strings.Contains(a.SystemPrompt, "critic 1") {
+		t.Errorf("Auto for first critic should mention 'critic 1' fallback line: %q", a.SystemPrompt)
+	}
+}
+
+func TestLocked(t *testing.T) {
+	a := Locked(2, 4, "security")
+	if a.Name != "security" {
+		t.Errorf("name: got %q, want security", a.Name)
+	}
+	if a.SystemPrompt == "" {
+		t.Error("SystemPrompt empty")
+	}
+}

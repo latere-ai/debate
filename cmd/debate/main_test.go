@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"latere.ai/x/debate/internal/cli"
@@ -149,4 +150,75 @@ func contains(haystack, needle string) bool {
 		}
 	}
 	return false
+}
+
+func TestRealMain_Version(t *testing.T) {
+	var buf strings.Builder
+	code := realMain([]string{"--version"}, &buf, &buf)
+	if code != 0 {
+		t.Errorf("--version exit code: got %d, want 0", code)
+	}
+	if !strings.Contains(buf.String(), "debate") {
+		t.Errorf("--version output should mention debate; got %q", buf.String())
+	}
+}
+
+func TestRealMain_Help(t *testing.T) {
+	var buf strings.Builder
+	code := realMain([]string{"--help"}, &buf, &buf)
+	if code != 0 {
+		t.Errorf("--help exit code: got %d, want 0", code)
+	}
+}
+
+func TestRealMain_BareShowsHelp(t *testing.T) {
+	// Bare invocation with no env triggers the help fast-path.
+	t.Setenv("DEBATE_TASK_CONTEXT", "")
+	t.Setenv("DEBATE_SESSION_ID", "")
+	t.Setenv("DEBATE_TRANSCRIPT", "")
+
+	var buf strings.Builder
+	code := realMain(nil, &buf, &buf)
+	if code != 0 {
+		t.Errorf("bare exit code: got %d, want 0", code)
+	}
+}
+
+func TestRealMain_PreflightExitCode(t *testing.T) {
+	// --judge llm is rejected by preflight (v0 only supports 'none').
+	var buf strings.Builder
+	code := realMain([]string{
+		"--task-context", "x",
+		"--judge", "llm",
+	}, &buf, &buf)
+	if code == 0 {
+		t.Errorf("expected non-zero exit for --judge llm; got %d", code)
+	}
+	if !strings.Contains(buf.String(), "debate:") {
+		t.Errorf("error line should be prefixed with 'debate:'; got %q", buf.String())
+	}
+}
+
+func TestRealMain_RecursionGuardSilent(t *testing.T) {
+	t.Setenv("DEBATE_IN_PROGRESS", "1")
+	var buf strings.Builder
+	code := realMain([]string{"--task-context", "x"}, &buf, &buf)
+	if code != 0 {
+		t.Errorf("recursion guard should exit 0 silently; got code=%d, stderr=%q",
+			code, buf.String())
+	}
+}
+
+func TestRealMain_InstallHookSubcommand(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	var buf strings.Builder
+	code := realMain([]string{"install-hook", "--script-path", "/tmp/x.sh"}, &buf, &buf)
+	if code != 0 {
+		t.Errorf("install-hook exit: got %d, want 0; stderr=%q", code, buf.String())
+	}
+	settings := filepath.Join(dir, ".claude", "settings.json")
+	if _, err := os.Stat(settings); err != nil {
+		t.Errorf("settings missing: %v", err)
+	}
 }

@@ -43,9 +43,14 @@ probe:
 e2e: pre build
 	go test -timeout 180s ./e2e/...
 
-# Coverage report. -coverpkg=./... so e2e tests count toward cmd/debate.
+# Coverage report. Per-package mode: each package's tests cover its
+# own code. The previous -coverpkg=./... flavour produced misleading
+# numbers because go test concatenates per-process profiles and the
+# function-entry block ends up reported with stale 0-counts from
+# packages that did not exercise the function. Per-package is the
+# standard Go practice that `go tool cover -func` expects.
 coverage: pre
-	go test -coverprofile=coverage.out -covermode=atomic -coverpkg=./... ./...
+	go test -coverprofile=coverage.out -covermode=atomic ./...
 	@printf 'Total coverage: '
 	@go tool cover -func=coverage.out | tail -1
 	go tool cover -html=coverage.out -o coverage.html

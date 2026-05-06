@@ -150,3 +150,21 @@ func TestParseReAttackPreservesPriorID(t *testing.T) {
 		t.Errorf("stats.Renamed should NOT fire for a valid re-attack; got %d", stats.Renamed)
 	}
 }
+
+func TestExtractDeclaredAspect(t *testing.T) {
+	cases := []struct {
+		name, in, want string
+	}{
+		{"missing", "no aspect line", ""},
+		{"basic", "aspect: security\n", "security"},
+		{"with-extra-text", "# Header\n\naspect: performance\n\nbody", "performance"},
+		{"trims-spaces", "aspect:    code-quality   \n", "code-quality"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := ExtractDeclaredAspect(c.in); got != c.want {
+				t.Errorf("got %q, want %q", got, c.want)
+			}
+		})
+	}
+}

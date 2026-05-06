@@ -169,3 +169,22 @@ func TestAppendCrossSessionLogCreatesDir(t *testing.T) {
 		t.Errorf("log.jsonl not created: %v", err)
 	}
 }
+
+func TestWriteForkStats(t *testing.T) {
+	dir := t.TempDir()
+	sess, err := NewSession(dir, 2, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	stats := map[string]any{"tokens": 1234, "rounds": 3}
+	if err := WriteForkStats(sess, 1, stats); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(sess.Path(filepath.Join("forks", "critic-1", "stats.json")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !regexp.MustCompile(`"tokens":\s*1234`).Match(b) {
+		t.Errorf("stats body missing token field: %s", b)
+	}
+}

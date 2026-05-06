@@ -54,3 +54,15 @@ func TestCodexMissingBinary(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestClaudeCriticMissingBinary(t *testing.T) {
+	c := &ClaudeCritic{Bin: "/no/such/binary-z9z"}
+	_, err := c.Round(context.Background(), CriticInput{
+		Aspect: critic.Lookup("security"), CriticIndex: 1, Round: 1,
+		SystemPrompt: "SYS", TaskContext: "T", DiffPatch: "D",
+		Cwd: t.TempDir(),
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}

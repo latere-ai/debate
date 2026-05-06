@@ -220,6 +220,35 @@ func TestLocateScript_FindsSiblingNextToBinary(t *testing.T) {
 	}
 }
 
+func TestUninstallProjectScope(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	if err := Install(ScopeProject, "/p/debate-stop-hook.sh"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Uninstall(ScopeProject); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUninstallNonexistentScopeError(t *testing.T) {
+	if err := Uninstall(Scope(99)); err == nil {
+		t.Error("expected error for unknown scope")
+	}
+}
+
+func TestInstallNonexistentScopeError(t *testing.T) {
+	if err := Install(Scope(99), "/p/x.sh"); err == nil {
+		t.Error("expected error for unknown scope")
+	}
+}
+
+func TestEntryReferencesDebate_NoCommand(t *testing.T) {
+	if entryReferencesDebate(map[string]any{}) {
+		t.Error("entry without hooks should not match")
+	}
+}
+
 func TestLocateScript_FindsScriptsUnderCwd(t *testing.T) {
 	// Make sure no sibling shadows us.
 	exe, err := os.Executable()

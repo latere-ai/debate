@@ -80,3 +80,51 @@ func TestAppendLog(t *testing.T) {
 		t.Errorf("missing run record: %q", b)
 	}
 }
+
+func TestWriteEnd(t *testing.T) {
+	dir := t.TempDir()
+	sess, err := NewSession(dir, 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	end := &EndFile{
+		SessionID:   sess.ID,
+		EndedAt:     time.Now(),
+		Termination: Termination{Reason: "steady-state"},
+	}
+	if err := WriteEnd(sess, end); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(sess.Path("end.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rt EndFile
+	if err := json.Unmarshal(b, &rt); err != nil {
+		t.Fatal(err)
+	}
+	if rt.Termination.Reason != "steady-state" {
+		t.Errorf("termination: got %q", rt.Termination.Reason)
+	}
+	if rt.Schema != SchemaEnd {
+		t.Errorf("schema: got %q", rt.Schema)
+	}
+}
+
+func TestWriteRunDiff(t *testing.T) {
+	dir := t.TempDir()
+	sess, err := NewSession(dir, 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteRunDiff(sess, "diff content"); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(sess.Path("diff.patch"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != "diff content" {
+		t.Errorf("got %q", b)
+	}
+}

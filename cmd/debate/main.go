@@ -32,6 +32,13 @@ var (
 )
 
 func main() {
+	os.Exit(realMain(os.Args[1:], os.Stdout, os.Stderr))
+}
+
+// realMain is the testable entry point: returns the process exit code
+// instead of calling os.Exit, and accepts argv + stdout/stderr as
+// parameters so tests can drive it without process spawning.
+func realMain(args []string, stdout, stderr io.Writer) int {
 	root := &cobra.Command{
 		Use:           "debate",
 		Short:         "Adversarial review for Claude Code coding sessions.",
@@ -40,6 +47,9 @@ func main() {
 		Version:       fmt.Sprintf("%s (%s, %s)", version, commit, date),
 	}
 	root.SetVersionTemplate("debate {{.Version}}\n")
+	root.SetArgs(args)
+	root.SetOut(stdout)
+	root.SetErr(stderr)
 
 	flags := cli.Bind(root)
 	var exitCode int
@@ -52,7 +62,7 @@ func main() {
 		// show help instead of failing preflight with "cannot
 		// determine task context". A user who types just the binary
 		// name expects orientation, not a cryptic error.
-		if cli.ShouldShowHelp(len(os.Args), flags) {
+		if cli.ShouldShowHelp(len(args)+1, flags) {
 			return cmd.Help()
 		}
 		plan, err := cli.Preflight(root.Context(), flags)
@@ -77,12 +87,10 @@ func main() {
 	defer cancel()
 
 	if err := root.ExecuteContext(ctx); err != nil {
-		fmt.Fprintln(os.Stderr, "debate:", err)
-		os.Exit(exitCodeFor(err))
+		_, _ = fmt.Fprintln(stderr, "debate:", err)
+		return exitCodeFor(err)
 	}
-	if exitCode != 0 {
-		os.Exit(exitCode)
-	}
+	return exitCode
 }
 
 // Run is the end-to-end orchestrator entry point. Exposed so e2e tests
