@@ -164,8 +164,11 @@ Uses a mock `claude` shim that sleeps; not gated on a real claude install.
 
 ```bash
 # Run `bin/debate --changed-lines-min 100` against a 5-line-diff repo.
-# Asserts wall time < 100ms.
+# Asserts median wall time < 200ms across 3 runs.
 # Verifies [08]'s exit-fast path performance claim.
+# Note: spec 01 §UX still names <100ms as the aspirational target; 200ms
+# is the realistic probe budget given four short-lived git subprocess
+# calls plus cobra startup. See [30](30-probe-trivial-diff-perf-outcome.md).
 ```
 
 ## Probe runner

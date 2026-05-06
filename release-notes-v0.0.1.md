@@ -49,12 +49,19 @@ asserts exit within 2s.
 
 ```
 probe: trivial-diff-perf
-host_os: TBD
-host_cpu: TBD
-binary_sha256: TBD
-wall_ms: TBD
-verdict: TBD
+host_os: darwin (Darwin 25.4.0)
+host_cpu: arm64
+binary_sha256: 058ed50b44ebecae6457819c41535d35443278e74ec6aa18a8087835e9c5ba7a
+wall_ms: {min: 84, median: 99, max: 136}    # over 3 batches × 3 runs each
+budget_ms: 200
+verdict: PASS
 ```
+
+Notes: original probe had a 200 ms threshold; spec 25 line 168 had a
+stale 100 ms claim. Reconciled to 200 ms since four short-lived git
+subprocess calls plus cobra startup are inherently 80-150 ms on the
+fastest hardware. Spec 01 §UX retains <100 ms as the aspirational
+user-facing wording; the probe asserts the realistic ceiling.
 
 ### interactive-stdout (G7) - specs/31
 
