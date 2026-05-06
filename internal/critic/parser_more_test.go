@@ -168,3 +168,22 @@ func TestExtractDeclaredAspect(t *testing.T) {
 		})
 	}
 }
+
+func TestIsStyleShaped(t *testing.T) {
+	cases := []struct {
+		name, claim, exp string
+		want             bool
+	}{
+		{"non-style claim", "memory leak", "panic", false},
+		{"style + concrete", "should be named foo for clarity", "panic at line 5", false},
+		{"style + fenced", "should be named foo for clarity", "```\nfoo()\n```", false},
+		{"pure style", "should be named foo for clarity", "this is preference", true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := isStyleShaped(c.claim, c.exp); got != c.want {
+				t.Errorf("got %v, want %v", got, c.want)
+			}
+		})
+	}
+}
