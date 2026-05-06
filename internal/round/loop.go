@@ -54,6 +54,60 @@ type Engine struct {
 	// non-hook mode. The Stop-hook path leaves it nil since claude
 	// swallows the stderr anyway.
 	Progress io.Writer
+	// Styled controls whether progress lines carry ANSI color
+	// escapes. cmd/debate enables this when stderr is a TTY; piped
+	// or redirected stderr stays plain so log files don't fill with
+	// raw escape codes.
+	Styled bool
+}
+
+// ANSI escapes used to decorate progress lines when Styled is true.
+// Kept tiny and self-contained: only the [debate] prefix and role
+// labels are colored. Anything richer drifts toward needing a real
+// status renderer.
+const (
+	ansiReset       = "\x1b[0m"
+	ansiBold        = "\x1b[1m"
+	ansiDim         = "\x1b[2m"
+	ansiCyan        = "\x1b[36m"
+	ansiMagenta     = "\x1b[35m"
+	ansiGreen       = "\x1b[32m"
+	ansiRed         = "\x1b[31m"
+	ansiYellow      = "\x1b[33m"
+	roleCriticColor = ansiMagenta
+	roleProposerCol = ansiGreen
+)
+
+// decorate styles a finished progress line. Cheap string-level
+// replacement is fine here because the orchestrator emits the line
+// from a single template each call - no risk of double-coloring.
+func (e *Engine) decorate(line string) string {
+	if !e.Styled {
+		return line
+	}
+	line = strings.Replace(line, "[debate]", ansiBold+ansiCyan+"[debate]"+ansiReset, 1)
+	line = colorRoleWord(line, " critic ", roleCriticColor)
+	line = colorRoleWord(line, " proposer ", roleProposerCol)
+	line = strings.Replace(line, "still running", ansiDim+"still running"+ansiReset, 1)
+	line = strings.Replace(line, "steady state reached", ansiGreen+"steady state reached"+ansiReset, 1)
+	line = strings.Replace(line, "terminated max-turn", ansiYellow+"terminated max-turn"+ansiReset, 1)
+	for _, w := range []string{"terminated cost-cap", "terminated malformed-output"} {
+		line = strings.Replace(line, w, ansiRed+w+ansiReset, 1)
+	}
+	return line
+}
+
+// colorRoleWord colors the role token (e.g. " critic " or
+// " proposer ") inside line. The bracketing spaces are intentional:
+// they keep the match anchored to the orchestrator's own progress
+// templates and avoid accidentally coloring a literal "critic"
+// inside a topic name.
+func colorRoleWord(line, word, color string) string {
+	if !strings.Contains(line, word) {
+		return line
+	}
+	colored := " " + color + strings.TrimSpace(word) + ansiReset + " "
+	return strings.Replace(line, word, colored, 1)
 }
 
 // DefaultHeartbeatInterval is how often the engine reminds the user
@@ -100,7 +154,8 @@ func (e *Engine) progf(format string, args ...any) {
 	if e.Progress == nil {
 		return
 	}
-	_, _ = fmt.Fprintf(e.Progress, format+"\n", args...)
+	line := fmt.Sprintf(format, args...)
+	_, _ = fmt.Fprintln(e.Progress, e.decorate(line))
 }
 
 // Summary is what Run returns on a successful end-to-end run.

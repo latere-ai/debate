@@ -174,6 +174,7 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 		TaskContext: taskCtx, DiffPatch: diff.Patch,
 		Progress:          progress,
 		HeartbeatInterval: heartbeat,
+		Styled:            progress != nil && summary.IsTerminal(os.Stderr),
 	}
 	sumRes, err := eng.Run(ctx)
 	if err != nil {

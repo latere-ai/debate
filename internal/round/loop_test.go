@@ -301,6 +301,67 @@ func (s *usageCritic) Round(_ context.Context, _ agent.CriticInput) (*agent.Crit
 	return out, nil
 }
 
+// TestEngineStyledProgressEmitsANSI asserts that with Styled=true,
+// progress lines carry ANSI escapes around the [debate] prefix and
+// role words, while plain mode (Styled=false) leaves them alone.
+// The test pins this at the engine layer because cmd/debate gates
+// Styled on stderr-TTY: a regression that ships ANSI to a piped log
+// would corrupt downstream tooling.
+func TestEngineStyledProgressEmitsANSI(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		styled      bool
+		wantEscapes bool
+	}{
+		{"styled", true, true},
+		{"plain", false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			sess, err := state.NewSession(t.TempDir(), 1, time.Now())
+			if err != nil {
+				t.Fatal(err)
+			}
+			r1 := "# Critic 1 - round 1 attacks\n\naspect: security\n\n## c1-1 [x.go:1]\n\nclaim: leaks token\n\nexpected violation: panic\n\nreproduction:\n```\ngo test\n```\n"
+			var buf strings.Builder
+			e := &Engine{
+				Sess: sess, Cwd: t.TempDir(),
+				ForkCount: 1,
+				Proposer: &stubProposer{
+					first: func(string) (*agent.ProposerResult, error) {
+						return &agent.ProposerResult{ForkID: "f", Response: "rebut c1-1: ok", Tokens: 10}, nil
+					},
+					next: func(string) (*agent.ProposerResult, error) { return nil, nil },
+				},
+				NewCritic: func(_ int) agent.Critic { return &stubCritic{rounds: []string{r1}} },
+				MaxRounds: 2, CostCap: 1_000_000, TaskContext: "task", DiffPatch: "diff",
+				Progress:          &buf,
+				HeartbeatInterval: -1,
+				Styled:            tc.styled,
+			}
+			if _, err := e.Run(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			out := buf.String()
+			has := strings.Contains(out, "\x1b[")
+			if has != tc.wantEscapes {
+				t.Errorf("Styled=%v: ANSI present=%v, want %v. output:\n%q", tc.styled, has, tc.wantEscapes, out)
+			}
+			if tc.styled {
+				// Specific decorations we want to see.
+				for _, want := range []string{
+					ansiBold + ansiCyan + "[debate]" + ansiReset,
+					roleCriticColor + "critic" + ansiReset,
+					roleProposerCol + "proposer" + ansiReset,
+				} {
+					if !strings.Contains(out, want) {
+						t.Errorf("styled output missing %q", want)
+					}
+				}
+			}
+		})
+	}
+}
+
 // TestEngineHeartbeatDuringSlowAgent asserts that while an agent
 // call is in flight, the engine emits "still running, Ns elapsed"
 // progress lines on the configured interval. The bug this rules out
