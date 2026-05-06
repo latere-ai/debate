@@ -132,12 +132,17 @@ command-type hook, matching [24-stop-hook.md](specs/24-stop-hook.md).
 
 ```
 gate: real-claude-end-to-end
-host_os: TBD
-claude_version: TBD
-codex_version: TBD
-session_dir: TBD
-termination: TBD
-forks: TBD
-max_per_fork_wall: TBD
-verdict: TBD
+host_os: darwin (Darwin 25.4.0, arm64)
+claude_version: 2.1.131 (Claude Code)
+codex_version: codex-cli 0.128.0
+verdict: SKIP
+skip_reason: claude --print returns HTTP 401 on the maintainer host;
+             ANTHROPIC_API_KEY is set but rejected (likely OAuth-only
+             account or expired key). debate's claude proposer cannot
+             authenticate non-interactively. Re-run on a host with
+             working auth before tagging GA, per spec 34 disposition.
 ```
+
+Notes: codex auth verified working in the same environment, so the
+critic side of the round loop is exercisable; only the proposer side
+is blocked. SKIP must be re-cleared before tagging GA.
