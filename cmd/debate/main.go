@@ -3,13 +3,23 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
+	"runtime"
+	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/latere-ai/debate/internal/agent"
 	"github.com/latere-ai/debate/internal/cli"
 	"github.com/latere-ai/debate/internal/hook"
+	"github.com/latere-ai/debate/internal/input"
+	"github.com/latere-ai/debate/internal/ledger"
+	"github.com/latere-ai/debate/internal/round"
+	"github.com/latere-ai/debate/internal/state"
+	"github.com/latere-ai/debate/internal/summary"
 )
 
 // Set via -ldflags by goreleaser / Makefile.
@@ -31,19 +41,18 @@ func main() {
 
 	flags := cli.Bind(root)
 	root.RunE = func(_ *cobra.Command, _ []string) error {
-		if _, err := cli.Effective(root, flags); err != nil {
+		_, err := cli.Effective(root, flags)
+		if err != nil {
 			return err
 		}
-		// Real run lands in spec 19 wired through the orchestrator
-		// once cmd/debate is fully integrated; pre-flight is the gate.
-		_, err := cli.Preflight(root.Context(), flags)
+		plan, err := cli.Preflight(root.Context(), flags)
 		if err != nil {
-			if errIsRecursion(err) {
+			if errors.Is(err, cli.ErrRecursionGuard) {
 				return nil
 			}
 			return err
 		}
-		return nil
+		return Run(root.Context(), flags, plan)
 	}
 
 	root.AddCommand(installHookCmd(), uninstallHookCmd())
@@ -54,12 +63,142 @@ func main() {
 	}
 }
 
-func errIsRecursion(err error) bool {
-	return err != nil && err.Error() == "recursion guard triggered"
+// Run is the end-to-end orchestrator entry point. Exposed so e2e tests
+// in this package can drive it directly without re-parsing flags.
+func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
+	// Compute initial diff and gate.
+	diff, err := input.Compute(ctx, input.DiffSpec{
+		From: flags.DiffFrom, To: flags.DiffTo, Cwd: plan.Cwd,
+	})
+	if err != nil {
+		return err
+	}
+	if input.Trivial(diff, flags.ChangedLinesMin) {
+		_ = state.AppendLog(plan.StateDirAbs, &state.LogRecord{
+			TS: time.Now().UTC(), Kind: "skipped", Reason: "trivial-diff",
+			ChangedLines: diff.ChangedLines, Threshold: flags.ChangedLinesMin,
+		})
+		fmt.Fprintf(os.Stderr, "[debate] skipped: trivial diff (%d changed lines < %d threshold)\n",
+			diff.ChangedLines, flags.ChangedLinesMin)
+		return nil
+	}
+
+	// Resolve task context.
+	taskCtx := flags.TaskContext
+	if taskCtx == "" && (plan.TranscriptPath != "" || flags.SessionID != "") {
+		if home, herr := os.UserHomeDir(); herr == nil {
+			if tp, lerr := input.LocateTranscript(home, plan.Cwd, flags.SessionID, plan.TranscriptPath); lerr == nil {
+				if t, rerr := input.ReadTranscript(tp); rerr == nil {
+					taskCtx = t.FirstUser
+				}
+			}
+		}
+	}
+	if taskCtx == "" {
+		taskCtx = "(task context unavailable)"
+	}
+
+	// Open the session.
+	sess, err := state.NewSession(plan.StateDirAbs, len(plan.Forks), time.Now())
+	if err != nil {
+		return err
+	}
+	if err := state.WriteStart(sess, &state.StartFile{
+		SessionID:   sess.ID,
+		StartedAt:   sess.StartedAt,
+		Proposer:    state.AgentRef{Agent: flags.Main, Model: flags.MainModel},
+		Critic:      state.AgentRef{Agent: flags.Side, Model: flags.SideModel},
+		TaskContext: taskCtx,
+		TaskSource:  taskSource(flags),
+		Diff: state.DiffSnap{
+			From: flags.DiffFrom, To: flags.DiffTo,
+			ChangedLines: diff.ChangedLines, Files: diff.Files,
+			PatchPath: "diff.patch",
+		},
+		Config: state.ConfigSnap{
+			MaxTurn: flags.MaxTurn, SideCount: flags.SideCount, Aspects: flags.Aspect,
+			CostCap: flags.CostCap, ChangedLinesMin: flags.ChangedLinesMin,
+			HookMode: flags.HookMode, Format: flags.Format,
+			MainModel: flags.MainModel, SideModel: flags.SideModel,
+		},
+		RootSession: state.RootSession{
+			ID: flags.SessionID, TranscriptPath: plan.TranscriptPath, Cwd: plan.Cwd,
+		},
+		DebateVersion: version,
+		GoVersion:     runtime.Version(),
+	}); err != nil {
+		return err
+	}
+	if err := state.WriteRunDiff(sess, diff.Patch); err != nil {
+		return err
+	}
+
+	// Wire and run the engine.
+	aspects := make([]string, len(plan.Forks))
+	for i, f := range plan.Forks {
+		aspects[i] = f.Aspect
+	}
+	proposer := &agent.ClaudeProposer{
+		Cwd:      plan.Cwd,
+		RootID:   flags.SessionID,
+		Model:    flags.MainModel,
+		Deadline: 5 * time.Minute,
+	}
+	criticFactory := func(_ int) agent.Critic { return agent.NewCritic(flags.Side) }
+	eng := &round.Engine{
+		Sess: sess, Cwd: plan.Cwd, Aspects: aspects,
+		Proposer:  proposer,
+		NewCritic: criticFactory,
+		MaxTurn:   flags.MaxTurn, CostCap: flags.CostCap, HookMode: flags.HookMode,
+		TaskContext: taskCtx, DiffPatch: diff.Patch,
+	}
+	sumRes, err := eng.Run(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Render summary + persist end.json.
+	agg, _ := ledger.Aggregate(sess)
+	decide := summary.Decide(sumRes)
+	if err := summary.Persist(sumRes, agg, decide.ExitCode); err != nil {
+		return err
+	}
+	_ = state.AppendLog(plan.StateDirAbs, &state.LogRecord{
+		TS: time.Now().UTC(), Kind: "run", Session: sess.ID,
+		Termination: string(sumRes.Termination), Unresolved: sumRes.Unresolved,
+		Tokens: sumRes.TokensUsed, WallSeconds: sumRes.WallSeconds,
+		Summary: sess.Path("summary.md"),
+	})
+	if decide.StdoutLine != "" {
+		fmt.Println(decide.StdoutLine)
+	}
+
+	// Translate exit code, applying --hook-mode.
+	if flags.HookMode {
+		return nil
+	}
+	if decide.ExitCode != 0 {
+		os.Exit(decide.ExitCode)
+	}
+	return nil
+}
+
+func taskSource(f *cli.Flags) string {
+	switch {
+	case f.TaskContext != "":
+		return "flag"
+	case f.Transcript != "":
+		return "transcript"
+	case f.SessionID != "":
+		return "session-id-resume"
+	default:
+		return "unknown"
+	}
 }
 
 func exitCodeFor(err error) int {
-	if pe, ok := err.(*cli.PreflightError); ok && pe != nil {
+	var pe *cli.PreflightError
+	if errors.As(err, &pe) && pe != nil {
 		return pe.Code
 	}
 	return 1
