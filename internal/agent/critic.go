@@ -72,6 +72,8 @@ func NewCritic(family string) Critic {
 func AssemblePrompt(in CriticInput) string {
 	var b strings.Builder
 	b.WriteString(in.SystemPrompt)
+	b.WriteString("\n\n")
+	b.WriteString(directives)
 	b.WriteString("\n\n# Task\n\n")
 	b.WriteString(in.TaskContext)
 	b.WriteString("\n\n# Diff\n\n```diff\n")
@@ -85,6 +87,22 @@ func AssemblePrompt(in CriticInput) string {
 	}
 	return b.String()
 }
+
+// directives is appended to every critic system prompt to keep the
+// agent on-task: emit ONLY the markdown document, no preamble, no tool
+// calls, no thinking aloud.
+const directives = `Critical output rules:
+1. Your entire reply MUST be the markdown attack document and nothing
+   else. No preamble like "I'll review this" or "Let me start by". No
+   trailing summary. Just the document.
+2. Do NOT run shell commands, search the file tree, or otherwise
+   investigate beyond the diff and task context provided above. The
+   reproduction in each attack is what proves the bug; you do not need
+   to verify it with a tool.
+3. If you decide there is nothing to attack, emit an empty document
+   that still has the top header and "aspect:" line, then stop.
+4. The very first non-blank line of your reply MUST be the top header
+   "# Critic <i> - round <n> attacks".`
 
 // CodexCritic invokes `codex exec --sandbox read-only --json`.
 type CodexCritic struct {
@@ -166,10 +184,14 @@ func (c *CodexCritic) Round(ctx context.Context, in CriticInput) (*CriticResult,
 			}
 		case "item.completed":
 			switch ev.Item.Type {
-			case "agent_message":
-				appendIfNonEmpty(ev.Item.Content)
-			case "agent_text":
-				appendIfNonEmpty(ev.Item.Text)
+			case "agent_message", "agent_text":
+				// Different codex releases use either content or text;
+				// prefer the populated one.
+				if ev.Item.Content != "" {
+					appendIfNonEmpty(ev.Item.Content)
+				} else {
+					appendIfNonEmpty(ev.Item.Text)
+				}
 			}
 		case "agent_message":
 			appendIfNonEmpty(ev.Content)

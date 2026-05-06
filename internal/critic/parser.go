@@ -79,10 +79,19 @@ func Parse(raw string, expectedAspect string, criticIndex, round int, priorAttac
 	lines := strings.Split(raw, "\n")
 	stats := ParseStats{}
 
-	// Validate top header.
-	if i := firstNonEmpty(lines); i < 0 || !headerRE.MatchString(lines[i]) {
-		return nil, stats, fmt.Errorf("missing or malformed top header (line 1)")
+	// Validate top header. Tolerant of any preamble the agent emits
+	// before the document; scan for the first line that matches.
+	headerIdx := -1
+	for i, line := range lines {
+		if headerRE.MatchString(line) {
+			headerIdx = i
+			break
+		}
 	}
+	if headerIdx < 0 {
+		return nil, stats, fmt.Errorf("missing top header (no line matched %q)", headerRE.String())
+	}
+	lines = lines[headerIdx:]
 
 	// Find aspect line.
 	gotAspect := ""
@@ -269,15 +278,6 @@ func Render(criticIndex, round int, aspect string, attacks []Attack) []byte {
 		}
 	}
 	return []byte(b.String())
-}
-
-func firstNonEmpty(lines []string) int {
-	for i, l := range lines {
-		if strings.TrimSpace(l) != "" {
-			return i
-		}
-	}
-	return -1
 }
 
 func extractField(body, field string) string {
