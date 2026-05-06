@@ -42,6 +42,7 @@ func main() {
 	root.SetVersionTemplate("debate {{.Version}}\n")
 
 	flags := cli.Bind(root)
+	var exitCode int
 	root.RunE = func(cmd *cobra.Command, _ []string) error {
 		_, err := cli.Effective(root, flags)
 		if err != nil {
@@ -61,7 +62,9 @@ func main() {
 			}
 			return err
 		}
-		return Run(root.Context(), flags, plan)
+		code, runErr := Run(root.Context(), flags, plan)
+		exitCode = code
+		return runErr
 	}
 
 	root.AddCommand(installHookCmd(), uninstallHookCmd())
@@ -77,17 +80,23 @@ func main() {
 		fmt.Fprintln(os.Stderr, "debate:", err)
 		os.Exit(exitCodeFor(err))
 	}
+	if exitCode != 0 {
+		os.Exit(exitCode)
+	}
 }
 
 // Run is the end-to-end orchestrator entry point. Exposed so e2e tests
 // in this package can drive it directly without re-parsing flags.
-func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
+// Returns the intended process exit code alongside any error: callers
+// must propagate both so the binary's exit status matches the
+// summary's verdict (0 clean, 1 unresolved leaves, etc.).
+func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) (int, error) {
 	// Compute initial diff and gate.
 	diff, err := input.Compute(ctx, input.DiffSpec{
 		From: flags.DiffFrom, To: flags.DiffTo, Cwd: plan.Cwd,
 	})
 	if err != nil {
-		return err
+		return 1, err
 	}
 	// Auto-fallback: when the user didn't override the diff range and
 	// the working tree is clean (claude already committed its changes),
@@ -109,7 +118,7 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 		})
 		fmt.Fprintf(os.Stderr, "[debate] skipped: trivial diff (%d changed lines < %d threshold)\n",
 			diff.ChangedLines, flags.ChangedLinesMin)
-		return nil
+		return 0, nil
 	}
 
 	// Resolve task context.
@@ -130,7 +139,7 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 	// Open the session.
 	sess, err := state.NewSession(plan.StateDirAbs, len(plan.Forks), time.Now())
 	if err != nil {
-		return err
+		return 1, err
 	}
 	if err := state.WriteStart(sess, &state.StartFile{
 		SessionID:   sess.ID,
@@ -156,10 +165,10 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 		DebateVersion: version,
 		GoVersion:     runtime.Version(),
 	}); err != nil {
-		return err
+		return 1, err
 	}
 	if err := state.WriteRunDiff(sess, diff.Patch); err != nil {
-		return err
+		return 1, err
 	}
 
 	// Wire and run the engine. In verbose mode each agent driver
@@ -212,14 +221,14 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 	}
 	sumRes, err := eng.Run(ctx)
 	if err != nil {
-		return err
+		return 1, err
 	}
 
 	// Render summary + persist end.json.
 	agg, _ := ledger.Aggregate(sess)
 	decide := summary.Decide(sumRes)
 	if err := summary.Persist(sumRes, agg, decide.ExitCode); err != nil {
-		return err
+		return 1, err
 	}
 	_ = state.AppendLog(plan.StateDirAbs, &state.LogRecord{
 		TS: time.Now().UTC(), Kind: "run", Session: sess.ID,
@@ -242,12 +251,9 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 
 	// Translate exit code, applying --hook-mode.
 	if flags.HookMode {
-		return nil
+		return 0, nil
 	}
-	if decide.ExitCode != 0 {
-		os.Exit(decide.ExitCode)
-	}
-	return nil
+	return decide.ExitCode, nil
 }
 
 func taskSource(f *cli.Flags) string {

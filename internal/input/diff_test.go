@@ -66,3 +66,47 @@ func TestComputeNotARepo(t *testing.T) {
 		t.Fatal("expected ErrNotGitRepo")
 	}
 }
+
+func TestErrGitErrorMessage(t *testing.T) {
+	e := &ErrGit{
+		Args:   []string{"diff", "--no-color", "HEAD"},
+		Stderr: "  fatal: bad revision\n",
+		Err:    errSentinel("inner failure"),
+	}
+	got := e.Error()
+	for _, want := range []string{
+		"git diff --no-color HEAD",
+		"inner failure",
+		"fatal: bad revision",
+	} {
+		if !contains(got, want) {
+			t.Errorf("Error() = %q; missing %q", got, want)
+		}
+	}
+}
+
+type errSentinel string
+
+func (e errSentinel) Error() string { return string(e) }
+
+func contains(haystack, needle string) bool {
+	for i := 0; i+len(needle) <= len(haystack); i++ {
+		if haystack[i:i+len(needle)] == needle {
+			return true
+		}
+	}
+	return false
+}
+
+func TestComputeBadRange(t *testing.T) {
+	dir := t.TempDir()
+	gitInit(t, dir)
+	// Reference a non-existent rev so git exits non-zero. We expect
+	// Compute to surface the error wrapped in *ErrGit.
+	_, err := Compute(context.Background(), DiffSpec{
+		From: "definitely-not-a-real-ref", To: ".", Cwd: dir,
+	})
+	if err == nil {
+		t.Fatal("expected error from bogus ref")
+	}
+}

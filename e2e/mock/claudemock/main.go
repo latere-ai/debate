@@ -7,6 +7,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -20,45 +21,59 @@ type matcher struct {
 
 func main() {
 	args := strings.Join(os.Args[1:], " ")
+	scriptPath, _ := os.LookupEnv("MOCK_CLAUDE_SCRIPT")
+	stdout, stderr, code, err := decide(args, scriptPath, os.ReadFile)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "mock-claude:", err)
+		os.Exit(2)
+	}
+	emit(os.Stdout, os.Stderr, stdout, stderr, code)
+}
 
-	script := os.Getenv("MOCK_CLAUDE_SCRIPT")
-	if script == "" {
+// decide picks the matching response for args from the script at
+// scriptPath. read is os.ReadFile in production.
+//
+// Returns (stdout, stderr, exit, err) where err is non-nil only when
+// the script can't be read or parsed (caller exits 2). When no rule
+// matches the args, it returns ("", "no rule matched", 3, nil) so the
+// caller exits with that code, mirroring the original behaviour.
+func decide(args, scriptPath string, read func(string) ([]byte, error)) (
+	stdout map[string]any, stderr string, code int, err error,
+) {
+	if scriptPath == "" {
 		// Default: emit a minimal valid claude --output-format json result.
-		emit(map[string]any{
+		return map[string]any{
 			"type": "result", "subtype": "success",
 			"session_id": "mock-session", "result": "ok",
 			"is_error": false,
 			"usage":    map[string]any{"input_tokens": 1, "output_tokens": 1},
-		}, "", 0)
-		return
+		}, "", 0, nil
 	}
-	b, err := os.ReadFile(script)
+	b, err := read(scriptPath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "mock-claude: cannot read script:", err)
-		os.Exit(2)
+		return nil, "", 0, fmt.Errorf("cannot read script: %w", err)
 	}
 	var rules []matcher
 	if err := json.Unmarshal(b, &rules); err != nil {
-		fmt.Fprintln(os.Stderr, "mock-claude: bad script:", err)
-		os.Exit(2)
+		return nil, "", 0, fmt.Errorf("bad script: %w", err)
 	}
 	for _, m := range rules {
 		if m.ArgsContains == "" || strings.Contains(args, m.ArgsContains) {
-			emit(m.Stdout, m.Stderr, m.Exit)
-			return
+			return m.Stdout, m.Stderr, m.Exit, nil
 		}
 	}
-	fmt.Fprintln(os.Stderr, "mock-claude: no rule matched args:", args)
-	os.Exit(3)
+	return nil, "no rule matched args: " + args + "\n", 3, nil
 }
 
-func emit(stdout map[string]any, stderr string, code int) {
+func emit(out io.Writer, errw io.Writer, stdout map[string]any, stderr string, code int) {
 	if stdout != nil {
 		b, _ := json.Marshal(stdout)
-		fmt.Println(string(b))
+		_, _ = fmt.Fprintln(out, string(b))
 	}
 	if stderr != "" {
-		fmt.Fprint(os.Stderr, stderr)
+		_, _ = fmt.Fprint(errw, stderr)
 	}
-	os.Exit(code)
+	if code != 0 {
+		os.Exit(code)
+	}
 }

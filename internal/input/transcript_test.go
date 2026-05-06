@@ -100,3 +100,85 @@ func TestLocateTranscriptExplicit(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 }
+
+func TestLocateTranscriptExplicitMissing(t *testing.T) {
+	_, err := LocateTranscript("", "", "", "/nope/does-not-exist.jsonl")
+	if err == nil {
+		t.Fatal("want error for missing explicit path")
+	}
+	if !errors.Is(err, ErrTranscriptNotFound) {
+		t.Errorf("want ErrTranscriptNotFound, got %v", err)
+	}
+}
+
+func TestLocateTranscriptMissingArgs(t *testing.T) {
+	_, err := LocateTranscript("", "", "", "")
+	if err == nil {
+		t.Fatal("want error when all args are empty")
+	}
+	if !errors.Is(err, ErrTranscriptNotFound) {
+		t.Errorf("want ErrTranscriptNotFound, got %v", err)
+	}
+}
+
+func TestLocateTranscriptByEncodedCwd(t *testing.T) {
+	home := t.TempDir()
+	cwd := "/Users/x/work"
+	encoded := EncodeCwd(cwd)
+	dir := filepath.Join(home, ".claude", "projects", encoded)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	id := "session-id-123"
+	want := filepath.Join(dir, id+".jsonl")
+	if err := os.WriteFile(want, []byte(`{}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := LocateTranscript(home, cwd, id, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestFindSession(t *testing.T) {
+	home := t.TempDir()
+	dir1 := filepath.Join(home, ".claude", "projects", "-Users-a-x")
+	dir2 := filepath.Join(home, ".claude", "projects", "-Users-b-y")
+	if err := os.MkdirAll(dir1, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(dir2, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(dir2, "abc.jsonl")
+	if err := os.WriteFile(want, []byte(`{}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, seg, err := FindSession(home, "abc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Errorf("path: got %q, want %q", got, want)
+	}
+	if seg != "-Users-b-y" {
+		t.Errorf("segment: got %q", seg)
+	}
+
+	_, _, err = FindSession(home, "nope")
+	if err == nil {
+		t.Error("expected error for missing session")
+	}
+}
+
+func TestFindSessionMissingArgs(t *testing.T) {
+	_, _, err := FindSession("", "")
+	if err == nil {
+		t.Error("expected error for empty home/sessionID")
+	}
+}

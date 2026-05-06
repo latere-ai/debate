@@ -127,3 +127,45 @@ func TestAtomicWriteRefusesExistingTemp(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 }
+
+func TestAtomicWriteCreatesNestedDir(t *testing.T) {
+	dir := t.TempDir()
+	sess, err := NewSession(dir, 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sess.AtomicWrite("forks/critic-1/rounds/r1.md", []byte("x")); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := os.ReadFile(sess.Path("forks/critic-1/rounds/r1.md"))
+	if string(got) != "x" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestAppendCrossSessionLog(t *testing.T) {
+	dir := t.TempDir()
+	if err := AppendCrossSessionLog(dir, []byte(`{"a":1}`)); err != nil {
+		t.Fatal(err)
+	}
+	if err := AppendCrossSessionLog(dir, []byte(`{"a":2}`)); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join(dir, "log.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(b) != "{\"a\":1}\n{\"a\":2}\n" {
+		t.Errorf("got %q", b)
+	}
+}
+
+func TestAppendCrossSessionLogCreatesDir(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "nested", "sub")
+	if err := AppendCrossSessionLog(dir, []byte("x")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "log.jsonl")); err != nil {
+		t.Errorf("log.jsonl not created: %v", err)
+	}
+}

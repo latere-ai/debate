@@ -68,3 +68,45 @@ func TestPreflightErrorWraps(t *testing.T) {
 		t.Error("Unwrap should return inner")
 	}
 }
+
+func TestPreflightErrorNoWrap(t *testing.T) {
+	pe := &PreflightError{Code: 1, Msg: "boom"}
+	if got := pe.Error(); got != "boom" {
+		t.Errorf("Error() without Wrap: got %q, want \"boom\"", got)
+	}
+	if pe.Unwrap() != nil {
+		t.Error("Unwrap should be nil when Wrap unset")
+	}
+}
+
+func TestDecodeCwdFromTranscript(t *testing.T) {
+	cases := []struct {
+		name, in, want string
+	}{
+		{"no-projects-segment", "/some/random/file.jsonl", ""},
+		{"projects-segment-decoded", "/Users/x/.claude/projects/-tmp-abc/sess.jsonl", "/tmp/abc"},
+		{"empty", "", ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := decodeCwdFromTranscript(c.in)
+			if got != c.want {
+				t.Errorf("got %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+func TestAgentFamily(t *testing.T) {
+	cases := map[string]string{
+		"claude":  "claude",
+		"codex":   "codex",
+		"unknown": "unknown", // unknown family passes through
+		"foo":     "foo",
+	}
+	for in, want := range cases {
+		if got := agentFamily(in); got != want {
+			t.Errorf("agentFamily(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

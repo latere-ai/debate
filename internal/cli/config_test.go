@@ -69,3 +69,129 @@ func TestUnknownKeyRejected(t *testing.T) {
 		t.Error("expected error for unknown TOML key")
 	}
 }
+
+func TestUserConfigPath(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", "/x")
+	if got := userConfigPath(); got != filepath.Join("/x", "debate", "config.toml") {
+		t.Errorf("XDG branch: got %q", got)
+	}
+
+	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("HOME", "/h")
+	if got := userConfigPath(); got != filepath.Join("/h", ".config", "debate", "config.toml") {
+		t.Errorf("HOME branch: got %q", got)
+	}
+}
+
+func TestProjectConfigPath(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+
+	// Explicit wins.
+	if got := projectConfigPath("/explicit/path"); got != "/explicit/path" {
+		t.Errorf("explicit: got %q", got)
+	}
+
+	// No file in cwd, no git root: empty.
+	if got := projectConfigPath(""); got != "" {
+		t.Errorf("no candidate: got %q", got)
+	}
+
+	// File in cwd: returned.
+	cfg := filepath.Join(dir, ".debate.toml")
+	if err := os.WriteFile(cfg, []byte(""), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := projectConfigPath("")
+	gotResolved, _ := filepath.EvalSymlinks(got)
+	cfgResolved, _ := filepath.EvalSymlinks(cfg)
+	if gotResolved != cfgResolved {
+		t.Errorf("cwd file branch: got %q, want %q", got, cfg)
+	}
+}
+
+func TestApplyConfigToFlags_AllKeys(t *testing.T) {
+	dir := t.TempDir()
+	cfg := filepath.Join(dir, ".debate.toml")
+	body := `main = "claude"
+side = "codex"
+side_count = 3
+main_model = "m1"
+side_model = "m2"
+max_turn = 9
+cost_cap_tokens = 12345
+changed_lines_min = 5
+state_dir = "/tmp/x"
+format = "markdown"
+judge = "none"
+trigger = "manual"
+allow_style_attacks = true
+`
+	if err := os.WriteFile(cfg, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cmd := &cobra.Command{Use: "debate"}
+	f := Bind(cmd)
+	f.Config = cfg
+	if err := cmd.ParseFlags(nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Effective(cmd, f); err != nil {
+		t.Fatal(err)
+	}
+	cases := map[string]any{
+		"Main":            f.Main,
+		"Side":            f.Side,
+		"SideCount":       f.SideCount,
+		"MainModel":       f.MainModel,
+		"SideModel":       f.SideModel,
+		"MaxTurn":         f.MaxTurn,
+		"CostCap":         f.CostCap,
+		"ChangedLinesMin": f.ChangedLinesMin,
+		"StateDir":        f.StateDir,
+		"Format":          f.Format,
+		"Judge":           f.Judge,
+	}
+	if cases["Main"] != "claude" {
+		t.Errorf("Main: %v", cases["Main"])
+	}
+	if cases["Side"] != "codex" {
+		t.Errorf("Side: %v", cases["Side"])
+	}
+	if cases["SideCount"] != 3 {
+		t.Errorf("SideCount: %v", cases["SideCount"])
+	}
+	if cases["MainModel"] != "m1" {
+		t.Errorf("MainModel: %v", cases["MainModel"])
+	}
+	if cases["SideModel"] != "m2" {
+		t.Errorf("SideModel: %v", cases["SideModel"])
+	}
+	if cases["MaxTurn"] != 9 {
+		t.Errorf("MaxTurn: %v", cases["MaxTurn"])
+	}
+	if cases["CostCap"] != 12345 {
+		t.Errorf("CostCap: %v", cases["CostCap"])
+	}
+}
+
+func TestEffective_NoConfigPaths(t *testing.T) {
+	// Neither user nor project config exist; layering should still
+	// produce a Flags struct with defaults applied.
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
+	t.Chdir(t.TempDir())
+
+	cmd := &cobra.Command{Use: "debate"}
+	f := Bind(cmd)
+	if err := cmd.ParseFlags(nil); err != nil {
+		t.Fatal(err)
+	}
+	out, err := Effective(cmd, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out == nil {
+		t.Fatal("nil flags returned")
+	}
+}
