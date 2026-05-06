@@ -142,6 +142,7 @@ func (c *CodexCritic) Round(ctx context.Context, in CriticInput) (*CriticResult,
 	var (
 		out      strings.Builder
 		threadID string
+		usage    TokenUsage
 		eventCt  int
 	)
 	visit := func(raw json.RawMessage) error {
@@ -153,6 +154,7 @@ func (c *CodexCritic) Round(ctx context.Context, in CriticInput) (*CriticResult,
 		//   {"type":"agent_text","text":"..."}
 		//   {"type":"task_complete","result":"..."}
 		//   {"type":"message","message":{"content":[{"type":"text","text":"..."}]}}
+		//   {"type":"turn.completed","usage":{"input_tokens":N,"cached_input_tokens":N,"output_tokens":N,"reasoning_output_tokens":N}}
 		var ev struct {
 			Type     string `json:"type"`
 			ThreadID string `json:"thread_id"`
@@ -167,6 +169,14 @@ func (c *CodexCritic) Round(ctx context.Context, in CriticInput) (*CriticResult,
 			Message struct {
 				Content json.RawMessage `json:"content"`
 			} `json:"message"`
+			Usage struct {
+				InputTokens           int `json:"input_tokens"`
+				CachedInputTokens     int `json:"cached_input_tokens"`
+				OutputTokens          int `json:"output_tokens"`
+				ReasoningOutputTokens int `json:"reasoning_output_tokens"`
+				CacheReadInputTokens  int `json:"cache_read_input_tokens"`
+				CacheCreationTokens   int `json:"cache_creation_input_tokens"`
+			} `json:"usage"`
 		}
 		if err := json.Unmarshal(raw, &ev); err != nil {
 			return nil
@@ -185,6 +195,22 @@ func (c *CodexCritic) Round(ctx context.Context, in CriticInput) (*CriticResult,
 			if ev.ThreadID != "" {
 				threadID = ev.ThreadID
 			}
+		case "turn.completed", "token_count":
+			// Codex billing: input_tokens is the FULL prompt (including
+			// the cached portion), so the fresh-input bucket equals
+			// input_tokens - cached_input_tokens. reasoning_output is
+			// model-generated tokens, fold into Output. CacheCreate is
+			// not a concept openai surfaces here; cache_read maps to
+			// our CacheRead. Some future codex revisions emit anthropic-
+			// shaped fields - tolerate both.
+			fresh := ev.Usage.InputTokens - ev.Usage.CachedInputTokens
+			if fresh < 0 {
+				fresh = ev.Usage.InputTokens
+			}
+			usage.Input += fresh
+			usage.Output += ev.Usage.OutputTokens + ev.Usage.ReasoningOutputTokens
+			usage.CacheRead += ev.Usage.CachedInputTokens + ev.Usage.CacheReadInputTokens
+			usage.CacheCreate += ev.Usage.CacheCreationTokens
 		case "item.completed":
 			switch ev.Item.Type {
 			case "agent_message", "agent_text":
@@ -248,6 +274,8 @@ func (c *CodexCritic) Round(ctx context.Context, in CriticInput) (*CriticResult,
 	return &CriticResult{
 		Markdown: out.String(),
 		ThreadID: threadID,
+		Tokens:   usage.Input + usage.Output,
+		Usage:    usage,
 		Stdout:   res.Stdout,
 		Duration: res.Duration,
 	}, nil
