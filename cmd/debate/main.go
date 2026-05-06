@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -65,7 +66,14 @@ func main() {
 
 	root.AddCommand(installHookCmd(), uninstallHookCmd())
 
-	if err := root.Execute(); err != nil {
+	// Install the signal-aware context so SIGINT / SIGTERM cancel the
+	// root context and propagate down through agent.Exec's process-group
+	// teardown. Required by spec 21.
+	ctx, cancel := round.InstallHandler(context.Background(),
+		os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	if err := root.ExecuteContext(ctx); err != nil {
 		fmt.Fprintln(os.Stderr, "debate:", err)
 		os.Exit(exitCodeFor(err))
 	}

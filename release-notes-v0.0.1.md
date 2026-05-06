@@ -26,12 +26,24 @@ hook_attachments: TBD
 
 ```
 probe: signal-latency
-host_os: TBD
-binary_sha256: TBD
-wall_seconds: TBD
-verdict: TBD
-runs: TBD
+host_os: darwin (Darwin 25.4.0, arm64)
+runs: 3/3
+wall_seconds: {min: 0.031, median: 0.036, max: 0.048}
+budget: 5.000
+verdict: PASS
 ```
+
+Notes: the probe was originally broken in two ways - it never invoked
+`bin/debate` (used a self-contained bash sleeper) and had a trap-vs-sleep
+race that always took 30s. Rewriting the probe to actually exercise
+`bin/debate` against a sleep-forever shim surfaced the underlying bug:
+`cmd/debate/main.go` used cobra's default `context.Background()`, so the
+`round.InstallHandler` signal handler in `internal/round/signals.go` was
+dead code and SIGINT did not propagate. Fix: wire `round.InstallHandler`
+into main and pass the resulting context via `root.ExecuteContext(ctx)`.
+A new e2e regression test (`e2e/cli/signal_test.go`) builds the binary,
+spawns it against a stuck shim, sends SIGINT to its process group, and
+asserts exit within 2s.
 
 ### trivial-diff-perf (G6) - specs/30
 
