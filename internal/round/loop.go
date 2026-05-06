@@ -252,6 +252,27 @@ func (e *Engine) criticRound(ctx context.Context, cri agent.Critic, a critic.Asp
 		TaskContext:  e.TaskContext, DiffPatch: e.DiffPatch,
 		Cwd: e.Cwd, Deadline: 5 * time.Minute,
 	}
+	// R3 and later: hand the critic absolute paths to the previous critic
+	// round (r-2) and the proposer's defense (r-1). Without these the
+	// system prompt promises "the proposer's prior responses (referenced
+	// by file)" but no file is referenced, so the agent reads the same
+	// diff/task as R1 and follows the "nothing new -> emit empty doc"
+	// directive. Spec 19 §"R3..R(max)".
+	if round >= 3 {
+		priorCritic := round - 2
+		priorProposer := round - 1
+		forkRel := filepath.Join("forks", fmt.Sprintf("critic-%d", forkIdx), "rounds")
+		in.PriorRoundFiles = []agent.RoundFileRef{
+			{
+				Path:  e.Sess.Path(filepath.Join(forkRel, fmt.Sprintf("r%d-critic.md", priorCritic))),
+				Round: priorCritic, Role: "critic",
+			},
+			{
+				Path:  e.Sess.Path(filepath.Join(forkRel, fmt.Sprintf("r%d-proposer.md", priorProposer))),
+				Round: priorProposer, Role: "proposer",
+			},
+		}
+	}
 	res, err := cri.Round(ctx, in)
 	if err != nil {
 		return criticRoundResult{}, critic.ParseStats{}, err
