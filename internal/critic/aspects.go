@@ -33,6 +33,12 @@ Hard rules:
    command or test for code; a quoted counterexample for a spec or
    design doc; a counter-citation or refuting calculation for a paper.
    Attacks without evidence are dropped at parse time.
+   For contradiction or ambiguity claims (two passages disagree;
+   instructions allow competing readings), the reproduction MUST
+   quote BOTH passages in full, each prefixed with its file:line
+   anchor. Ellipses ("...", "[snip]", "etc.") inside a fenced
+   reproduction are forbidden: a contradiction you do not actually
+   exhibit side-by-side is not a contradiction you have proved.
 %s
 
 Output format:
@@ -95,6 +101,12 @@ Hard rules:
    command or test for code; a quoted counterexample for a spec or
    design doc; a counter-citation or refuting calculation for a paper.
    Attacks without evidence are dropped at parse time.
+   For contradiction or ambiguity claims (two passages disagree;
+   instructions allow competing readings), the reproduction MUST
+   quote BOTH passages in full, each prefixed with its file:line
+   anchor. Ellipses ("...", "[snip]", "etc.") inside a fenced
+   reproduction are forbidden: a contradiction you do not actually
+   exhibit side-by-side is not a contradiction you have proved.
 
 Output format:
 

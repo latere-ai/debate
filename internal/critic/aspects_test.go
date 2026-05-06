@@ -38,6 +38,35 @@ func TestAssemble(t *testing.T) {
 	}
 }
 
+// TestContradictionReproductionRule checks the per-attack hard rules
+// in both the auto and aspect-locked skeletons forbid ellipsis-only
+// reproductions and require both contradicting passages to be quoted.
+// Reproduces a real session in agents-byzantine-tolerance where the
+// agent claimed two passages contradict, then "proved" it with a
+// reproduction that quoted only one of them and trailed off into
+// "...The first non-smoke run should be:" - which is not evidence at
+// all.
+func TestContradictionReproductionRule(t *testing.T) {
+	prompts := map[string]string{
+		"auto":           Auto(1, 1, nil).SystemPrompt,
+		"aspect-locked":  Lookup("security").SystemPrompt,
+		"generic-aspect": Lookup("instruction-completeness").SystemPrompt,
+	}
+	for label, p := range prompts {
+		for _, want := range []string{
+			"contradiction or ambiguity claims",
+			"BOTH passages in full",
+			"file:line",
+			`"..."`,
+			"forbidden",
+		} {
+			if !strings.Contains(p, want) {
+				t.Errorf("%s prompt missing %q", label, want)
+			}
+		}
+	}
+}
+
 // TestAssembleR3DispositionContract checks the R3+ contract is in the
 // system prompt: the agent must be told to (a) read the prior round
 // files, (b) react to each prior attack via re-attack/withdraw/drop,
