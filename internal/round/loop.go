@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -24,7 +25,7 @@ type Proposer interface {
 // CriticFactory produces a Critic for the given fork index.
 type CriticFactory func(forkIdx int) agent.Critic
 
-// Engine is the orchestration core; it integrates [09]–[18] and emits
+// Engine is the orchestration core; it integrates [09]-[18] and emits
 // the *Summary that [22]/[23] consume.
 type Engine struct {
 	Sess        *state.Session
@@ -37,6 +38,18 @@ type Engine struct {
 	HookMode    bool
 	TaskContext string
 	DiffPatch   string
+	// Progress is the writer used for per-fork and per-round progress
+	// lines. nil means silent. cmd/debate sets this to os.Stderr in
+	// non-hook mode. The Stop-hook path leaves it nil since claude
+	// swallows the stderr anyway.
+	Progress io.Writer
+}
+
+func (e *Engine) progf(format string, args ...any) {
+	if e.Progress == nil {
+		return
+	}
+	_, _ = fmt.Fprintf(e.Progress, format+"\n", args...)
 }
 
 // Summary is what Run returns on a successful end-to-end run.
@@ -124,6 +137,8 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 		priorIDs []string
 	)
 
+	e.progf("[debate] fork %d/%d %s: starting", forkIdx, len(e.Aspects), aspect)
+
 	for round := 1; round <= e.MaxTurn; round++ {
 		if ctx.Err() != nil {
 			runStop = TermInterrupted
@@ -134,13 +149,19 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 			break
 		}
 		out.Rounds = round
+		roundStart := time.Now()
 		if round%2 == 1 {
 			// Critic round.
+			e.progf("[debate] fork %d/%d %s: R%d critic running...", forkIdx, len(e.Aspects), aspect, round)
 			res, stats, err := e.criticRound(ctx, cri, a, forkIdx, round, priorIDs)
 			if err != nil {
 				return out, "", fmt.Errorf("%w: critic %d round %d: %v", ErrAgentFatal, forkIdx, round, err)
 			}
 			cost.Add(res.tokens)
+			e.progf("[debate] fork %d/%d %s: R%d critic done in %s (new=%d, re-attack=%d, withdraw=%d, dropped=%d)",
+				forkIdx, len(e.Aspects), aspect, round, fmtDur(time.Since(roundStart)),
+				stats.KeptIntroduce, stats.KeptReAttack, stats.KeptWithdraw,
+				stats.DroppedNoReproduce+stats.DroppedStyle+stats.DroppedCrossAspect)
 			hist = append(hist, ForkHistory{
 				Round: round, NewAttacks: stats.KeptIntroduce, ReAttacks: stats.KeptReAttack,
 				Withdrawn:     stats.KeptWithdraw,
@@ -153,10 +174,12 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 			}
 			if det.SteadyState(hist) {
 				out.Termination = TermSteadyState
+				e.progf("[debate] fork %d/%d %s: steady state reached at R%d", forkIdx, len(e.Aspects), aspect, round)
 				break
 			}
 		} else {
 			// Proposer round.
+			e.progf("[debate] fork %d/%d %s: R%d proposer running...", forkIdx, len(e.Aspects), aspect, round)
 			pointer := fmt.Sprintf("Some comments at @forks/critic-%d/rounds/r%d-critic.md. Please resolve or respond. If you disagree, please raise it.",
 				forkIdx, round-1)
 			var pr *agent.ProposerResult
@@ -188,13 +211,33 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 				Path: filepath.Join("forks", fmt.Sprintf("critic-%d", forkIdx), "rounds", fmt.Sprintf("r%d-proposer.md", round)),
 				MS:   int(pr.Duration.Milliseconds()),
 			})
-			updateLedgerFromDefense(e.Sess, pr.Response, pr.ChangedFiles, round)
+			conceded, rebutted := updateLedgerFromDefense(e.Sess, pr.Response, pr.ChangedFiles, round)
+			e.progf("[debate] fork %d/%d %s: R%d proposer done in %s (conceded=%d, rebutted=%d, files=%d)",
+				forkIdx, len(e.Aspects), aspect, round, fmtDur(time.Since(roundStart)),
+				conceded, rebutted, len(pr.ChangedFiles))
 		}
 	}
 	if out.Rounds >= e.MaxTurn && runStop == "" {
 		out.Termination = TermMaxTurn
 	}
+	e.progf("[debate] fork %d/%d %s: terminated %s after R%d (tokens used: %d)",
+		forkIdx, len(e.Aspects), aspect, ifEmpty(string(runStop), string(out.Termination)),
+		out.Rounds, cost.Used())
 	return out, runStop, nil
+}
+
+func fmtDur(d time.Duration) string {
+	if d < time.Second {
+		return fmt.Sprintf("%dms", d.Milliseconds())
+	}
+	return fmt.Sprintf("%.1fs", d.Seconds())
+}
+
+func ifEmpty(a, b string) string {
+	if a == "" {
+		return b
+	}
+	return a
 }
 
 type criticRoundResult struct {
@@ -274,15 +317,17 @@ func ifNonZero(v int) *int {
 	return &v
 }
 
-func updateLedgerFromDefense(sess *state.Session, response string, changed []string, round int) {
+func updateLedgerFromDefense(sess *state.Session, response string, changed []string, round int) (conceded, rebutted int) {
 	for _, m := range defenseLineRE.FindAllStringSubmatch(response, -1) {
 		verb, id := strings.ToLower(m[1]), m[2]
 		var st ledger.Status
 		switch verb {
 		case "concede":
 			st = ledger.StatusConceded
+			conceded++
 		case "rebut":
 			st = ledger.StatusRebutted
+			rebutted++
 		case "push-back":
 			// Stays open; orchestrator currently does not track count.
 			continue
@@ -295,4 +340,5 @@ func updateLedgerFromDefense(sess *state.Session, response string, changed []str
 		}
 		_ = ledger.Append(sess, rec)
 	}
+	return conceded, rebutted
 }

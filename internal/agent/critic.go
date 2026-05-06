@@ -121,28 +121,80 @@ func (c *CodexCritic) Round(ctx context.Context, in CriticInput) (*CriticResult,
 	var (
 		out      strings.Builder
 		threadID string
+		eventCt  int
 	)
 	visit := func(raw json.RawMessage) error {
+		eventCt++
+		// Codex's --json event shapes have evolved across releases. Accept:
+		//   {"type":"thread.started","thread_id":"..."}
+		//   {"type":"item.completed","item":{"type":"agent_message","content":"..."}}
+		//   {"type":"agent_message","content":"..."}
+		//   {"type":"agent_text","text":"..."}
+		//   {"type":"task_complete","result":"..."}
+		//   {"type":"message","message":{"content":[{"type":"text","text":"..."}]}}
 		var ev struct {
 			Type     string `json:"type"`
 			ThreadID string `json:"thread_id"`
+			Content  string `json:"content"`
+			Text     string `json:"text"`
+			Result   string `json:"result"`
 			Item     struct {
 				Type    string `json:"type"`
 				Content string `json:"content"`
+				Text    string `json:"text"`
 			} `json:"item"`
+			Message struct {
+				Content json.RawMessage `json:"content"`
+			} `json:"message"`
 		}
 		if err := json.Unmarshal(raw, &ev); err != nil {
 			return nil
 		}
+		appendIfNonEmpty := func(s string) {
+			if s == "" {
+				return
+			}
+			if out.Len() > 0 {
+				out.WriteString("\n")
+			}
+			out.WriteString(s)
+		}
 		switch ev.Type {
-		case "thread.started":
-			threadID = ev.ThreadID
+		case "thread.started", "task_started":
+			if ev.ThreadID != "" {
+				threadID = ev.ThreadID
+			}
 		case "item.completed":
-			if ev.Item.Type == "agent_message" {
-				if out.Len() > 0 {
-					out.WriteString("\n")
+			switch ev.Item.Type {
+			case "agent_message":
+				appendIfNonEmpty(ev.Item.Content)
+			case "agent_text":
+				appendIfNonEmpty(ev.Item.Text)
+			}
+		case "agent_message":
+			appendIfNonEmpty(ev.Content)
+		case "agent_text":
+			appendIfNonEmpty(ev.Text)
+		case "task_complete":
+			appendIfNonEmpty(ev.Result)
+		case "message":
+			// {"message":{"content":[{"type":"text","text":"..."}, ...]}}
+			var parts []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			}
+			if json.Unmarshal(ev.Message.Content, &parts) == nil {
+				for _, p := range parts {
+					if p.Type == "text" {
+						appendIfNonEmpty(p.Text)
+					}
 				}
-				out.WriteString(ev.Item.Content)
+			} else {
+				// Plain string content shape.
+				var s string
+				if json.Unmarshal(ev.Message.Content, &s) == nil {
+					appendIfNonEmpty(s)
+				}
 			}
 		}
 		return nil
@@ -150,8 +202,23 @@ func (c *CodexCritic) Round(ctx context.Context, in CriticInput) (*CriticResult,
 	if err := StreamJSON(strings.NewReader(string(res.Stdout)), visit); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrJSON, err)
 	}
+	// Last-resort fallback: if no event-shape produced content but stdout
+	// is non-empty and looks like markdown (no `{` at the start), treat
+	// raw stdout as the critic's output. Lets us survive a codex CLI that
+	// silently drops --json or emits an undocumented shape.
+	if out.Len() == 0 && len(res.Stdout) > 0 {
+		trimmed := strings.TrimSpace(string(res.Stdout))
+		if !strings.HasPrefix(trimmed, "{") && !strings.HasPrefix(trimmed, "[") {
+			out.WriteString(trimmed)
+		}
+	}
 	if out.Len() == 0 {
-		return nil, ErrEmptyContent
+		preview := string(res.Stdout)
+		if len(preview) > 500 {
+			preview = preview[:500] + "...(truncated)"
+		}
+		return nil, fmt.Errorf("%w: %d events parsed, no content. stdout preview: %q. stderr: %q",
+			ErrEmptyContent, eventCt, preview, string(res.Stderr))
 	}
 	return &CriticResult{
 		Markdown: out.String(),

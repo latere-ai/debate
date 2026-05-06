@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"time"
@@ -158,12 +159,19 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 		Deadline: 5 * time.Minute,
 	}
 	criticFactory := func(_ int) agent.Critic { return agent.NewCritic(flags.Side) }
+	// Progress lines: Stop-hook path swallows stderr so leave it nil
+	// there; manual invocation gets per-fork/per-round status on stderr.
+	var progress io.Writer
+	if !flags.HookMode {
+		progress = os.Stderr
+	}
 	eng := &round.Engine{
 		Sess: sess, Cwd: plan.Cwd, Aspects: aspects,
 		Proposer:  proposer,
 		NewCritic: criticFactory,
 		MaxTurn:   flags.MaxTurn, CostCap: flags.CostCap, HookMode: flags.HookMode,
 		TaskContext: taskCtx, DiffPatch: diff.Patch,
+		Progress: progress,
 	}
 	sumRes, err := eng.Run(ctx)
 	if err != nil {
