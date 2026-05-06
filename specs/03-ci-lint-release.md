@@ -18,8 +18,8 @@ Out: actual release execution (that's [27](27-release.md)); CLI surface ([04](04
 
 | job | os | go | steps |
 |---|---|---|---|
-| `build-test` | `ubuntu-latest`, `macos-latest` | `1.23.x` | `make all`, upload `bin/debate` artifact |
-| `lint` | `ubuntu-latest` | `1.23.x` | `make lint` |
+| `build-test` | `ubuntu-latest`, `macos-latest` | `1.26.x` | `make all`, upload `bin/debate` artifact |
+| `lint` | `ubuntu-latest` | `1.26.x` | `make lint` |
 
 Cache: `~/go/pkg/mod` keyed by `go.sum`.
 
@@ -32,7 +32,7 @@ CI fails if any of: `go vet`, `golangci-lint run`, `go test ./...`, or `go build
 ```yaml
 run:
   timeout: 3m
-  go: "1.23"
+  go: "1.26"
 linters:
   enable:
     - errcheck

@@ -61,7 +61,7 @@ Written atomically before any agent process spawns. Once written, never modified
   },
 
   "debate_version":  "v0.0.1",
-  "go_version":      "go1.23.0"
+  "go_version":      "go1.26.0"
 }
 ```
 

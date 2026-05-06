@@ -15,7 +15,7 @@ Out: build/test pipeline ([03](03-ci-lint-release.md)), CLI logic ([04](04-cli-f
 ## Module path and toolchain
 
 - Module: `latere.ai/x/debate`.
-- Go directive in `go.mod`: `go 1.23` (selected for `slices`, `cmp`, `errors.Join`, integer `for` range).
+- Go directive in `go.mod`: `go 1.26` (selected for `slices`, `cmp`, `errors.Join`, integer `for` range).
 - No third-party dependencies in v0 except a CLI library and TOML parser; both pinned in [04](04-cli-flags.md) and [05](05-config-file.md). Standard library elsewhere.
 
 ## Directory layout
@@ -111,7 +111,7 @@ So `go build ./...` succeeds on a fresh clone before any business logic lands.
 
 ## Acceptance criteria
 
-- [x] `go.mod` is `latere.ai/x/debate` at `go 1.23`.
+- [x] `go.mod` is `latere.ai/x/debate` at `go 1.26`.
 - [x] Every directory in the layout exists, each with at least `doc.go` (where applicable).
 - [x] `make build` produces `bin/debate`.
 - [x] `bin/debate` exits 0 (placeholder until [04](04-cli-flags.md) replaces `main`).
