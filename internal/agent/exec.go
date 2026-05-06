@@ -16,13 +16,21 @@ import (
 )
 
 // Run is one subprocess invocation.
+//
+// When OnStdoutLine is non-nil, Exec switches to a streaming pipe:
+// stdout is read line-by-line and each line is forwarded to the
+// callback as it arrives. The full stdout is still buffered into
+// Result.Stdout for back-compat parsers. This is the path used by
+// --log-mode verbose to surface tool-use / thinking events live
+// while the agent CLI runs.
 type Run struct {
-	Bin      string
-	Args     []string
-	Cwd      string
-	Stdin    []byte
-	Env      []string
-	Deadline time.Duration
+	Bin          string
+	Args         []string
+	Cwd          string
+	Stdin        []byte
+	Env          []string
+	Deadline     time.Duration
+	OnStdoutLine func([]byte)
 }
 
 // Result is the outcome of one Exec.
@@ -59,8 +67,7 @@ func Exec(ctx context.Context, r Run) (Result, error) {
 	cmd.Dir = r.Cwd
 	cmd.Env = r.Env
 	cmd.Stdin = bytes.NewReader(r.Stdin)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
+	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
 	setProcessGroup(cmd)
@@ -74,21 +81,73 @@ func Exec(ctx context.Context, r Run) (Result, error) {
 	}
 
 	start := time.Now()
-	err := cmd.Run()
+	var stdoutBytes []byte
+	if r.OnStdoutLine == nil {
+		var stdout bytes.Buffer
+		cmd.Stdout = &stdout
+		err := cmd.Run()
+		stdoutBytes = stdout.Bytes()
+		res := Result{
+			Stdout:   stdoutBytes,
+			Stderr:   stderr.Bytes(),
+			Duration: time.Since(start),
+		}
+		if err != nil {
+			var ee *exec.ExitError
+			if errors.As(err, &ee) {
+				res.ExitCode = ee.ExitCode()
+			}
+			if callCtx.Err() != nil {
+				res.Killed = true
+			}
+			return res, err
+		}
+		return res, nil
+	}
+
+	// Streaming path: pipe stdout, fan each line to the callback while
+	// also buffering the full stdout for the buffered parser. The
+	// scanner buffer is bumped to 8 MB because claude stream-json tool
+	// results occasionally exceed the default 64 KB line limit.
+	pipe, perr := cmd.StdoutPipe()
+	if perr != nil {
+		return Result{Duration: time.Since(start)}, perr
+	}
+	if err := cmd.Start(); err != nil {
+		return Result{Duration: time.Since(start), Stderr: stderr.Bytes()}, err
+	}
+	var stdoutBuf bytes.Buffer
+	sc := bufio.NewScanner(pipe)
+	sc.Buffer(make([]byte, 0, 64*1024), 8*1024*1024)
+	for sc.Scan() {
+		line := sc.Bytes()
+		stdoutBuf.Write(line)
+		stdoutBuf.WriteByte('\n')
+		// The scanner reuses its underlying buffer; copy before
+		// handing the bytes to the callback.
+		cp := make([]byte, len(line))
+		copy(cp, line)
+		r.OnStdoutLine(cp)
+	}
+	waitErr := cmd.Wait()
+	stdoutBytes = stdoutBuf.Bytes()
 	res := Result{
-		Stdout:   stdout.Bytes(),
+		Stdout:   stdoutBytes,
 		Stderr:   stderr.Bytes(),
 		Duration: time.Since(start),
 	}
-	if err != nil {
+	if waitErr != nil {
 		var ee *exec.ExitError
-		if errors.As(err, &ee) {
+		if errors.As(waitErr, &ee) {
 			res.ExitCode = ee.ExitCode()
 		}
 		if callCtx.Err() != nil {
 			res.Killed = true
 		}
-		return res, err
+		return res, waitErr
+	}
+	if scErr := sc.Err(); scErr != nil {
+		return res, scErr
 	}
 	return res, nil
 }

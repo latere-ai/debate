@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -108,8 +109,16 @@ const directives = `Critical output rules:
    "# Critic <i> - round <n> attacks".`
 
 // CodexCritic invokes `codex exec --sandbox read-only --json`.
+//
+// Verbose + EventOut surface intermediate item.completed events
+// (tool_call / command_execution) to the writer as they arrive.
+// Codex already streams its events, so unlike ClaudeCritic this
+// does not need to switch CLI flags - just opt into the per-line
+// streaming path of agent.Exec and tee the events.
 type CodexCritic struct {
-	Bin string
+	Bin      string
+	Verbose  bool
+	EventOut io.Writer
 }
 
 // Round runs one codex critic round.
@@ -123,9 +132,17 @@ func (c *CodexCritic) Round(ctx context.Context, in CriticInput) (*CriticResult,
 	if in.Model != "" {
 		args = append(args, "--model", in.Model)
 	}
-	res, err := Exec(ctx, Run{
+	run := Run{
 		Bin: bin, Args: args, Cwd: in.Cwd, Env: CleanEnv(), Deadline: in.Deadline,
-	})
+	}
+	if c.Verbose && c.EventOut != nil {
+		run.OnStdoutLine = func(line []byte) {
+			if msg := FormatCodexStreamEvent(line); msg != "" {
+				_, _ = fmt.Fprintln(c.EventOut, msg)
+			}
+		}
+	}
+	res, err := Exec(ctx, run)
 	if err != nil {
 		stderr := string(res.Stderr)
 		switch {
@@ -283,8 +300,15 @@ func (c *CodexCritic) Round(ctx context.Context, in CriticInput) (*CriticResult,
 
 // ClaudeCritic invokes a fresh `claude -p` per round (no --resume,
 // no --fork-session - see spec 18).
+//
+// Verbose toggles --output-format stream-json --verbose. When set,
+// each tool-use / thinking / text event is fed to EventOut as it
+// arrives so an operator running --log-mode verbose can see what
+// the agent is doing without waiting for the full call to finish.
 type ClaudeCritic struct {
-	Bin string
+	Bin      string
+	Verbose  bool
+	EventOut io.Writer
 }
 
 // Round runs one claude critic round.
@@ -294,13 +318,26 @@ func (c *ClaudeCritic) Round(ctx context.Context, in CriticInput) (*CriticResult
 		bin = "claude"
 	}
 	prompt := AssemblePrompt(in)
-	args := []string{"--output-format", "json", "--print", prompt}
+	var args []string
+	if c.Verbose {
+		args = []string{"--output-format", "stream-json", "--verbose", "--print", prompt}
+	} else {
+		args = []string{"--output-format", "json", "--print", prompt}
+	}
 	if in.Model != "" {
 		args = append(args, "--model", in.Model)
 	}
-	res, err := Exec(ctx, Run{
+	run := Run{
 		Bin: bin, Args: args, Cwd: in.Cwd, Env: CleanEnv(), Deadline: in.Deadline,
-	})
+	}
+	if c.Verbose && c.EventOut != nil {
+		run.OnStdoutLine = func(line []byte) {
+			if msg := FormatClaudeStreamEvent(line); msg != "" {
+				_, _ = fmt.Fprintln(c.EventOut, msg)
+			}
+		}
+	}
+	res, err := Exec(ctx, run)
 	if err != nil {
 		if res.Killed {
 			return nil, fmt.Errorf("%w: %v", ErrTimeout, err)
@@ -308,7 +345,12 @@ func (c *ClaudeCritic) Round(ctx context.Context, in CriticInput) (*CriticResult
 		return nil, fmt.Errorf("claude exec: %w (stderr=%q)", err, string(res.Stderr))
 	}
 	var parsed claudeJSON
-	if err := DecodeJSONLine(res.Stdout, &parsed); err != nil {
+	if c.Verbose {
+		parsed, err = decodeClaudeStreamResult(res.Stdout)
+	} else {
+		err = DecodeJSONLine(res.Stdout, &parsed)
+	}
+	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrJSON, err)
 	}
 	if parsed.IsError {

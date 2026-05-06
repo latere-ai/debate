@@ -1,20 +1,31 @@
 package agent
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 )
 
 // ClaudeProposer drives the proposer-clone via claude --resume.
+//
+// Verbose toggles --output-format stream-json --verbose so each
+// tool-use / thinking / text event the agent emits can be surfaced
+// to EventOut as it arrives. The final result event still drives
+// the returned ProposerResult; callers do not need to know which
+// output format was used.
 type ClaudeProposer struct {
 	Bin      string
 	Cwd      string
 	RootID   string
 	Model    string
 	Deadline time.Duration
+	Verbose  bool
+	EventOut io.Writer
 }
 
 // TokenUsage captures the per-call token breakdown reported by claude's
@@ -81,6 +92,43 @@ type claudeJSON struct {
 	} `json:"usage"`
 }
 
+// decodeClaudeStreamResult scans stream-json stdout (one JSON object
+// per line) for the final {"type":"result",...} event and decodes it
+// into a claudeJSON. Returns the same shape as a single-shot
+// --output-format json reply, so the rest of the parser does not
+// need to know which mode was used.
+func decodeClaudeStreamResult(stdout []byte) (claudeJSON, error) {
+	var last claudeJSON
+	var found bool
+	sc := bufio.NewScanner(bytes.NewReader(stdout))
+	sc.Buffer(make([]byte, 0, 64*1024), 8*1024*1024)
+	for sc.Scan() {
+		line := bytes.TrimSpace(sc.Bytes())
+		if len(line) == 0 {
+			continue
+		}
+		var probe struct {
+			Type string `json:"type"`
+		}
+		if err := DecodeJSONLine(line, &probe); err != nil {
+			continue
+		}
+		if probe.Type != "result" {
+			continue
+		}
+		var parsed claudeJSON
+		if err := DecodeJSONLine(line, &parsed); err != nil {
+			continue
+		}
+		last = parsed
+		found = true
+	}
+	if !found {
+		return claudeJSON{}, fmt.Errorf("no result event in stream-json stdout (%d bytes)", len(stdout))
+	}
+	return last, nil
+}
+
 // usage extracts the typed TokenUsage from a parsed claude JSON
 // document. Helper to keep callsites readable.
 func (j *claudeJSON) usage() TokenUsage {
@@ -94,7 +142,8 @@ func (j *claudeJSON) usage() TokenUsage {
 
 // FirstRound creates a fork and processes R1 in one shot.
 func (p *ClaudeProposer) FirstRound(ctx context.Context, pointer string) (*ProposerResult, error) {
-	args := []string{"--resume", p.RootID, "--fork-session", "--output-format", "json", "--print", pointer}
+	args := append([]string{"--resume", p.RootID, "--fork-session"}, p.outputArgs()...)
+	args = append(args, "--print", pointer)
 	if p.Model != "" {
 		args = append(args, "--model", p.Model)
 	}
@@ -103,11 +152,21 @@ func (p *ClaudeProposer) FirstRound(ctx context.Context, pointer string) (*Propo
 
 // NextRound continues an existing fork.
 func (p *ClaudeProposer) NextRound(ctx context.Context, forkID, pointer string) (*ProposerResult, error) {
-	args := []string{"--resume", forkID, "--output-format", "json", "--print", pointer}
+	args := append([]string{"--resume", forkID}, p.outputArgs()...)
+	args = append(args, "--print", pointer)
 	if p.Model != "" {
 		args = append(args, "--model", p.Model)
 	}
 	return p.run(ctx, args, forkID)
+}
+
+// outputArgs returns the --output-format args for the run, picking
+// stream-json when Verbose so we can tap intermediate events.
+func (p *ClaudeProposer) outputArgs() []string {
+	if p.Verbose {
+		return []string{"--output-format", "stream-json", "--verbose"}
+	}
+	return []string{"--output-format", "json"}
 }
 
 func (p *ClaudeProposer) run(ctx context.Context, args []string, expectFork string) (*ProposerResult, error) {
@@ -115,9 +174,17 @@ func (p *ClaudeProposer) run(ctx context.Context, args []string, expectFork stri
 	if bin == "" {
 		bin = "claude"
 	}
-	res, err := Exec(ctx, Run{
+	run := Run{
 		Bin: bin, Args: args, Cwd: p.Cwd, Env: CleanEnv(), Deadline: p.Deadline,
-	})
+	}
+	if p.Verbose && p.EventOut != nil {
+		run.OnStdoutLine = func(line []byte) {
+			if msg := FormatClaudeStreamEvent(line); msg != "" {
+				_, _ = fmt.Fprintln(p.EventOut, msg)
+			}
+		}
+	}
+	res, err := Exec(ctx, run)
 	if err != nil {
 		if res.Killed {
 			return nil, fmt.Errorf("%w: %v", ErrTimeout, err)
@@ -133,7 +200,12 @@ func (p *ClaudeProposer) run(ctx context.Context, args []string, expectFork stri
 	}
 
 	var parsed claudeJSON
-	if err := DecodeJSONLine(res.Stdout, &parsed); err != nil {
+	if p.Verbose {
+		parsed, err = decodeClaudeStreamResult(res.Stdout)
+	} else {
+		err = DecodeJSONLine(res.Stdout, &parsed)
+	}
+	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrJSON, err)
 	}
 	if parsed.IsError {

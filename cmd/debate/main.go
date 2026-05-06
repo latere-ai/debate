@@ -154,14 +154,33 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 		return err
 	}
 
-	// Wire and run the engine.
+	// Wire and run the engine. In verbose mode each agent driver
+	// emits live tool / thinking events to stderr while a call is in
+	// flight, so the operator sees what the agent is doing instead of
+	// only "still running".
+	verbose := flags.LogMode == cli.LogModeVerbose
+	var eventOut io.Writer
+	if verbose && !flags.HookMode {
+		eventOut = os.Stderr
+	}
 	proposer := &agent.ClaudeProposer{
 		Cwd:      plan.Cwd,
 		RootID:   flags.SessionID,
 		Model:    flags.MainModel,
 		Deadline: 5 * time.Minute,
+		Verbose:  verbose,
+		EventOut: eventOut,
 	}
-	criticFactory := func(_ int) agent.Critic { return agent.NewCritic(flags.Side) }
+	criticFactory := func(_ int) agent.Critic {
+		switch flags.Side {
+		case "codex":
+			return &agent.CodexCritic{Verbose: verbose, EventOut: eventOut}
+		case "claude":
+			return &agent.ClaudeCritic{Verbose: verbose, EventOut: eventOut}
+		default:
+			return agent.NewCritic(flags.Side)
+		}
+	}
 	// Progress lines: Stop-hook path swallows stderr so leave it nil
 	// there; manual invocation gets per-fork/per-round status on stderr
 	// unless --log-mode silent was passed.
