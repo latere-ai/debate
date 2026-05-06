@@ -68,6 +68,107 @@ func TestEnvDoesNotOverrideExplicitFlag(t *testing.T) {
 	}
 }
 
+func TestEnvBindings_AllKeysApplied(t *testing.T) {
+	t.Setenv("DEBATE_MAIN", "claude")
+	t.Setenv("DEBATE_SIDE", "codex")
+	t.Setenv("DEBATE_SIDE_COUNT", "9")
+	t.Setenv("DEBATE_MAIN_MODEL", "m1")
+	t.Setenv("DEBATE_SIDE_MODEL", "m2")
+	t.Setenv("DEBATE_MAX_TURN", "12")
+	t.Setenv("DEBATE_SESSION_ID", "sid-1")
+	t.Setenv("DEBATE_TRANSCRIPT", "/t/p")
+	t.Setenv("DEBATE_DIFF_FROM", "HEAD~3")
+	t.Setenv("DEBATE_DIFF_TO", "HEAD")
+	t.Setenv("DEBATE_TASK_CONTEXT", "build a thing")
+	t.Setenv("DEBATE_JUDGE", "none")
+	t.Setenv("DEBATE_COST_CAP", "12345")
+	t.Setenv("DEBATE_CHANGED_LINES_MIN", "20")
+	t.Setenv("DEBATE_STATE_DIR", "/tmp/x")
+	t.Setenv("DEBATE_FORMAT", "markdown")
+	t.Setenv("DEBATE_HOOK_MODE", "1")
+	t.Setenv("DEBATE_CONFIG", "/c.toml")
+	t.Setenv("DEBATE_VERBOSE", "2")
+
+	cmd, f := newCmd()
+	if err := cmd.ParseFlags(nil); err != nil {
+		t.Fatal(err)
+	}
+	ApplyEnv(cmd, f)
+
+	checks := []struct {
+		name string
+		got  any
+		want any
+	}{
+		{"Main", f.Main, "claude"},
+		{"Side", f.Side, "codex"},
+		{"SideCount", f.SideCount, 9},
+		{"MainModel", f.MainModel, "m1"},
+		{"SideModel", f.SideModel, "m2"},
+		{"MaxTurn", f.MaxTurn, 12},
+		{"SessionID", f.SessionID, "sid-1"},
+		{"Transcript", f.Transcript, "/t/p"},
+		{"DiffFrom", f.DiffFrom, "HEAD~3"},
+		{"DiffTo", f.DiffTo, "HEAD"},
+		{"TaskContext", f.TaskContext, "build a thing"},
+		{"Judge", f.Judge, "none"},
+		{"CostCap", f.CostCap, 12345},
+		{"ChangedLinesMin", f.ChangedLinesMin, 20},
+		{"StateDir", f.StateDir, "/tmp/x"},
+		{"Format", f.Format, "markdown"},
+		{"HookMode", f.HookMode, true},
+		{"Config", f.Config, "/c.toml"},
+		{"Verbose", f.Verbose, 2},
+	}
+	for _, c := range checks {
+		if c.got != c.want {
+			t.Errorf("%s: got %v, want %v", c.name, c.got, c.want)
+		}
+	}
+}
+
+func TestEnvBindings_HookModeFalsey(t *testing.T) {
+	t.Setenv("DEBATE_HOOK_MODE", "0")
+	cmd, f := newCmd()
+	if err := cmd.ParseFlags(nil); err != nil {
+		t.Fatal(err)
+	}
+	ApplyEnv(cmd, f)
+	if f.HookMode {
+		t.Errorf("HOOK_MODE=0 should not enable HookMode")
+	}
+}
+
+func TestEnvBindings_HookModeTrue(t *testing.T) {
+	t.Setenv("DEBATE_HOOK_MODE", "TRUE")
+	cmd, f := newCmd()
+	if err := cmd.ParseFlags(nil); err != nil {
+		t.Fatal(err)
+	}
+	ApplyEnv(cmd, f)
+	if !f.HookMode {
+		t.Errorf("HOOK_MODE=TRUE (case-insensitive) should enable HookMode")
+	}
+}
+
+func TestEnvBindings_BadIntsIgnored(t *testing.T) {
+	t.Setenv("DEBATE_SIDE_COUNT", "not-a-number")
+	t.Setenv("DEBATE_MAX_TURN", "")
+	t.Setenv("DEBATE_COST_CAP", "weird")
+	t.Setenv("DEBATE_CHANGED_LINES_MIN", "x")
+	t.Setenv("DEBATE_VERBOSE", "x")
+	cmd, f := newCmd()
+	if err := cmd.ParseFlags(nil); err != nil {
+		t.Fatal(err)
+	}
+	before := *f
+	ApplyEnv(cmd, f)
+	// All malformed ints leave the prior value untouched.
+	if f.SideCount != before.SideCount {
+		t.Errorf("bad SideCount silently mutated to %d", f.SideCount)
+	}
+}
+
 // TestShouldShowHelp covers the bare-invocation UX: `debate` with no
 // args and no env-supplied task source must redirect to help instead
 // of running preflight and failing on the cryptic "cannot determine
