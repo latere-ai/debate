@@ -84,11 +84,12 @@ type ForkUsage struct {
 	Total    agent.TokenUsage `json:"total"`
 	// Rounds is the per-round breakdown in execution order, useful for
 	// spotting the round where the cache went cold.
-	Rounds []RoundUsage `json:"rounds"`
+	Rounds []Usage `json:"rounds"`
 }
 
-// RoundUsage records one critic-or-proposer round's tokens.
-type RoundUsage struct {
+// Usage records one critic-or-proposer round's token consumption.
+// Sits in ForkUsage.Rounds; package-qualified name is round.Usage.
+type Usage struct {
 	Round int              `json:"round"`
 	Role  string           `json:"role"`
 	Usage agent.TokenUsage `json:"usage"`
@@ -187,7 +188,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 			cost.Add(res.tokens)
 			out.Usage.Critic.Add(res.usage)
 			out.Usage.Total.Add(res.usage)
-			out.Usage.Rounds = append(out.Usage.Rounds, RoundUsage{
+			out.Usage.Rounds = append(out.Usage.Rounds, Usage{
 				Round: round, Role: "critic", Usage: res.usage,
 				MS: int(time.Since(roundStart).Milliseconds()),
 			})
@@ -234,7 +235,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 			cost.Add(pr.Tokens)
 			out.Usage.Proposer.Add(pr.Usage)
 			out.Usage.Total.Add(pr.Usage)
-			out.Usage.Rounds = append(out.Usage.Rounds, RoundUsage{
+			out.Usage.Rounds = append(out.Usage.Rounds, Usage{
 				Round: round, Role: "proposer", Usage: pr.Usage,
 				MS: int(pr.Duration.Milliseconds()),
 			})
