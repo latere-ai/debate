@@ -314,3 +314,33 @@ func TestDecodeClaudeStreamResultNoneFound(t *testing.T) {
 		t.Error("expected error when no result event present")
 	}
 }
+
+func TestSummarizeToolInput_Variants(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"file_path", `{"file_path":"/tmp/x.go","mode":"r"}`, "/tmp/x.go"},
+		{"path", `{"path":"/etc/hosts"}`, "/etc/hosts"},
+		{"command", `{"command":"ls -la /"}`, "ls -la /"},
+		{"pattern", `{"pattern":"TODO"}`, "TODO"},
+		{"url", `{"url":"https://example.com"}`, "https://example.com"},
+		{"query", `{"query":"SELECT 1"}`, "SELECT 1"},
+		{"none-match-falls-back", `{"k":"v"}`, `{"k":"v"}`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := summarizeToolInput([]byte(c.in))
+			if got != c.want {
+				t.Errorf("got %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+func TestSummarizeToolInput_BadJSON(t *testing.T) {
+	if got := summarizeToolInput([]byte("{not-json")); got != "" {
+		t.Errorf("bad JSON should return empty: got %q", got)
+	}
+}
