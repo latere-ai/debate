@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -298,6 +299,141 @@ func (s *usageCritic) Round(_ context.Context, _ agent.CriticInput) (*agent.Crit
 	}
 	s.idx++
 	return out, nil
+}
+
+// TestEngineHeartbeatDuringSlowAgent asserts that while an agent
+// call is in flight, the engine emits "still running, Ns elapsed"
+// progress lines on the configured interval. The bug this rules out
+// is the silence the user complained about: a 30s critic call with
+// nothing on stderr until it finished, which reads as "stuck".
+func TestEngineHeartbeatDuringSlowAgent(t *testing.T) {
+	sess, err := state.NewSession(t.TempDir(), 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	r1 := "# Critic 1 - round 1 attacks\n\naspect: security\n\n## c1-1 [x.go:1]\n\nclaim: leaks token\n\nexpected violation: panic at runtime\n\nreproduction:\n```\ngo test\n```\n"
+
+	var (
+		mu  sync.Mutex
+		buf strings.Builder
+	)
+	w := &lockedWriter{w: &buf, mu: &mu}
+
+	slow := &slowCritic{
+		rounds: []string{r1},
+		delay:  300 * time.Millisecond,
+	}
+	e := &Engine{
+		Sess: sess, Cwd: t.TempDir(),
+		ForkCount: 1,
+		Proposer: &stubProposer{
+			first: func(string) (*agent.ProposerResult, error) {
+				return &agent.ProposerResult{ForkID: "f", Response: "rebut c1-1: ok", Tokens: 10}, nil
+			},
+			next: func(string) (*agent.ProposerResult, error) {
+				return &agent.ProposerResult{ForkID: "f", Response: "ok", Tokens: 10}, nil
+			},
+		},
+		NewCritic: func(_ int) agent.Critic { return slow },
+		// MaxRounds=2 = one critic + one proposer = enough to exercise
+		// the slow-call heartbeat once and then exit cleanly.
+		MaxRounds: 2, CostCap: 1_000_000, TaskContext: "task", DiffPatch: "diff",
+		Progress:          w,
+		HeartbeatInterval: 80 * time.Millisecond,
+	}
+	if _, err := e.Run(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	mu.Lock()
+	out := buf.String()
+	mu.Unlock()
+
+	// At 80ms ticks for a 300ms call we should see at least 2 ticks.
+	n := strings.Count(out, "still running")
+	if n < 2 {
+		t.Errorf("expected ≥2 'still running' lines from a 300ms critic at 80ms tick, got %d. output:\n%s", n, out)
+	}
+	// The heartbeat should be cancelled the moment the call returns:
+	// no heartbeat line may appear AFTER the "done in" line for the
+	// same role/turn (otherwise we have a goroutine leak).
+	doneIdx := strings.Index(out, " critic done in ")
+	if doneIdx < 0 {
+		t.Fatalf("no 'critic done in' marker in output:\n%s", out)
+	}
+	tail := out[doneIdx:]
+	if strings.Contains(tail, "T1 critic: still running") {
+		t.Errorf("heartbeat fired AFTER 'critic done' - goroutine not cancelled. tail:\n%s", tail)
+	}
+}
+
+// TestEngineHeartbeatDisabledWhenNegativeInterval pins the escape
+// hatch: tests or hook-mode callers that want to silence the
+// heartbeat (without nilling Progress) can pass a negative interval.
+func TestEngineHeartbeatDisabledWhenNegativeInterval(t *testing.T) {
+	sess, err := state.NewSession(t.TempDir(), 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	r1 := "# Critic 1 - round 1 attacks\n\naspect: security\n\n## c1-1 [x.go:1]\n\nclaim: leaks token\n\nexpected violation: panic\n\nreproduction:\n```\ngo test\n```\n"
+
+	var buf strings.Builder
+	slow := &slowCritic{rounds: []string{r1}, delay: 200 * time.Millisecond}
+	e := &Engine{
+		Sess: sess, Cwd: t.TempDir(),
+		ForkCount: 1,
+		Proposer: &stubProposer{
+			first: func(string) (*agent.ProposerResult, error) {
+				return &agent.ProposerResult{ForkID: "f", Response: "rebut c1-1: ok", Tokens: 10}, nil
+			},
+			next: func(string) (*agent.ProposerResult, error) { return nil, nil },
+		},
+		NewCritic: func(_ int) agent.Critic { return slow },
+		MaxRounds: 2, CostCap: 1_000_000, TaskContext: "task", DiffPatch: "diff",
+		Progress:          &buf,
+		HeartbeatInterval: -1,
+	}
+	if _, err := e.Run(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(buf.String(), "still running") {
+		t.Errorf("negative interval should disable heartbeat, but found 'still running' in:\n%s", buf.String())
+	}
+}
+
+// slowCritic blocks for delay before returning, so tests can probe
+// the heartbeat path without hitting a real subprocess.
+type slowCritic struct {
+	rounds []string
+	idx    int
+	delay  time.Duration
+}
+
+func (s *slowCritic) Round(ctx context.Context, _ agent.CriticInput) (*agent.CriticResult, error) {
+	select {
+	case <-time.After(s.delay):
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	md := "# Critic 1 - round 99 attacks\n\naspect: security\n"
+	if s.idx < len(s.rounds) {
+		md = s.rounds[s.idx]
+	}
+	s.idx++
+	return &agent.CriticResult{Markdown: md, Duration: s.delay}, nil
+}
+
+// lockedWriter serializes writes from the heartbeat goroutine with
+// the main loop's writes; without it the test's Read of buf races
+// the heartbeat's writes.
+type lockedWriter struct {
+	w  *strings.Builder
+	mu *sync.Mutex
+}
+
+func (lw *lockedWriter) Write(p []byte) (int, error) {
+	lw.mu.Lock()
+	defer lw.mu.Unlock()
+	return lw.w.Write(p)
 }
 
 // TestTurnOf locks in the round-to-turn mapping. Because --max-turn

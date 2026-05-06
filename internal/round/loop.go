@@ -32,22 +32,68 @@ type CriticFactory func(forkIdx int) agent.Critic
 // alternates critic (odd rounds) and proposer (even rounds), so a
 // user-facing "turn" (one critic message + one proposer message) is
 // two internal rounds. cmd/debate sets MaxRounds = 2 * --max-turn.
+//
+// HeartbeatInterval throttles the "still running, Ns elapsed" line
+// the engine emits while an agent call is in flight. Zero means use
+// the package default (10s). Negative disables the heartbeat
+// entirely (tests can also set Progress=nil to silence everything).
 type Engine struct {
-	Sess        *state.Session
-	Cwd         string
-	ForkCount   int
-	Proposer    Proposer
-	NewCritic   CriticFactory
-	MaxRounds   int
-	CostCap     int
-	HookMode    bool
-	TaskContext string
-	DiffPatch   string
+	Sess              *state.Session
+	Cwd               string
+	ForkCount         int
+	Proposer          Proposer
+	NewCritic         CriticFactory
+	MaxRounds         int
+	CostCap           int
+	HookMode          bool
+	TaskContext       string
+	DiffPatch         string
+	HeartbeatInterval time.Duration
 	// Progress is the writer used for per-fork and per-round progress
 	// lines. nil means silent. cmd/debate sets this to os.Stderr in
 	// non-hook mode. The Stop-hook path leaves it nil since claude
 	// swallows the stderr anyway.
 	Progress io.Writer
+}
+
+// DefaultHeartbeatInterval is how often the engine reminds the user
+// that a long agent call is still running. Picked to match a typical
+// claude --print latency floor: anything under this and the message
+// is noise; over and the user starts wondering if it crashed.
+const DefaultHeartbeatInterval = 10 * time.Second
+
+// heartbeatTick returns the resolved interval; 0 means use the
+// package default, negative means disabled.
+func (e *Engine) heartbeatTick() time.Duration {
+	if e.HeartbeatInterval == 0 {
+		return DefaultHeartbeatInterval
+	}
+	return e.HeartbeatInterval
+}
+
+// startHeartbeat kicks off a goroutine that prints "still running, Ns
+// elapsed" every tick until the returned stop function is invoked.
+// The goroutine is a no-op when Progress is nil or the interval is
+// non-positive, so callers can defer stop unconditionally.
+func (e *Engine) startHeartbeat(start time.Time, prefix string) func() {
+	tick := e.heartbeatTick()
+	if e.Progress == nil || tick <= 0 {
+		return func() {}
+	}
+	done := make(chan struct{})
+	go func() {
+		t := time.NewTicker(tick)
+		defer t.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-t.C:
+				e.progf("%s: still running, %ds elapsed", prefix, int(time.Since(start).Seconds()))
+			}
+		}
+	}()
+	return func() { close(done) }
 }
 
 func (e *Engine) progf(format string, args ...any) {
@@ -204,8 +250,11 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 		roundStart := time.Now()
 		if round%2 == 1 {
 			// Critic round.
-			e.progf("[debate] fork %d/%d %s: T%d critic running...", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
+			prefix := fmt.Sprintf("[debate] fork %d/%d %s: T%d critic", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
+			e.progf("%s running...", prefix)
+			stop := e.startHeartbeat(roundStart, prefix)
 			res, stats, err := e.criticRound(ctx, cri, a, forkIdx, round, priorIDs)
+			stop()
 			if err != nil {
 				return out, "", fmt.Errorf("%w: critic %d round %d: %v", ErrAgentFatal, forkIdx, round, err)
 			}
@@ -247,11 +296,13 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 			}
 		} else {
 			// Proposer round.
-			e.progf("[debate] fork %d/%d %s: T%d proposer running...", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
+			prefix := fmt.Sprintf("[debate] fork %d/%d %s: T%d proposer", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
+			e.progf("%s running...", prefix)
 			pointer := fmt.Sprintf("Some comments at @forks/critic-%d/rounds/r%d-critic.md. Please resolve or respond. If you disagree, please raise it.",
 				forkIdx, round-1)
 			var pr *agent.ProposerResult
 			var err error
+			stop := e.startHeartbeat(roundStart, prefix)
 			if forkID == "" {
 				pr, err = e.Proposer.FirstRound(ctx, pointer)
 				if err == nil {
@@ -263,6 +314,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 			} else {
 				pr, err = e.Proposer.NextRound(ctx, forkID, pointer)
 			}
+			stop()
 			if err != nil {
 				return out, "", fmt.Errorf("%w: proposer fork %d round %d: %v", ErrAgentFatal, forkIdx, round, err)
 			}
