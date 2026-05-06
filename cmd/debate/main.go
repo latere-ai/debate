@@ -73,6 +73,19 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 	if err != nil {
 		return err
 	}
+	// Auto-fallback: when the user didn't override the diff range and
+	// the working tree is clean (claude already committed its changes),
+	// debate the last commit instead of an empty diff. Manual invocation
+	// after `git commit` is the common case where this matters.
+	if diff.ChangedLines == 0 && flags.DiffFrom == "HEAD" && flags.DiffTo == "." {
+		if fb, fbErr := input.Compute(ctx, input.DiffSpec{
+			From: "HEAD~1", To: "HEAD", Cwd: plan.Cwd,
+		}); fbErr == nil && fb.ChangedLines > 0 {
+			fmt.Fprintln(os.Stderr, "[debate] working tree clean; falling back to HEAD~1..HEAD")
+			diff = fb
+			flags.DiffFrom, flags.DiffTo = "HEAD~1", "HEAD"
+		}
+	}
 	if input.Trivial(diff, flags.ChangedLinesMin) {
 		_ = state.AppendLog(plan.StateDirAbs, &state.LogRecord{
 			TS: time.Now().UTC(), Kind: "skipped", Reason: "trivial-diff",
