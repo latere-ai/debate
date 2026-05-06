@@ -15,12 +15,26 @@ before the GA tag is pushed.
 
 ```
 probe: no-output-stop-hook
-claude_version: TBD
-host_os: TBD
-exit_code: TBD
-verdict: TBD
-hook_attachments: TBD
+claude_version: 2.1.131 (Claude Code)
+host_os: darwin (Darwin 25.4.0, arm64)
+exit_code: 0
+verdict: PASS
+hook_attachments: (none)
+before_sha: 4335582e7211214047966a9332ba6cbb28ce970bce36b7cfb0f5bc6186beedd2
+after_sha:  e6bfaa0437e5b00b4499ab59f1e3bff0a1f3177d5b9bbe554caefe0c48a32746
+size_delta: 20913 -> 23070   # growth is from new user/assistant turns, not hook attachments
 ```
+
+Notes: PASS branch wins. A no-output Stop hook does not write a
+`hook_*` attachment into root JSONL. Spec 01 §"v0 release blockers"
+and §"Lifecycle invariants" tightened accordingly: the byte-identical
+"no debate-content pollution" invariant holds across all modes
+including Option B (Stop hook). Probe required two side-fixes:
+- Use `pwd -P` to get the canonical path on macOS (where /tmp is a
+  symlink into /private/tmp); the original probe used logical pwd and
+  could never find claude's session JSONL.
+- Redirect stdin from /dev/null on `claude --print` invocations to
+  suppress the "no stdin data received in 3s" warning.
 
 ### signal-latency (G5) - specs/29
 
