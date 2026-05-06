@@ -1,5 +1,6 @@
 # Spec 22 — Contention scoring and headline selection
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Headline contradicting signal" for design intent.
 
 **Depends on:** [12](12-attacks-ledger.md).
@@ -97,7 +98,7 @@ This spec deliberately keeps `Score` as a pure function so swapping its implemen
 
 ## Acceptance criteria
 
-- [ ] `Score` is a pure function (no I/O, no clock, no rand).
-- [ ] `PickHeadline` returns nil iff no record has `Status == "unresolved"`.
-- [ ] Determinism property holds across 100 random shuffles in the test suite.
-- [ ] No semantic ranking, no LLM call, no embeddings — the rule is arithmetic only.
+- [x] `Score` is a pure function (no I/O, no clock, no rand).
+- [x] `PickHeadline` returns nil iff no record has `Status == "unresolved"`.
+- [x] Determinism property holds across 100 random shuffles in the test suite.
+- [x] No semantic ranking, no LLM call, no embeddings — the rule is arithmetic only.

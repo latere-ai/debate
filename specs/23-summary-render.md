@@ -1,5 +1,6 @@
 # Spec 23 — `summary.md` rendering, surfacing rule, exit codes
 
+> **Status: ✅ implemented.**
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Output format" and §"Surfacing rule" for design intent.
 
 **Depends on:** [10](10-run-artifacts.md), [11](11-fork-artifacts.md), [12](12-attacks-ledger.md), [19](19-round-loop.md), [20](20-termination.md), [21](21-signals.md), [22](22-contention-headline.md).
@@ -148,8 +149,8 @@ v0 does not implement this; the flag is accepted but stored alongside `Format = 
 
 ## Acceptance criteria
 
-- [ ] Renderer is deterministic (no map-order leaks; sort-stable inputs).
-- [ ] All sections optional except `## Stats` (audit test).
-- [ ] Stdout lines match the `Decide` table exactly (golden-string test).
-- [ ] `--hook-mode` exit-code override applied at `cmd/debate/main.go`, not in this package; renderer is hook-agnostic.
-- [ ] `--format json` is rejected with a clear panic in v0; the placeholder is not silently ignored.
+- [x] Renderer is deterministic (no map-order leaks; sort-stable inputs).
+- [x] All sections optional except `## Stats` (audit test).
+- [x] Stdout lines match the `Decide` table exactly (golden-string test).
+- [x] `--hook-mode` exit-code override applied at `cmd/debate/main.go`, not in this package; renderer is hook-agnostic.
+- [x] `--format json` is rejected with a clear panic in v0; the placeholder is not silently ignored.
