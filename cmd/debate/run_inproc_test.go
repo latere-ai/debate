@@ -239,6 +239,99 @@ func TestRun_InProcess_VerboseMode(t *testing.T) {
 	}
 }
 
+func TestRun_InProcess_WorkingTreeCleanFallback(t *testing.T) {
+	root := repoRootHere(t)
+	binDir := t.TempDir()
+	buildMock(t, root, "./e2e/mock/claudemock", filepath.Join(binDir, "claude"))
+	buildMock(t, root, "./e2e/mock/codexmock", filepath.Join(binDir, "codex"))
+
+	scriptPath := filepath.Join(binDir, "claude-script.json")
+	rules := []map[string]any{
+		{"stdout": map[string]any{
+			"type": "result", "subtype": "success",
+			"session_id": "fork-1", "result": "ok",
+			"is_error": false,
+			"usage":    map[string]any{"input_tokens": 10, "output_tokens": 5},
+		}},
+	}
+	b, _ := json.Marshal(rules)
+	_ = os.WriteFile(scriptPath, b, 0o644)
+
+	// Make a repo where the working tree is CLEAN but HEAD~1..HEAD has a
+	// real diff. Run() should auto-fall-back to HEAD~1..HEAD instead of
+	// short-circuiting on an empty diff.
+	dir := t.TempDir()
+	for _, c := range [][]string{
+		{"git", "init", "-q"},
+		{
+			"git", "-c", "user.email=t@e.com", "-c", "user.name=t",
+			"commit", "--allow-empty", "-q", "-m", "init",
+		},
+	} {
+		cmd := exec.Command(c[0], c[1:]...)
+		cmd.Dir = dir
+		if b, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("%v: %v\n%s", c, err, b)
+		}
+	}
+	body := strings.Repeat("// content\n", 30)
+	if err := os.WriteFile(filepath.Join(dir, "x.go"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range [][]string{
+		{"git", "add", "."},
+		{
+			"git", "-c", "user.email=t@e.com", "-c", "user.name=t",
+			"commit", "-q", "-m", "add x.go",
+		},
+	} {
+		cmd := exec.Command(c[0], c[1:]...)
+		cmd.Dir = dir
+		if b, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("%v: %v\n%s", c, err, b)
+		}
+	}
+	// Now working tree is clean; HEAD~1..HEAD has 30 lines of new content.
+
+	stateDir := filepath.Join(dir, ".debate")
+	t.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("MOCK_CLAUDE_SCRIPT", scriptPath)
+	t.Setenv("MOCK_CODEX_CONTENT", "# Critic 1 - round 1 attacks\n\naspect: security\n")
+	if err := os.Unsetenv("DEBATE_IN_PROGRESS"); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dir)
+
+	flags := &cli.Flags{
+		Main: "claude", Side: "codex",
+		MaxTurn: 2, SideCount: 1,
+		ChangedLinesMin: 5, CostCap: 50000,
+		StateDir:    stateDir,
+		TaskContext: "fallback test",
+		DiffFrom:    "HEAD", DiffTo: ".",
+		Format: "markdown", Judge: "none", LogMode: "silent",
+	}
+	plan := &cli.Plan{
+		Cwd:         dir,
+		Forks:       []cli.ForkPlan{{Index: 1}},
+		StateDirAbs: stateDir,
+	}
+	if _, err := Run(context.Background(), flags, plan); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	// The auto-fallback message should have set DiffFrom/DiffTo to
+	// HEAD~1..HEAD and produced a session.
+	if flags.DiffFrom != "HEAD~1" || flags.DiffTo != "HEAD" {
+		t.Errorf("auto-fallback did not adjust diff range: from=%q to=%q",
+			flags.DiffFrom, flags.DiffTo)
+	}
+	sessions, _ := os.ReadDir(filepath.Join(stateDir, "sessions"))
+	if len(sessions) != 1 {
+		t.Errorf("expected 1 session, got %d", len(sessions))
+	}
+}
+
 func TestRun_InProcess_TrivialDiffShortCircuit(t *testing.T) {
 	repo := makeFixtureRepo(t)
 	stateDir := filepath.Join(repo, ".debate")
