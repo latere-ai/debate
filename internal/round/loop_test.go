@@ -3,6 +3,7 @@ package round
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -297,6 +298,86 @@ func (s *usageCritic) Round(_ context.Context, _ agent.CriticInput) (*agent.Crit
 	}
 	s.idx++
 	return out, nil
+}
+
+// TestEngineProgressIncludesPerRoundTokens captures one of the UX
+// asks: every "R<n> {role} done" progress line must show the per-call
+// in/out/cache_create/cache_read so an operator can see the cache
+// ramp-up live, not only on the terminated summary line. The test
+// pipes the engine's Progress writer to a buffer and greps for the
+// expected suffixes round by round.
+func TestEngineProgressIncludesPerRoundTokens(t *testing.T) {
+	sess, err := state.NewSession(t.TempDir(), 1, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	r1 := "# Critic 1 - round 1 attacks\n\naspect: security\n\n## c1-1 [x.go:1]\n\nclaim: leaks token\n\nexpected violation: panic at runtime\n\nreproduction:\n```\ngo test\n```\n"
+	r3 := "# Critic 1 - round 3 attacks\n\naspect: security\n"
+	r5 := "# Critic 1 - round 5 attacks\n\naspect: security\n"
+	cu := agent.TokenUsage{Input: 111, Output: 22, CacheCreate: 333, CacheRead: 4444}
+	pu := agent.TokenUsage{Input: 55, Output: 66, CacheCreate: 0, CacheRead: 7777}
+
+	var buf strings.Builder
+	e := &Engine{
+		Sess: sess, Cwd: t.TempDir(),
+		ForkCount: 1,
+		Proposer: &stubProposer{
+			first: func(string) (*agent.ProposerResult, error) {
+				return &agent.ProposerResult{ForkID: "fork-1", Response: "rebut c1-1: ok", Tokens: pu.Input + pu.Output, Usage: pu, USD: 0.0080}, nil
+			},
+			next: func(string) (*agent.ProposerResult, error) {
+				return &agent.ProposerResult{ForkID: "fork-1", Response: "no further action", Tokens: pu.Input + pu.Output, Usage: pu, USD: 0.0080}, nil
+			},
+		},
+		NewCritic: func(_ int) agent.Critic {
+			return &usageCritic{rounds: []string{r1, r3, r5}, usage: cu, usd: 0.0125}
+		},
+		MaxTurn: 6, CostCap: 1_000_000, TaskContext: "task", DiffPatch: "diff",
+		Progress: &buf,
+	}
+	if _, err := e.Run(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+
+	// Every "done" line must carry token counts.
+	for _, line := range strings.Split(out, "\n") {
+		if !strings.Contains(line, " done in ") {
+			continue
+		}
+		for _, want := range []string{"in=", "out=", "cache_create=", "cache_read="} {
+			if !strings.Contains(line, want) {
+				t.Errorf("done line missing %q: %s", want, line)
+			}
+		}
+	}
+
+	// Critic-side and proposer-side numbers are distinct, so each
+	// must appear at least once with its own values.
+	wantCritic := fmt.Sprintf("in=%d out=%d cache_create=%d cache_read=%d cost=$0.0125",
+		cu.Input, cu.Output, cu.CacheCreate, cu.CacheRead)
+	if !strings.Contains(out, wantCritic) {
+		t.Errorf("critic progress missing %q. full output:\n%s", wantCritic, out)
+	}
+	wantProposer := fmt.Sprintf("in=%d out=%d cache_create=%d cache_read=%d cost=$0.0080",
+		pu.Input, pu.Output, pu.CacheCreate, pu.CacheRead)
+	if !strings.Contains(out, wantProposer) {
+		t.Errorf("proposer progress missing %q. full output:\n%s", wantProposer, out)
+	}
+}
+
+// TestFmtUsageOmitsCostWhenZero pins down the formatting branch a
+// codex critic or the e2e mock takes (no total_cost_usd reported).
+// Without this, progress lines show cost=$0.0000 which misreads as
+// "this run was free" rather than "the agent did not surface it".
+func TestFmtUsageOmitsCostWhenZero(t *testing.T) {
+	u := agent.TokenUsage{Input: 1, Output: 2, CacheCreate: 3, CacheRead: 4}
+	if got := fmtUsage(u, 0); strings.Contains(got, "cost=") {
+		t.Errorf("zero usd should not surface cost field: %s", got)
+	}
+	if got := fmtUsage(u, 0.05); !strings.Contains(got, "cost=$0.0500") {
+		t.Errorf("nonzero usd should surface cost field: %s", got)
+	}
 }
 
 // TestEnginePromptCachingPerFork verifies that each fork's recorded

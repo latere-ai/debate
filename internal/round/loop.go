@@ -220,10 +220,11 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 				Round: round, Role: "critic", Usage: res.usage, USD: res.usd,
 				MS: int(time.Since(roundStart).Milliseconds()),
 			})
-			e.progf("[debate] fork %d/%d %s: R%d critic done in %s (new=%d, re-attack=%d, withdraw=%d, dropped=%d)",
+			e.progf("[debate] fork %d/%d %s: R%d critic done in %s (new=%d, re-attack=%d, withdraw=%d, dropped=%d) %s",
 				forkIdx, e.ForkCount, forkLabel(out.Topic), round, fmtDur(time.Since(roundStart)),
 				stats.KeptIntroduce, stats.KeptReAttack, stats.KeptWithdraw,
-				stats.DroppedNoReproduce+stats.DroppedStyle+stats.DroppedCrossAspect)
+				stats.DroppedNoReproduce+stats.DroppedStyle+stats.DroppedCrossAspect,
+				fmtUsage(res.usage, res.usd))
 			hist = append(hist, ForkHistory{
 				Round: round, NewAttacks: stats.KeptIntroduce, ReAttacks: stats.KeptReAttack,
 				Withdrawn:     stats.KeptWithdraw,
@@ -282,9 +283,9 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 				MS:   int(pr.Duration.Milliseconds()),
 			})
 			conceded, rebutted := updateLedgerFromDefense(e.Sess, pr.Response, pr.ChangedFiles, round)
-			e.progf("[debate] fork %d/%d %s: R%d proposer done in %s (conceded=%d, rebutted=%d, files=%d)",
+			e.progf("[debate] fork %d/%d %s: R%d proposer done in %s (conceded=%d, rebutted=%d, files=%d) %s",
 				forkIdx, e.ForkCount, forkLabel(out.Topic), round, fmtDur(time.Since(roundStart)),
-				conceded, rebutted, len(pr.ChangedFiles))
+				conceded, rebutted, len(pr.ChangedFiles), fmtUsage(pr.Usage, pr.USD))
 		}
 	}
 	if out.Rounds >= e.MaxTurn && runStop == "" {
@@ -345,6 +346,19 @@ func fmtDur(d time.Duration) string {
 		return fmt.Sprintf("%dms", d.Milliseconds())
 	}
 	return fmt.Sprintf("%.1fs", d.Seconds())
+}
+
+// fmtUsage renders a per-round token + cost suffix appended to the
+// "done in Xs" progress line. Cost is omitted when zero (codex critic
+// and the e2e mock don't surface it). Format is intentionally compact
+// so a 2-fork run still fits one line per round.
+func fmtUsage(u agent.TokenUsage, usd float64) string {
+	if usd > 0 {
+		return fmt.Sprintf("[in=%d out=%d cache_create=%d cache_read=%d cost=$%.4f]",
+			u.Input, u.Output, u.CacheCreate, u.CacheRead, usd)
+	}
+	return fmt.Sprintf("[in=%d out=%d cache_create=%d cache_read=%d]",
+		u.Input, u.Output, u.CacheCreate, u.CacheRead)
 }
 
 func ifEmpty(a, b string) string {
