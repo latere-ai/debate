@@ -371,6 +371,43 @@ func TestFullE2E_TrivialDiffSkip(t *testing.T) {
 	}
 }
 
+// TestFullE2E_BareInvocationShowsHelp asserts that running the
+// binary with zero arguments and no env-supplied task source prints
+// the cobra help text and exits 0, instead of failing preflight with
+// a "cannot determine task context" error. The reported UX bug:
+// users typing just `debate` to discover what it does got an error
+// that didn't tell them how to fix it.
+func TestFullE2E_BareInvocationShowsHelp(t *testing.T) {
+	root := repoRoot(t)
+	binDir := t.TempDir()
+	debate := build(t, root, "./cmd/debate", binDir)
+
+	// A scratch repo so cwd is somewhere sensible; we pass no args
+	// and rely on the help short-circuit firing before preflight.
+	repo := t.TempDir()
+	// Strip any DEBATE_* env vars the host might have set; the help
+	// short-circuit is gated on env-supplied task source being empty.
+	env := []string{"PATH=" + binDir + ":/usr/bin:/bin", "HOME=" + t.TempDir()}
+
+	res := runDebate(t, debate, env, repo)
+	if res.ExitCode != 0 {
+		t.Fatalf("bare invocation should exit 0 (help), got %d\nstderr: %s\nstdout: %s",
+			res.ExitCode, res.Stderr, res.Stdout)
+	}
+	// Cobra prints help to stdout. Look for unmistakable help-shape
+	// lines: the "Usage:" header and the "Flags:" footer.
+	if !strings.Contains(res.Stdout, "Usage:") {
+		t.Errorf("expected 'Usage:' in stdout (cobra help), got:\n%s", res.Stdout)
+	}
+	if !strings.Contains(res.Stdout, "--max-turn") {
+		t.Errorf("help should list --max-turn flag, got:\n%s", res.Stdout)
+	}
+	// And NOT the preflight error.
+	if strings.Contains(res.Stderr, "cannot determine task context") {
+		t.Errorf("bare invocation should not trigger preflight error; stderr:\n%s", res.Stderr)
+	}
+}
+
 func TestFullE2E_RecursionGuard(t *testing.T) {
 	root := repoRoot(t)
 	binDir := t.TempDir()

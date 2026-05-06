@@ -41,10 +41,17 @@ func main() {
 	root.SetVersionTemplate("debate {{.Version}}\n")
 
 	flags := cli.Bind(root)
-	root.RunE = func(_ *cobra.Command, _ []string) error {
+	root.RunE = func(cmd *cobra.Command, _ []string) error {
 		_, err := cli.Effective(root, flags)
 		if err != nil {
 			return err
+		}
+		// Bare `debate` with no args and no env-supplied task source:
+		// show help instead of failing preflight with "cannot
+		// determine task context". A user who types just the binary
+		// name expects orientation, not a cryptic error.
+		if cli.ShouldShowHelp(len(os.Args), flags) {
+			return cmd.Help()
 		}
 		plan, err := cli.Preflight(root.Context(), flags)
 		if err != nil {

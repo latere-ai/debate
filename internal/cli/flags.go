@@ -61,6 +61,23 @@ func IsValidLogMode(s string) bool {
 	return slices.Contains(ValidLogModes, s)
 }
 
+// ShouldShowHelp reports whether a bare `debate` invocation should
+// short-circuit to the help text instead of running through preflight
+// and failing on a "cannot determine task context" message. The rule:
+// no command-line arguments AND no env-supplied task source. With
+// either of those present we honour the user's intent to actually
+// run; only the empty-shoot case gets redirected to --help.
+//
+// argc is the length of os.Args (program path + arg count). The
+// helper takes it as a parameter so tests don't have to mutate
+// global state.
+func ShouldShowHelp(argc int, f *Flags) bool {
+	if argc > 1 {
+		return false
+	}
+	return f.SessionID == "" && f.Transcript == "" && f.TaskContext == ""
+}
+
 // MaxRoundsFor translates the user-facing --max-turn (number of
 // critic↔proposer pairs) into the internal round-cap the engine
 // uses. One turn is two rounds: a critic message followed by the

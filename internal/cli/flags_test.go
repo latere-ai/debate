@@ -68,6 +68,36 @@ func TestEnvDoesNotOverrideExplicitFlag(t *testing.T) {
 	}
 }
 
+// TestShouldShowHelp covers the bare-invocation UX: `debate` with no
+// args and no env-supplied task source must redirect to help instead
+// of running preflight and failing on the cryptic "cannot determine
+// task context" error.
+func TestShouldShowHelp(t *testing.T) {
+	cases := []struct {
+		name string
+		argc int
+		f    *Flags
+		want bool
+	}{
+		{"bare no env", 1, &Flags{}, true},
+		{"bare with session-id env", 1, &Flags{SessionID: "abc"}, false},
+		{"bare with transcript env", 1, &Flags{Transcript: "/p"}, false},
+		{"bare with task-context env", 1, &Flags{TaskContext: "x"}, false},
+		{"any flag passed", 2, &Flags{}, false},
+		{"flag + value", 3, &Flags{}, false},
+		// argc==0 (impossible in practice but defensive) still
+		// triggers help, since there's nothing to run on.
+		{"argc 0 defensive", 0, &Flags{}, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := ShouldShowHelp(c.argc, c.f); got != c.want {
+				t.Errorf("got %v, want %v", got, c.want)
+			}
+		})
+	}
+}
+
 // TestIsValidLogMode pins the accepted set. Adding or removing a
 // value here is a UX change and must not be silent.
 func TestIsValidLogMode(t *testing.T) {
