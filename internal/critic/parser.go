@@ -233,7 +233,14 @@ func Parse(raw string, expectedAspect string, criticIndex, round int, priorAttac
 			}
 		}
 		if disp == DispIntroduce {
-			if seq == 0 || seenIDs[id] || idMatch == nil {
+			// Reuse of a prior round's id without an explicit
+			// (re-attack) or (withdraw) marker is treated as drift:
+			// the section is kept (the claim might still be valid)
+			// but renamed to a fresh id so the ledger does not
+			// collapse two unrelated claims into one entry. Without
+			// this, an R3 critic that emits "## c1-1 [...]" for a
+			// brand-new flaw silently overwrites R1's c1-1.
+			if seq == 0 || seenIDs[id] || idMatch == nil || priorSet[id] {
 				maxSeq++
 				seq = maxSeq
 				newID := fmt.Sprintf("c%d-%d", criticIndex, seq)

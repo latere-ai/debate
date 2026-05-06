@@ -97,9 +97,11 @@ const directives = `Critical output rules:
    else. No preamble like "I'll review this" or "Let me start by". No
    trailing summary. Just the document.
 2. Do NOT run shell commands, search the file tree, or otherwise
-   investigate beyond the diff and task context provided above. The
-   reproduction in each attack is what proves the bug; you do not need
-   to verify it with a tool.
+   investigate beyond the diff, task context, and prior round files
+   provided above. Reading the files listed under "# Prior rounds" is
+   expected (round 3+ requires it); reading anything else is not.
+   The reproduction in each attack is what proves the bug; you do not
+   need to verify it with a tool.
 3. If you decide there is nothing to attack, emit an empty document
    that still has the top header and "aspect:" line, then stop.
 4. The very first non-blank line of your reply MUST be the top header

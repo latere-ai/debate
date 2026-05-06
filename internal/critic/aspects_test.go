@@ -37,3 +37,39 @@ func TestAssemble(t *testing.T) {
 		t.Error("missing prior rounds note")
 	}
 }
+
+// TestAssembleR3DispositionContract checks the R3+ contract is in the
+// system prompt: the agent must be told to (a) read the prior round
+// files, (b) react to each prior attack via re-attack/withdraw/drop,
+// (c) allocate a fresh id for new attacks. Without this contract the
+// critic just runs another fresh attack round and the orchestrator's
+// "# Prior rounds" pointer is wasted.
+func TestAssembleR3DispositionContract(t *testing.T) {
+	a := Lookup("security")
+	r3 := Assemble(a, 1, 3, "")
+	for _, want := range []string{
+		"Round 3+ responsibilities",
+		"# Prior rounds",
+		"re-attack",
+		"withdraw",
+		"concede c<i>-<seq>",
+		"rebut c<i>-<seq>",
+		"push-back c<i>-<seq>",
+		"NEW attacks",
+		"c<i>-<next>",
+	} {
+		if !strings.Contains(r3, want) {
+			t.Errorf("R3 prompt missing %q", want)
+		}
+	}
+
+	// R1 and R2 must NOT carry the contract - they are fresh-attack
+	// rounds, and dragging the contract in early would confuse the
+	// agent into hunting for prior rounds that don't exist.
+	for _, round := range []int{1, 2} {
+		got := Assemble(a, 1, round, "")
+		if strings.Contains(got, "Round 3+ responsibilities") {
+			t.Errorf("R%d prompt should not include R3+ contract", round)
+		}
+	}
+}

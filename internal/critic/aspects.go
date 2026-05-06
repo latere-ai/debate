@@ -267,18 +267,67 @@ func Locked(criticIndex, forkCount int, topic string) Aspect {
 	return a
 }
 
-// Assemble produces the full system prompt for one critic round.
+// Assemble produces the full system prompt for one critic round. From
+// round 3 onward the disposition contract is appended: this is the
+// piece that turns a fresh-attack round into a debate response, by
+// making the critic react to the proposer's R(n-1) defense before
+// emitting any new attacks.
 func Assemble(a Aspect, criticIndex, round int, priorRoundsNote string) string {
 	var b strings.Builder
 	b.WriteString(a.SystemPrompt)
 	b.WriteString("\n\nRound: ")
 	fmt.Fprintf(&b, "%d (critic-%d)", round, criticIndex)
+	if round >= 3 {
+		b.WriteString("\n\n")
+		b.WriteString(roundReplyContract)
+	}
 	if priorRoundsNote != "" {
 		b.WriteString("\n\n")
 		b.WriteString(priorRoundsNote)
 	}
 	return b.String()
 }
+
+// roundReplyContract is the R3+ section that converts the critic from
+// "another fresh attack round" into "a reply to the proposer". Without
+// it the agent reuses prior ids for unrelated new claims and never
+// engages with the proposer's defense - exactly the bug we want to
+// rule out. The orchestrator's "# Prior rounds" body lists the two
+// files this contract references.
+const roundReplyContract = `Round 3+ responsibilities (you are NOT writing a fresh round):
+
+1. READ the two prior round files referenced under "# Prior rounds"
+   below. They contain (a) your previous attacks and (b) the
+   proposer's defense, where each defense line begins with
+   "concede c<i>-<seq>", "rebut c<i>-<seq>", or
+   "push-back c<i>-<seq>". You MUST address every prior attack of
+   yours by exactly one of three dispositions:
+
+   - re-attack: the proposer's defense did not actually fix the flaw.
+     Reuse the SAME id, add "(re-attack)" in the section header, and
+     refine claim/expected-violation/reproduction to specifically
+     defeat the proposer's defense (cite what they said).
+     Header example: "## c1-2 [path:line] (re-attack)".
+
+   - withdraw: the proposer's defense convinced you, OR they conceded
+     and the fix is real. Reuse the SAME id, add "(withdraw)" in the
+     section header, and put a one-line "reason:" in the body.
+     Header example: "## c1-2 [path:line] (withdraw)".
+
+   - drop: only when the prior attack is moot for a reason that fits
+     neither re-attack nor withdraw (rare). Drop by simply omitting
+     the section.
+
+2. NEW attacks (genuinely new flaws found this round) MUST use a NEW
+   id starting at c<i>-<next>, where <next> is one greater than the
+   highest sequence number ever used in this fork. Do NOT reuse a
+   prior id for a new claim - the mediator will rename it and the
+   debate ledger will lose the connection.
+
+3. If you have no re-attacks, no withdrawals, and no new attacks,
+   emit the standard empty document (top header + aspect line,
+   nothing else). The orchestrator reads that as steady-state and
+   ends the fork.`
 
 func aspectPrompt(name, rules string) string {
 	return fmt.Sprintf(skeletonHeader, name, 0, 0, name, name, name, rules, name)

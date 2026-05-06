@@ -84,3 +84,69 @@ func TestEmptyHeaderError(t *testing.T) {
 		t.Fatal("expected error for empty input")
 	}
 }
+
+// TestParseRenamesReusedPriorIDOnIntroduce reproduces the bug a debate
+// session in agents-byzantine-tolerance hit: the R3 critic emitted a
+// completely new claim under "## c1-1 [...]" (the R1 id), no
+// "(re-attack)" marker, no acknowledgement of R2's defense. The parser
+// used to silently accept the id, collapsing two unrelated attacks
+// onto a single ledger entry. With the fix, the new claim is kept but
+// renamed to a fresh id and stats.Renamed is bumped so the drift is
+// auditable.
+func TestParseRenamesReusedPriorIDOnIntroduce(t *testing.T) {
+	doc := "# Critic 1 - round 3 attacks\n\naspect: instruction-completeness\n\n" +
+		"## c1-1 [results/README.md:54]\n\n" +
+		"claim: brand-new claim about a different flaw entirely.\n\n" +
+		"expected violation: panic at runtime\n\n" +
+		"reproduction:\n```\nuv run python\n```\n"
+	out, stats, err := Parse(doc, "instruction-completeness", 1, 3, []string{"c1-1", "c1-2"}, ParseOption{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out) != 1 {
+		t.Fatalf("attacks: got %d, want 1", len(out))
+	}
+	if out[0].AttackID == "c1-1" {
+		t.Errorf("reused prior id was not renamed: AttackID=%q", out[0].AttackID)
+	}
+	if out[0].AttackID != "c1-3" {
+		t.Errorf("expected fresh id c1-3 (next after maxSeq=2), got %q", out[0].AttackID)
+	}
+	if out[0].Disposition != DispIntroduce {
+		t.Errorf("disposition: got %v, want DispIntroduce", out[0].Disposition)
+	}
+	if stats.Renamed == 0 {
+		t.Error("stats.Renamed should fire when a prior id is reused without (re-attack)")
+	}
+	if stats.KeptIntroduce != 1 {
+		t.Errorf("KeptIntroduce: got %d, want 1", stats.KeptIntroduce)
+	}
+}
+
+// TestParseReAttackPreservesPriorID is the partner assertion: when the
+// critic correctly tags "(re-attack)" with a prior id, the id is
+// preserved (no rename) and disposition is DispReAttack. Guards
+// against an over-eager fix that would also rename re-attacks.
+func TestParseReAttackPreservesPriorID(t *testing.T) {
+	doc := "# Critic 1 - round 3 attacks\n\naspect: security\n\n" +
+		"## c1-1 [x.go:1] (re-attack)\n\n" +
+		"claim: refined: framework escape is incomplete because the encoder runs after the unsafe call.\n\n" +
+		"expected violation: panic at runtime\n\n" +
+		"reproduction:\n```\ngo test\n```\n"
+	out, stats, err := Parse(doc, "security", 1, 3, []string{"c1-1"}, ParseOption{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out) != 1 || out[0].AttackID != "c1-1" {
+		t.Fatalf("re-attack id should be preserved; got %+v", out)
+	}
+	if out[0].Disposition != DispReAttack {
+		t.Errorf("disposition: got %v, want DispReAttack", out[0].Disposition)
+	}
+	if stats.KeptReAttack != 1 {
+		t.Errorf("KeptReAttack: got %d, want 1", stats.KeptReAttack)
+	}
+	if stats.Renamed != 0 {
+		t.Errorf("stats.Renamed should NOT fire for a valid re-attack; got %d", stats.Renamed)
+	}
+}
