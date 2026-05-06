@@ -4,11 +4,29 @@ Adversarial review for Claude Code coding sessions.
 
 After Claude finishes a coding task, `debate` forks the session for one or more critic agents (Codex by default), runs a multi-round cross-examination per critic, applies any concessions the proposer makes, and surfaces only the unresolved disputes for human attention. No debate content ever lands in the root Claude session — debate happens in branched forks off the root.
 
-**Status: design only, no implementation yet.** See [specs/01-overview.md](specs/01-overview.md) for the full design.
+**Status: v0 in development.** See [specs/01-overview.md](specs/01-overview.md) for the full design and the [implementation specs](specs/) for per-component contracts.
 
 ## Install
 
-Coming once there's code.
+Pre-built binaries (once tagged):
+
+```
+curl -L https://github.com/latere-ai/debate/releases/download/v0.0.1/debate_v0.0.1_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m).tar.gz | tar xz
+./debate install-hook --scope user
+```
+
+From source:
+
+```
+git clone https://github.com/latere-ai/debate.git
+cd debate
+make build
+./bin/debate install-hook --scope user
+```
+
+`debate install-hook` merges the verbose-format Stop hook entry into
+`~/.claude/settings.json` (or the project's `.claude/settings.json` with
+`--scope project`). `debate uninstall-hook` removes it.
 
 ## Usage
 

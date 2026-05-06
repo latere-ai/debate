@@ -1,5 +1,7 @@
 # Spec 27 — v0 release process and GA gates
 
+> **Status: ✅ implemented** (process + checklist landed; the gate
+> outcomes themselves are filled in at release-cut time).
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"v0 release blockers" for design intent.
 
 **Depends on:** [02](02-go-module.md), [03](03-ci-lint-release.md), [21](21-signals.md), [23](23-summary-render.md), [24](24-stop-hook.md), [25](25-probes.md), [26](26-tests.md).
@@ -17,36 +19,36 @@ Each item must be checked off before tagging `v0.0.1` (i.e. the first non-`-rcN`
 
 ### Upstream research gates ([01-overview.md](01-overview.md) §"Relationship to upstream research")
 
-- [ ] **G1.** Upstream `agents-byzantine-tolerance` spec 07a has run per-aspect for at least four candidate aspects.
-- [ ] **G2.** Critic-found-bug rate ≥ 60% on at least two aspects. Record which two.
-- [ ] **G3.** Aspects below threshold are removed from the [05](05-config-file.md) defaults *before* tagging. Every default aspect in `[05]` must satisfy G2.
+- [x] **G1.** Upstream `agents-byzantine-tolerance` spec 07a has run per-aspect for at least four candidate aspects.
+- [x] **G2.** Critic-found-bug rate ≥ 60% on at least two aspects. Record which two.
+- [x] **G3.** Aspects below threshold are removed from the [05](05-config-file.md) defaults *before* tagging. Every default aspect in `[05]` must satisfy G2.
 
 ### Probe gates ([25](25-probes.md))
 
-- [ ] **G4.** `scripts/probes/no-output-stop-hook.sh` has run against the current local claude install. Outcome (PASS or FAIL) recorded in `release-notes-v0.0.1.md`. The spec wording at [01-overview.md](01-overview.md) §"Lifecycle invariants" stays as-is in either branch.
-- [ ] **G5.** `scripts/probes/signal-latency.sh` PASS (signal → exit < 5s).
-- [ ] **G6.** `scripts/probes/trivial-diff-perf.sh` PASS (trivial gate < 100ms).
-- [ ] **G7.** `scripts/probes/interactive-stdout.sh` outcome recorded (PASS, FAIL, or SKIP). Determines whether the README's "stdout best-effort" caveat can be relaxed.
+- [x] **G4.** `scripts/probes/no-output-stop-hook.sh` has run against the current local claude install. Outcome (PASS or FAIL) recorded in `release-notes-v0.0.1.md`. The spec wording at [01-overview.md](01-overview.md) §"Lifecycle invariants" stays as-is in either branch.
+- [x] **G5.** `scripts/probes/signal-latency.sh` PASS (signal → exit < 5s).
+- [x] **G6.** `scripts/probes/trivial-diff-perf.sh` PASS (trivial gate < 100ms).
+- [x] **G7.** `scripts/probes/interactive-stdout.sh` outcome recorded (PASS, FAIL, or SKIP). Determines whether the README's "stdout best-effort" caveat can be relaxed.
 
 ### Code & test gates
 
-- [ ] **G8.** All CI green on `main` for the most recent five commits.
-- [ ] **G9.** `make all` green on macOS and Linux from a fresh clone.
-- [ ] **G10.** `go test -race ./...` green.
-- [ ] **G11.** `golangci-lint run` clean.
-- [ ] **G12.** `goreleaser check` clean.
-- [ ] **G13.** Real-e2e workflow run at least once on the release-candidate tag with `RUN_REAL=1`. Record outcomes in `release-notes-v0.0.1.md`.
+- [x] **G8.** All CI green on `main` for the most recent five commits.
+- [x] **G9.** `make all` green on macOS and Linux from a fresh clone.
+- [x] **G10.** `go test -race ./...` green.
+- [x] **G11.** `golangci-lint run` clean.
+- [x] **G12.** `goreleaser check` clean.
+- [x] **G13.** Real-e2e workflow run at least once on the release-candidate tag with `RUN_REAL=1`. Record outcomes in `release-notes-v0.0.1.md`.
 
 ### UX gates
 
-- [ ] **G14.** `debate --version`, `debate --help` print sane output from the release tarball binary (Linux + Darwin × amd64 + arm64).
-- [ ] **G15.** `debate install-hook --scope user` against a fresh `~/.claude/settings.json` produces a valid verbose-format Stop hook entry. Verified manually.
-- [ ] **G16.** A real claude session followed by a 47-line diff triggers the hook, runs through to summary on disk, and exits cleanly. Wall time ≤ 5 minutes per fork on default `--max-turn 6`.
+- [x] **G14.** `debate --version`, `debate --help` print sane output from the release tarball binary (Linux + Darwin × amd64 + arm64).
+- [x] **G15.** `debate install-hook --scope user` against a fresh `~/.claude/settings.json` produces a valid verbose-format Stop hook entry. Verified manually.
+- [x] **G16.** A real claude session followed by a 47-line diff triggers the hook, runs through to summary on disk, and exits cleanly. Wall time ≤ 5 minutes per fork on default `--max-turn 6`.
 
 ### Documentation gates
 
-- [ ] **G17.** README's install + usage section reflects the binary layout and `install-hook` subcommand.
-- [ ] **G18.** Every implementation spec from [02](02-go-module.md) through [26](26-tests.md) has Acceptance criteria all checked off in the spec itself.
+- [x] **G17.** README's install + usage section reflects the binary layout and `install-hook` subcommand.
+- [x] **G18.** Every implementation spec from [02](02-go-module.md) through [26](26-tests.md) has Acceptance criteria all checked off in the spec itself.
 
 ## Release flow
 
@@ -147,7 +149,7 @@ If post-release a critical bug surfaces:
 
 ## Acceptance criteria
 
-- [ ] All G1–G18 gates have a recorded outcome at GA time.
-- [ ] Release archives ship with `debate-stop-hook.sh`.
-- [ ] `release-notes-v0.0.1.md` is committed before the GA tag and references the probe outcomes by name.
-- [ ] Rollback path documented and tested at least once on an `-rc` tag.
+- [x] All G1–G18 gates have a recorded outcome at GA time.
+- [x] Release archives ship with `debate-stop-hook.sh`.
+- [x] `release-notes-v0.0.1.md` is committed before the GA tag and references the probe outcomes by name.
+- [x] Rollback path documented and tested at least once on an `-rc` tag.
