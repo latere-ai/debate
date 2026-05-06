@@ -81,12 +81,20 @@ user-facing wording; the probe asserts the realistic ceiling.
 
 ```
 probe: interactive-stdout
-host_os: TBD
-claude_version: TBD
-verdict: TBD
-captured_line_present: TBD
-skip_reason: TBD
+host_os: darwin (Darwin 25.4.0, arm64)
+claude_version: 2.1.131 (Claude Code)
+verdict: SKIP
+captured_line_present: n/a
+skip_reason: probe is documented as manual-only; automating the claude
+             TUI under script(1)/expect would couple the probe to
+             claude's interactive-prompt format, which is unstable
+             across versions. Non-blocking gate per spec 31.
 ```
+
+Notes: spec 31 marks this gate as non-blocking. The README and spec 01
+keep the conservative "stdout best-effort" wording. Re-run before the
+next release; if interactive rendering becomes a contractual
+expectation users rely on, automate with a stable claude harness.
 
 ## Test gates
 
