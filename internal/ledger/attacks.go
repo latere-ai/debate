@@ -217,7 +217,7 @@ func parseSpill(b string) (claim, exp, repro string) {
 			repro = trimSection(sec, "Reproduction")
 		}
 	}
-	return
+	return claim, exp, repro
 }
 
 func splitOnHeader(s, sep string) []string {

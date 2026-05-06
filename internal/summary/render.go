@@ -136,7 +136,7 @@ func oneLine(s string) string {
 }
 
 func unresolvedExcept(records []ledger.Record, exclude *ledger.Record) []ledger.Record {
-	var out []ledger.Record
+	out := make([]ledger.Record, 0, len(records))
 	for _, r := range records {
 		if r.Status != ledger.StatusUnresolved {
 			continue
@@ -150,7 +150,7 @@ func unresolvedExcept(records []ledger.Record, exclude *ledger.Record) []ledger.
 }
 
 func resolvedRecords(records []ledger.Record) []ledger.Record {
-	var out []ledger.Record
+	out := make([]ledger.Record, 0, len(records))
 	for _, r := range records {
 		if r.Status == ledger.StatusConceded || r.Status == ledger.StatusRebutted || r.Status == ledger.StatusWithdrawn {
 			out = append(out, r)

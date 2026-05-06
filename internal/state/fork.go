@@ -102,8 +102,9 @@ func ChangedFilesAfter(ctx context.Context, cwd string, since []string) ([]strin
 }
 
 func parsePorcelain(s string) []string {
-	var out []string
-	for _, line := range strings.Split(s, "\n") {
+	lines := strings.Split(s, "\n")
+	out := make([]string, 0, len(lines))
+	for _, line := range lines {
 		if len(line) < 4 {
 			continue
 		}
