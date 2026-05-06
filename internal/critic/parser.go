@@ -69,6 +69,19 @@ var (
 	fencePattern = regexp.MustCompile("(?s)```[^\\n]*\\n(.*?)```")
 )
 
+// ExtractDeclaredAspect returns the topic the critic wrote on the
+// "aspect:" line of its markdown reply, or "" if the line is missing
+// or empty. Used by the round loop to capture the topic the critic
+// chose in R1 so subsequent rounds can lock to it.
+func ExtractDeclaredAspect(raw string) string {
+	for _, line := range strings.Split(raw, "\n") {
+		if m := aspectLineRE.FindStringSubmatch(line); m != nil {
+			return strings.TrimSpace(m[1])
+		}
+	}
+	return ""
+}
+
 // Parse is the canonical reader. See specs/14-attack-parser.md.
 func Parse(raw string, expectedAspect string, criticIndex, round int, priorAttackIDs []string, opt ParseOption) ([]Attack, ParseStats, error) {
 	priorSet := map[string]bool{}

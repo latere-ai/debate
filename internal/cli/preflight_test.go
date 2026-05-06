@@ -66,14 +66,13 @@ func TestPreflightSameFamilySameModels(t *testing.T) {
 	}
 }
 
-func TestPreflightArityMismatch(t *testing.T) {
+func TestPreflightSideCountInvalid(t *testing.T) {
 	f := validFlags()
-	f.SideCount = 3
-	f.Aspect = []string{"a", "b"}
+	f.SideCount = 0
 	_, err := Preflight(context.Background(), f)
 	var pe *PreflightError
-	if !errors.As(err, &pe) || pe.Code != 120 {
-		t.Errorf("expected exit 120, got %v", err)
+	if !errors.As(err, &pe) || pe.Code != 121 {
+		t.Errorf("expected exit 121, got %v", err)
 	}
 }
 

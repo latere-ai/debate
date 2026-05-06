@@ -2,18 +2,21 @@
 
 Adversarial review for Claude Code coding sessions.
 
-After Claude finishes a coding task, `debate` forks the session for
-one or more critic agents (Codex by default), runs a multi-round
+After Claude finishes a task, `debate` forks the session for one or
+more critic agents (Codex by default), runs a multi-round
 cross-examination per critic, applies any concessions the proposer
 makes, and surfaces only the unresolved disputes for human attention.
-No debate content ever lands in the root Claude session - debate
-happens in branched forks off the root.
+Each critic picks its own attack topic in round 1 (security, perf,
+internal-consistency, evidence-gap, ...); later critics are told
+which topics are taken and pick something else. No debate content
+ever lands in the root Claude session - debate happens in branched
+forks off the root.
 
 > Status: v0 implementation complete. Design lives in
 > [specs/01-overview.md](specs/01-overview.md); per-component
 > contracts under [specs/](specs/). v0 GA is gated on upstream
 > [agents-byzantine-tolerance](https://github.com/changkun/agents-byzantine-tolerance)
-> 07a per-aspect rates and the no-output Stop-hook probe - see
+> 07a per-topic rates and the no-output Stop-hook probe - see
 > [specs/27-release.md](specs/27-release.md).
 
 ## Installation
@@ -66,12 +69,14 @@ manually:
 debate \
   --session-id <root-claude-session-id> \
   --side-count 4 \
-  --aspect functional-logic,security,code-quality,performance \
   --max-turn 6
 ```
 
-`debate --help` lists every flag. Exit codes: 0 clean, 1 unresolved
-leaves, 130 interrupted, 100s pre-flight failure.
+There is no `--aspect` flag. Each of the four critics picks its own
+topic in R1; the orchestrator passes prior critics' topics to each
+later critic as anti-duplication signal. `debate --help` lists every
+flag. Exit codes: 0 clean, 1 unresolved leaves, 130 interrupted, 100s
+pre-flight failure.
 
 ## Design architecture
 
@@ -107,18 +112,19 @@ Five load-bearing pieces (full design in
   Please resolve or respond.` No skill, slash-command, or
   plugin-template wrapping that would distort the proposer's normal
   defense behavior.
-- **Aspect-specialized critics.** Default coverage splits across
-  `functional-logic`, `security`, `code-quality`, `performance`. The
-  debate-theoretic property - one competent honest player suffices
-  for soundness - means a lazy critic on one aspect doesn't break the
-  others.
+- **Self-declared topics.** Each critic chooses its own attack topic
+  in R1 (security, perf, internal-consistency, evidence-gap, ...) and
+  later critics are told which topics are already claimed so they
+  pick something else. No fixed catalog. The debate-theoretic
+  property - one competent honest player suffices for soundness -
+  means a lazy critic on one topic doesn't break the others.
 - **Persisted ledger.** Every attack carries a stable id (`c<critic>-<seq>`),
   every transition is appended to `attacks.jsonl`. Headlines are
   picked by a pure contention score (`rounds_survived + (1 if
   re-attacked)`) - no LLM judging at this layer.
-- **Best-effort critic isolation.** v0 enforces "diff + task only" by
-  aspect prompt and `codex --sandbox read-only`, not OS isolation;
-  strict per-fork sandbox dirs are v1.
+- **Best-effort critic isolation.** v0 enforces "artifact + task
+  only" by critic system prompt and `codex --sandbox read-only`, not
+  OS isolation; strict per-fork sandbox dirs are v1.
 
 ## Related work
 

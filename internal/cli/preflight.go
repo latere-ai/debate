@@ -21,10 +21,11 @@ type Plan struct {
 	TranscriptPath string
 }
 
-// ForkPlan binds a 1-based critic index to its aspect.
+// ForkPlan binds a 1-based critic index to its slot. The topic each
+// fork attacks on is declared by the critic itself in R1; preflight
+// only allocates the fork count.
 type ForkPlan struct {
-	Index  int
-	Aspect string
+	Index int
 }
 
 // PreflightError carries the exit code the CLI should propagate.
@@ -135,13 +136,7 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 		}
 	}
 
-	// 6. Side-count vs aspect arity.
-	if f.SideCount != len(f.Aspect) {
-		return nil, &PreflightError{
-			Code: 120,
-			Msg:  fmt.Sprintf("--side-count (%d) must equal len(--aspect) (%d)", f.SideCount, len(f.Aspect)),
-		}
-	}
+	// 6. Side-count.
 	if f.SideCount < 1 {
 		return nil, &PreflightError{Code: 121, Msg: "--side-count must be ≥ 1"}
 	}
@@ -183,9 +178,9 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 	}
 
 	// Build forks plan.
-	forks := make([]ForkPlan, len(f.Aspect))
-	for i, a := range f.Aspect {
-		forks[i] = ForkPlan{Index: i + 1, Aspect: a}
+	forks := make([]ForkPlan, f.SideCount)
+	for i := 0; i < f.SideCount; i++ {
+		forks[i] = ForkPlan{Index: i + 1}
 	}
 
 	return &Plan{

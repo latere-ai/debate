@@ -8,25 +8,31 @@ import (
 )
 
 // Aspect is a critic's specialization: prompt + cross-aspect filter.
+// In auto mode (the default) the critic declares its own topic in R1,
+// the prompt comes from Auto, and ForbiddenKeywords stays empty since
+// the topic isn't known until after the round runs.
 type Aspect struct {
 	Name              string
 	SystemPrompt      string
 	ForbiddenKeywords []string
 }
 
-const skeletonHeader = `You are an adversarial code reviewer focused on **%s**. You are
-critic %d of %d, reviewing a code diff produced by a Claude Code session
+const skeletonHeader = `You are an adversarial reviewer focused on **%s**. You are
+critic %d of %d, reviewing an artifact (a code diff, a spec, a paper,
+a design doc, or any other written work) produced by another agent
 against a task description supplied below.
 
-Your job is to find concrete %s bugs in the diff. You are not reviewing
-taste, style, or aspects other than %s. The mediator will drop attacks
-that wander outside this aspect.
+Your job is to find concrete %s flaws in the artifact. You are not
+reviewing taste, style, or aspects other than %s. The mediator will
+drop attacks that wander outside this aspect.
 
 Hard rules:
-1. Each attack MUST name a concrete behavior or maintainability impact
-   in its %s domain. No taste comments. No "consider renaming."
-2. Each attack MUST include a runnable reproduction. Attacks without
-   one are dropped at parse time.
+1. Each attack MUST name a concrete failure or impact in its %s
+   domain. No taste comments. No "consider renaming."
+2. Each attack MUST include evidence under "reproduction:": a runnable
+   command or test for code; a quoted counterexample for a spec or
+   design doc; a counter-citation or refuting calculation for a paper.
+   Attacks without evidence are dropped at parse time.
 %s
 
 Output format:
@@ -35,7 +41,7 @@ Output format:
 
 aspect: %s
 
-## c<i>-<seq> [path:line]
+## c<i>-<seq> [anchor]
 
 claim: <one paragraph>
 
@@ -43,25 +49,91 @@ expected violation: <one paragraph; may include fenced examples>
 
 reproduction:
 ` + "```" + `
-<exact runnable input/command/test/repro>
+<runnable command, quoted counterexample, refuting citation, etc.>
 ` + "```" + `
+
+The "anchor" inside [...] points the reader at what the attack is
+about: "path/to/file.go:42" for code, "section 4.2" for a spec,
+"page 7, eq. 12" for a paper, or any other unambiguous locator.
 
 Sources you have:
 - The original task description (verbatim, below).
-- The unified diff (verbatim, below).
+- The artifact under review (verbatim, below; for a code diff this is
+  a unified diff).
 - For round >= 3: the proposer's prior responses (referenced by file).
 
 Sources you do NOT have and must not invent:
-- The full source tree. You may only attack code in the diff or files
-  the diff directly references. Do not invent file paths.
+- Anything outside the artifact and its directly-referenced citations.
+  You may not invent file paths, citations, or anchors.
 - Any external system you cannot reach via the reproduction.
 `
 
-// Builtin returns the default aspect catalog in canonical order. Each
-// entry is curated: a focused system prompt plus a ForbiddenKeywords
-// list the parser uses to drop attacks that drift into a sibling
-// aspect. Pass an unrecognised name to Lookup for a generic fallback
-// prompt with no cross-aspect filter.
+const autoSkeletonHeader = `You are an adversarial reviewer. You are critic %d of %d, reviewing
+an artifact (a code diff, a spec, a paper, a design doc, or any other
+written work) produced by another agent against a task description
+supplied below.
+
+Your first job, BEFORE writing attacks, is to choose the topic this
+critic will own. Pick a single, focused dimension to attack on -
+something concrete enough that a reader can tell whether each attack
+is on-topic. Examples for code: functional-logic, security,
+performance, concurrency, api-design, observability, error-handling,
+resource-safety. Examples for prose: internal-consistency, missing-
+preconditions, evidence-gap, scope-creep, undefined-terms. You are
+not bound to these examples.
+
+%s
+
+Declare the topic on the second line of your reply ("aspect: <topic
+name>"). Stay on that topic for the rest of this round and every
+later round of this critic. The mediator will hold you to it.
+
+Hard rules:
+1. Each attack MUST name a concrete failure or impact in your chosen
+   topic. No taste comments. No "consider renaming."
+2. Each attack MUST include evidence under "reproduction:": a runnable
+   command or test for code; a quoted counterexample for a spec or
+   design doc; a counter-citation or refuting calculation for a paper.
+   Attacks without evidence are dropped at parse time.
+
+Output format:
+
+# Critic <i> - round <n> attacks
+
+aspect: <your-chosen-topic>
+
+## c<i>-<seq> [anchor]
+
+claim: <one paragraph>
+
+expected violation: <one paragraph; may include fenced examples>
+
+reproduction:
+` + "```" + `
+<runnable command, quoted counterexample, refuting citation, etc.>
+` + "```" + `
+
+The "anchor" inside [...] points the reader at what the attack is
+about: "path/to/file.go:42" for code, "section 4.2" for a spec,
+"page 7, eq. 12" for a paper, or any other unambiguous locator.
+
+Sources you have:
+- The original task description (verbatim, below).
+- The artifact under review (verbatim, below; for a code diff this is
+  a unified diff).
+- For round >= 3: the proposer's prior responses (referenced by file).
+
+Sources you do NOT have and must not invent:
+- Anything outside the artifact and its directly-referenced citations.
+  You may not invent file paths, citations, or anchors.
+- Any external system you cannot reach via the reproduction.
+`
+
+// Builtin returns a curated catalog of code-review topics. The catalog
+// is no longer a hard list a CLI flag selects from - the auto-aspect
+// flow lets the critic pick its own topic - but the entries remain
+// useful as exemplars cited in the auto prompt and as a reference for
+// what a focused topic prompt looks like.
 func Builtin() map[string]Aspect {
 	return map[string]Aspect{
 		"functional-logic": {
@@ -149,9 +221,50 @@ func Lookup(name string) Aspect {
 		Name: name,
 		SystemPrompt: aspectPrompt(
 			name,
-			fmt.Sprintf("3. Focus on the %s aspect of this code. Define what counts as a\n   bug in this aspect at the start of each attack's `claim` line.\n4. As above: concrete behavior or maintainability impact, runnable\n   reproduction.", name),
+			fmt.Sprintf("3. Focus on the %s aspect of this artifact. Define what counts as a\n   flaw in this aspect at the start of each attack's `claim` line.\n4. As above: concrete failure or impact, runnable evidence under\n   reproduction:.", name),
 		),
 	}
+}
+
+// Auto returns the aspect a critic gets on R1 of a fork before it has
+// declared a topic. The prompt asks the critic to choose its own topic
+// and stay on it; priorTopics (topics already claimed by previous
+// forks in this run) is woven into the prompt as anti-duplication
+// signal.
+//
+// ForbiddenKeywords is empty by design: the topic isn't known yet, so
+// cross-aspect substring drift detection cannot run. Topic discipline
+// becomes the critic's responsibility once it has declared.
+func Auto(criticIndex, forkCount int, priorTopics []string) Aspect {
+	avoid := ""
+	if len(priorTopics) > 0 {
+		avoid = "Other critics in this run have claimed the following topics; pick a\ntopic that is not a near-duplicate of any of them:\n"
+		for _, t := range priorTopics {
+			t = strings.TrimSpace(t)
+			if t == "" {
+				continue
+			}
+			avoid += "  - " + t + "\n"
+		}
+		avoid = strings.TrimRight(avoid, "\n")
+	} else {
+		avoid = "You are critic 1; no peer critic has claimed a topic yet."
+	}
+	return Aspect{
+		Name:         "auto",
+		SystemPrompt: fmt.Sprintf(autoSkeletonHeader, criticIndex, forkCount, avoid),
+	}
+}
+
+// Locked returns an aspect bound to a topic the critic has already
+// declared. Used for round 3 onward of a fork: name carries the
+// declared topic so Render and the ledger preserve it; the prompt
+// reuses the auto skeleton with an empty avoid-list (the lens is
+// fixed for this fork).
+func Locked(criticIndex, forkCount int, topic string) Aspect {
+	a := Auto(criticIndex, forkCount, nil)
+	a.Name = topic
+	return a
 }
 
 // Assemble produces the full system prompt for one critic round.

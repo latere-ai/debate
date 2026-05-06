@@ -23,7 +23,7 @@ func TestStartEndRoundTrip(t *testing.T) {
 		Critic:      AgentRef{Agent: "codex"},
 		Diff:        DiffSnap{From: "HEAD", To: ".", ChangedLines: 47, Files: []string{"a.py"}, PatchPath: "diff.patch"},
 		Config: ConfigSnap{
-			MaxTurn: 6, SideCount: 2, Aspects: []string{"functional-logic", "security"},
+			MaxTurn: 6, SideCount: 2,
 			CostCap: 50000, ChangedLinesMin: 10, Format: "markdown",
 		},
 		RootSession:   RootSession{Cwd: "/tmp"},

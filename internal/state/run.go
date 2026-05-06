@@ -37,17 +37,18 @@ type DiffSnap struct {
 	PatchPath    string   `json:"patch_path"`
 }
 
-// ConfigSnap mirrors a subset of cli.Flags onto disk for audit.
+// ConfigSnap mirrors a subset of cli.Flags onto disk for audit. Topics
+// are declared by each critic at runtime (see ForkOutcome.Topic in the
+// round package); they're not in the run-level config snapshot.
 type ConfigSnap struct {
-	MaxTurn         int      `json:"max_turn"`
-	SideCount       int      `json:"side_count"`
-	Aspects         []string `json:"aspects"`
-	CostCap         int      `json:"cost_cap"`
-	ChangedLinesMin int      `json:"changed_lines_min"`
-	HookMode        bool     `json:"hook_mode"`
-	Format          string   `json:"format"`
-	MainModel       string   `json:"main_model"`
-	SideModel       string   `json:"side_model"`
+	MaxTurn         int    `json:"max_turn"`
+	SideCount       int    `json:"side_count"`
+	CostCap         int    `json:"cost_cap"`
+	ChangedLinesMin int    `json:"changed_lines_min"`
+	HookMode        bool   `json:"hook_mode"`
+	Format          string `json:"format"`
+	MainModel       string `json:"main_model"`
+	SideModel       string `json:"side_model"`
 }
 
 // RootSession captures the (optional) root claude pointer.

@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -20,9 +19,6 @@ func TestDefaults(t *testing.T) {
 	if f.SideCount != 4 {
 		t.Errorf("default side-count: got %d, want 4", f.SideCount)
 	}
-	if want := []string{"functional-logic", "security", "code-quality", "performance"}; !reflect.DeepEqual(f.Aspect, want) {
-		t.Errorf("default aspects: got %v, want %v", f.Aspect, want)
-	}
 	if f.CostCap != 50000 {
 		t.Errorf("default cost-cap: got %d, want 50000", f.CostCap)
 	}
@@ -30,8 +26,7 @@ func TestDefaults(t *testing.T) {
 
 func TestFlagParsing(t *testing.T) {
 	cmd, f := newCmd()
-	cmd.SetArgs([]string{"--main-model", "claude-opus", "--side-count", "2", "--aspect", "x,y", "--hook-mode"})
-	if err := cmd.ParseFlags([]string{"--main-model", "claude-opus", "--side-count", "2", "--aspect", "x,y", "--hook-mode"}); err != nil {
+	if err := cmd.ParseFlags([]string{"--main-model", "claude-opus", "--side-count", "2", "--hook-mode"}); err != nil {
 		t.Fatal(err)
 	}
 	if f.MainModel != "claude-opus" {
@@ -39,9 +34,6 @@ func TestFlagParsing(t *testing.T) {
 	}
 	if f.SideCount != 2 {
 		t.Errorf("side-count: got %d", f.SideCount)
-	}
-	if !reflect.DeepEqual(f.Aspect, []string{"x", "y"}) {
-		t.Errorf("aspect: got %v", f.Aspect)
 	}
 	if !f.HookMode {
 		t.Error("hook-mode not set")

@@ -53,7 +53,7 @@ func TestEngineSingleForkSteadyState(t *testing.T) {
 
 	e := &Engine{
 		Sess: sess, Cwd: t.TempDir(),
-		Aspects: []string{"security"},
+		ForkCount: 1,
 		Proposer: &stubProposer{
 			first: func(_ string) (*agent.ProposerResult, error) {
 				return &agent.ProposerResult{ForkID: "fork-1", Response: "rebut c1-1: framework escapes", Tokens: 10}, nil
@@ -86,7 +86,7 @@ func TestEngineCostCap(t *testing.T) {
 	r1 := "# Critic 1 - round 1 attacks\n\naspect: security\n\n## c1-1 [x:1]\n\nclaim: leaks\n\nexpected violation: panic\n\nreproduction:\n```\nx\n```\n"
 	e := &Engine{
 		Sess: sess, Cwd: t.TempDir(),
-		Aspects: []string{"security"},
+		ForkCount: 1,
 		Proposer: &stubProposer{
 			first: func(string) (*agent.ProposerResult, error) {
 				return &agent.ProposerResult{ForkID: "f", Response: "rebut c1-1: ok", Tokens: 50000}, nil
@@ -125,7 +125,7 @@ func TestCriticRoundPriorFiles(t *testing.T) {
 	cri := &stubCritic{rounds: []string{r1, r3, r5}}
 	e := &Engine{
 		Sess: sess, Cwd: t.TempDir(),
-		Aspects: []string{"security"},
+		ForkCount: 1,
 		Proposer: &stubProposer{
 			first: func(string) (*agent.ProposerResult, error) {
 				return &agent.ProposerResult{ForkID: "fork-1", Response: "rebut c1-1: ok", Tokens: 10}, nil
@@ -177,7 +177,7 @@ func TestEnginePerForkUsageStats(t *testing.T) {
 	}
 	e := &Engine{
 		Sess: sess, Cwd: t.TempDir(),
-		Aspects: []string{"security"},
+		ForkCount: 1,
 		Proposer: &stubProposer{
 			first: func(string) (*agent.ProposerResult, error) {
 				return &agent.ProposerResult{ForkID: "fork-1", Response: "rebut c1-1: ok", Tokens: 10, Usage: pu}, nil
@@ -224,8 +224,8 @@ func TestEnginePerForkUsageStats(t *testing.T) {
 	if on["schema"] != "debate.fork-stats.v0" {
 		t.Errorf("stats.json schema: %v", on["schema"])
 	}
-	if on["aspect"] != "security" {
-		t.Errorf("stats.json aspect: %v", on["aspect"])
+	if on["topic"] != "security" {
+		t.Errorf("stats.json topic: %v", on["topic"])
 	}
 }
 

@@ -32,7 +32,6 @@ func TestPreflightSideCountMin(t *testing.T) {
 	f := DefaultFlags()
 	f.SessionID = "x"
 	f.SideCount = 0
-	f.Aspect = []string{}
 	_, err := Preflight(context.Background(), f)
 	var pe *PreflightError
 	if !errors.As(err, &pe) || pe.Code != 121 {

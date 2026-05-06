@@ -130,7 +130,7 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 			PatchPath: "diff.patch",
 		},
 		Config: state.ConfigSnap{
-			MaxTurn: flags.MaxTurn, SideCount: flags.SideCount, Aspects: flags.Aspect,
+			MaxTurn: flags.MaxTurn, SideCount: flags.SideCount,
 			CostCap: flags.CostCap, ChangedLinesMin: flags.ChangedLinesMin,
 			HookMode: flags.HookMode, Format: flags.Format,
 			MainModel: flags.MainModel, SideModel: flags.SideModel,
@@ -148,10 +148,6 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 	}
 
 	// Wire and run the engine.
-	aspects := make([]string, len(plan.Forks))
-	for i, f := range plan.Forks {
-		aspects[i] = f.Aspect
-	}
 	proposer := &agent.ClaudeProposer{
 		Cwd:      plan.Cwd,
 		RootID:   flags.SessionID,
@@ -166,7 +162,7 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) error {
 		progress = os.Stderr
 	}
 	eng := &round.Engine{
-		Sess: sess, Cwd: plan.Cwd, Aspects: aspects,
+		Sess: sess, Cwd: plan.Cwd, ForkCount: len(plan.Forks),
 		Proposer:  proposer,
 		NewCritic: criticFactory,
 		MaxTurn:   flags.MaxTurn, CostCap: flags.CostCap, HookMode: flags.HookMode,

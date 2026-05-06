@@ -59,8 +59,12 @@ func (r *Render) Bytes(s *round.Summary, agg map[string]ledger.Record) ([]byte, 
 			u.Input, u.Output, u.CacheCreate, u.CacheRead, u.Total())
 		for _, f := range s.Forks {
 			fu := f.Usage.Total
+			topic := f.Topic
+			if topic == "" {
+				topic = "(no topic declared)"
+			}
 			fmt.Fprintf(&b, "  - fork %d (%s): in=%d out=%d cache_create=%d cache_read=%d total=%d\n",
-				f.Index, f.Aspect, fu.Input, fu.Output, fu.CacheCreate, fu.CacheRead, fu.Total())
+				f.Index, topic, fu.Input, fu.Output, fu.CacheCreate, fu.CacheRead, fu.Total())
 		}
 	}
 	if s.Sess != nil {

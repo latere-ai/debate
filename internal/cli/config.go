@@ -18,20 +18,19 @@ var ErrConfigNotFound = errors.New("config file not found")
 
 // configFile mirrors .debate.toml's schema.
 type configFile struct {
-	Main              string   `toml:"main"`
-	Side              string   `toml:"side"`
-	SideCount         int      `toml:"side_count"`
-	MainModel         string   `toml:"main_model"`
-	SideModel         string   `toml:"side_model"`
-	MaxTurn           int      `toml:"max_turn"`
-	Aspects           []string `toml:"aspects"`
-	CostCapTokens     int      `toml:"cost_cap_tokens"`
-	ChangedLinesMin   int      `toml:"changed_lines_min"`
-	StateDir          string   `toml:"state_dir"`
-	Format            string   `toml:"format"`
-	Judge             string   `toml:"judge"`
-	Trigger           string   `toml:"trigger"`
-	AllowStyleAttacks bool     `toml:"allow_style_attacks"`
+	Main              string `toml:"main"`
+	Side              string `toml:"side"`
+	SideCount         int    `toml:"side_count"`
+	MainModel         string `toml:"main_model"`
+	SideModel         string `toml:"side_model"`
+	MaxTurn           int    `toml:"max_turn"`
+	CostCapTokens     int    `toml:"cost_cap_tokens"`
+	ChangedLinesMin   int    `toml:"changed_lines_min"`
+	StateDir          string `toml:"state_dir"`
+	Format            string `toml:"format"`
+	Judge             string `toml:"judge"`
+	Trigger           string `toml:"trigger"`
+	AllowStyleAttacks bool   `toml:"allow_style_attacks"`
 
 	// Tracked at decode time; non-nil = field present in file.
 	present map[string]bool
@@ -166,9 +165,6 @@ func applyConfigToFlags(cmd *cobra.Command, f *Flags, c *configFile) {
 	}
 	if c.present["max_turn"] {
 		set("max-turn", func() { f.MaxTurn = c.MaxTurn })
-	}
-	if c.present["aspects"] {
-		set("aspect", func() { f.Aspect = append([]string(nil), c.Aspects...) })
 	}
 	if c.present["cost_cap_tokens"] {
 		set("cost-cap", func() { f.CostCap = c.CostCapTokens })

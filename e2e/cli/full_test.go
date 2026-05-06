@@ -235,7 +235,6 @@ func TestFullE2E_HappyPath(t *testing.T) {
 		"--main", "claude",
 		"--side", "codex",
 		"--side-count", "1",
-		"--aspect", "security",
 		"--max-turn", "4",
 		"--changed-lines-min", "5",
 		"--state-dir", stateDir,
@@ -329,7 +328,7 @@ func TestFullE2E_TrivialDiffSkip(t *testing.T) {
 	res := runDebate(
 		t, debate, env, repo,
 		"--task-context", "no changes",
-		"--side-count", "1", "--aspect", "security",
+		"--side-count", "1",
 		"--max-turn", "4", "--changed-lines-min", "10",
 		"--state-dir", stateDir,
 	)
@@ -366,7 +365,7 @@ func TestFullE2E_RecursionGuard(t *testing.T) {
 	res := runDebate(
 		t, debate, env, repo,
 		"--task-context", "anything",
-		"--side-count", "1", "--aspect", "security",
+		"--side-count", "1",
 		"--state-dir", filepath.Join(repo, ".debate"),
 	)
 	if res.ExitCode != 0 {
@@ -386,15 +385,14 @@ func TestFullE2E_PreflightExitCode(t *testing.T) {
 	repo := fixtureRepo(t)
 	env := patchedPATH(t, binDir)
 
-	// --side-count != len(--aspect) → exit 120
+	// --side-count = 0 → exit 121
 	res := runDebate(
 		t, debate, env, repo,
 		"--task-context", "x",
-		"--side-count", "3",
-		"--aspect", "security,functional-logic",
+		"--side-count", "0",
 		"--state-dir", filepath.Join(repo, ".debate"),
 	)
-	if res.ExitCode != 120 {
-		t.Errorf("expected exit 120, got %d\nstderr: %s", res.ExitCode, res.Stderr)
+	if res.ExitCode != 121 {
+		t.Errorf("expected exit 121, got %d\nstderr: %s", res.ExitCode, res.Stderr)
 	}
 }

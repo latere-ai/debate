@@ -13,7 +13,6 @@ func TestProjectConfigOverridesDefaults(t *testing.T) {
 	cfg := filepath.Join(dir, ".debate.toml")
 	if err := os.WriteFile(cfg, []byte(`max_turn = 10
 side_count = 2
-aspects = ["a", "b"]
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -31,9 +30,6 @@ aspects = ["a", "b"]
 	}
 	if f.SideCount != 2 {
 		t.Errorf("side_count from file: got %d, want 2", f.SideCount)
-	}
-	if len(f.Aspect) != 2 || f.Aspect[0] != "a" {
-		t.Errorf("aspects from file: got %v", f.Aspect)
 	}
 }
 

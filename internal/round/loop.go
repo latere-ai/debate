@@ -30,7 +30,7 @@ type CriticFactory func(forkIdx int) agent.Critic
 type Engine struct {
 	Sess        *state.Session
 	Cwd         string
-	Aspects     []string
+	ForkCount   int
 	Proposer    Proposer
 	NewCritic   CriticFactory
 	MaxTurn     int
@@ -64,10 +64,12 @@ type Summary struct {
 	Unresolved  int
 }
 
-// ForkOutcome carries the per-fork termination + last round.
+// ForkOutcome carries the per-fork termination + last round. Topic is
+// the lens the critic declared in R1 (the "aspect:" line of its
+// markdown output) and is empty if R1 never completed.
 type ForkOutcome struct {
 	Index       int
-	Aspect      string
+	Topic       string
 	Rounds      int
 	Termination TerminationReason
 	Usage       ForkUsage
@@ -113,12 +115,13 @@ func (e *Engine) Run(ctx context.Context) (*Summary, error) {
 	start := time.Now()
 	sum := &Summary{Sess: e.Sess, Termination: TermSteadyState}
 
-	for forkIdx := 1; forkIdx <= len(e.Aspects); forkIdx++ {
+	for forkIdx := 1; forkIdx <= e.ForkCount; forkIdx++ {
 		if ctx.Err() != nil {
 			sum.Termination = TermInterrupted
 			break
 		}
-		outcome, runStop, err := e.runFork(ctx, forkIdx, e.Aspects[forkIdx-1], det, cost)
+		priorTopics := claimedTopics(sum.Forks)
+		outcome, runStop, err := e.runFork(ctx, forkIdx, priorTopics, det, cost)
 		sum.Forks = append(sum.Forks, outcome)
 		if err != nil {
 			return nil, err
@@ -154,10 +157,13 @@ func (e *Engine) Run(ctx context.Context) (*Summary, error) {
 	return sum, nil
 }
 
-func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *Detector, cost *CostMeter) (ForkOutcome, TerminationReason, error) {
-	out := ForkOutcome{Index: forkIdx, Aspect: aspect, Termination: TermSteadyState}
+func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string, det *Detector, cost *CostMeter) (ForkOutcome, TerminationReason, error) {
+	out := ForkOutcome{Index: forkIdx, Termination: TermSteadyState}
 	cri := e.NewCritic(forkIdx)
-	a := critic.Lookup(aspect)
+	// R1 starts in auto mode; the critic declares its topic in the
+	// reply, the orchestrator captures it after R1 and locks subsequent
+	// rounds to that topic.
+	a := critic.Auto(forkIdx, e.ForkCount, priorTopics)
 	var (
 		forkID   string
 		hist     []ForkHistory
@@ -165,7 +171,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 		priorIDs []string
 	)
 
-	e.progf("[debate] fork %d/%d %s: starting", forkIdx, len(e.Aspects), aspect)
+	e.progf("[debate] fork %d/%d: starting (topic to be declared in R1)", forkIdx, e.ForkCount)
 
 	for round := 1; round <= e.MaxTurn; round++ {
 		if ctx.Err() != nil {
@@ -180,10 +186,17 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 		roundStart := time.Now()
 		if round%2 == 1 {
 			// Critic round.
-			e.progf("[debate] fork %d/%d %s: R%d critic running...", forkIdx, len(e.Aspects), aspect, round)
+			e.progf("[debate] fork %d/%d %s: R%d critic running...", forkIdx, e.ForkCount, forkLabel(out.Topic), round)
 			res, stats, err := e.criticRound(ctx, cri, a, forkIdx, round, priorIDs)
 			if err != nil {
 				return out, "", fmt.Errorf("%w: critic %d round %d: %v", ErrAgentFatal, forkIdx, round, err)
+			}
+			// Capture the declared topic the first time we see one and
+			// lock subsequent rounds to it. Without this R3+ would still
+			// run under the auto skeleton and the critic could drift.
+			if out.Topic == "" && res.declaredTopic != "" {
+				out.Topic = res.declaredTopic
+				a = critic.Locked(forkIdx, e.ForkCount, out.Topic)
 			}
 			cost.Add(res.tokens)
 			out.Usage.Critic.Add(res.usage)
@@ -193,7 +206,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 				MS: int(time.Since(roundStart).Milliseconds()),
 			})
 			e.progf("[debate] fork %d/%d %s: R%d critic done in %s (new=%d, re-attack=%d, withdraw=%d, dropped=%d)",
-				forkIdx, len(e.Aspects), aspect, round, fmtDur(time.Since(roundStart)),
+				forkIdx, e.ForkCount, forkLabel(out.Topic), round, fmtDur(time.Since(roundStart)),
 				stats.KeptIntroduce, stats.KeptReAttack, stats.KeptWithdraw,
 				stats.DroppedNoReproduce+stats.DroppedStyle+stats.DroppedCrossAspect)
 			hist = append(hist, ForkHistory{
@@ -208,12 +221,12 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 			}
 			if det.SteadyState(hist) {
 				out.Termination = TermSteadyState
-				e.progf("[debate] fork %d/%d %s: steady state reached at R%d", forkIdx, len(e.Aspects), aspect, round)
+				e.progf("[debate] fork %d/%d %s: steady state reached at R%d", forkIdx, e.ForkCount, forkLabel(out.Topic), round)
 				break
 			}
 		} else {
 			// Proposer round.
-			e.progf("[debate] fork %d/%d %s: R%d proposer running...", forkIdx, len(e.Aspects), aspect, round)
+			e.progf("[debate] fork %d/%d %s: R%d proposer running...", forkIdx, e.ForkCount, forkLabel(out.Topic), round)
 			pointer := fmt.Sprintf("Some comments at @forks/critic-%d/rounds/r%d-critic.md. Please resolve or respond. If you disagree, please raise it.",
 				forkIdx, round-1)
 			var pr *agent.ProposerResult
@@ -253,7 +266,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 			})
 			conceded, rebutted := updateLedgerFromDefense(e.Sess, pr.Response, pr.ChangedFiles, round)
 			e.progf("[debate] fork %d/%d %s: R%d proposer done in %s (conceded=%d, rebutted=%d, files=%d)",
-				forkIdx, len(e.Aspects), aspect, round, fmtDur(time.Since(roundStart)),
+				forkIdx, e.ForkCount, forkLabel(out.Topic), round, fmtDur(time.Since(roundStart)),
 				conceded, rebutted, len(pr.ChangedFiles))
 		}
 	}
@@ -263,7 +276,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 	if err := state.WriteForkStats(e.Sess, forkIdx, forkStatsFile{
 		Schema:      schemaForkStats,
 		ForkIndex:   forkIdx,
-		Aspect:      aspect,
+		Topic:       out.Topic,
 		Rounds:      out.Rounds,
 		Termination: ifEmpty(string(runStop), string(out.Termination)),
 		Usage:       out.Usage,
@@ -272,7 +285,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, aspect string, det *D
 	}
 	u := out.Usage.Total
 	e.progf("[debate] fork %d/%d %s: terminated %s after R%d (in=%d out=%d cache_create=%d cache_read=%d total=%d)",
-		forkIdx, len(e.Aspects), aspect, ifEmpty(string(runStop), string(out.Termination)),
+		forkIdx, e.ForkCount, forkLabel(out.Topic), ifEmpty(string(runStop), string(out.Termination)),
 		out.Rounds, u.Input, u.Output, u.CacheCreate, u.CacheRead, u.Total())
 	return out, runStop, nil
 }
@@ -282,10 +295,32 @@ const schemaForkStats = "debate.fork-stats.v0"
 type forkStatsFile struct {
 	Schema      string    `json:"schema"`
 	ForkIndex   int       `json:"fork_index"`
-	Aspect      string    `json:"aspect"`
+	Topic       string    `json:"topic"`
 	Rounds      int       `json:"rounds"`
 	Termination string    `json:"termination"`
 	Usage       ForkUsage `json:"usage"`
+}
+
+// claimedTopics collects every non-empty topic critics in already-run
+// forks declared, so the next fork's auto prompt can ask for a
+// distinct angle.
+func claimedTopics(forks []ForkOutcome) []string {
+	out := make([]string, 0, len(forks))
+	for _, f := range forks {
+		if f.Topic != "" {
+			out = append(out, f.Topic)
+		}
+	}
+	return out
+}
+
+// forkLabel renders the topic in progress lines, falling back to
+// "(topic pending)" before the critic has declared.
+func forkLabel(topic string) string {
+	if topic == "" {
+		return "(topic pending)"
+	}
+	return topic
 }
 
 func fmtDur(d time.Duration) string {
@@ -303,9 +338,10 @@ func ifEmpty(a, b string) string {
 }
 
 type criticRoundResult struct {
-	tokens   int
-	usage    agent.TokenUsage
-	priorIDs []string
+	tokens        int
+	usage         agent.TokenUsage
+	priorIDs      []string
+	declaredTopic string
 }
 
 func (e *Engine) criticRound(ctx context.Context, cri agent.Critic, a critic.Aspect, forkIdx, round int, priorIDs []string) (criticRoundResult, critic.ParseStats, error) {
@@ -340,13 +376,22 @@ func (e *Engine) criticRound(ctx context.Context, cri agent.Critic, a critic.Asp
 	if err != nil {
 		return criticRoundResult{}, critic.ParseStats{}, err
 	}
-	attacks, stats, err := critic.Parse(res.Markdown, a.Name, forkIdx, round, priorIDs, critic.ParseOption{})
-	if err != nil {
-		return criticRoundResult{tokens: res.Tokens, usage: res.Usage}, stats, err
+	declared := critic.ExtractDeclaredAspect(res.Markdown)
+	expected := a.Name
+	if expected == "" || expected == "auto" {
+		expected = declared
 	}
-	rendered := critic.Render(forkIdx, round, a.Name, attacks)
+	attacks, stats, err := critic.Parse(res.Markdown, expected, forkIdx, round, priorIDs, critic.ParseOption{})
+	if err != nil {
+		return criticRoundResult{tokens: res.Tokens, usage: res.Usage, declaredTopic: declared}, stats, err
+	}
+	renderTopic := expected
+	if renderTopic == "" {
+		renderTopic = "auto"
+	}
+	rendered := critic.Render(forkIdx, round, renderTopic, attacks)
 	if err := state.WriteRound(e.Sess, forkIdx, round, state.RoleCritic, rendered); err != nil {
-		return criticRoundResult{tokens: res.Tokens, usage: res.Usage}, stats, err
+		return criticRoundResult{tokens: res.Tokens, usage: res.Usage, declaredTopic: declared}, stats, err
 	}
 	for _, at := range attacks {
 		st := ledger.StatusOpen
@@ -355,7 +400,7 @@ func (e *Engine) criticRound(ctx context.Context, cri agent.Critic, a critic.Asp
 		}
 		ri := at.RoundIntroduced
 		_ = ledger.Append(e.Sess, ledger.Record{
-			AttackID: at.AttackID, CriticIndex: forkIdx, Aspect: a.Name,
+			AttackID: at.AttackID, CriticIndex: forkIdx, Aspect: expected,
 			RoundIntroduced:   ifNonZero(ri),
 			Location:          at.Location,
 			Claim:             at.Claim,
@@ -392,7 +437,7 @@ func (e *Engine) criticRound(ctx context.Context, cri agent.Critic, a critic.Asp
 	for id := range idSet {
 		out = append(out, id)
 	}
-	return criticRoundResult{tokens: tokens, usage: usage, priorIDs: out}, stats, nil
+	return criticRoundResult{tokens: tokens, usage: usage, priorIDs: out, declaredTopic: declared}, stats, nil
 }
 
 func ifNonZero(v int) *int {

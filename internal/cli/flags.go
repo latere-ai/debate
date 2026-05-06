@@ -18,7 +18,6 @@ type Flags struct {
 	MainModel       string
 	SideModel       string
 	MaxTurn         int
-	Aspect          []string
 	SessionID       string
 	Transcript      string
 	DiffFrom        string
@@ -41,7 +40,6 @@ func DefaultFlags() *Flags {
 		Side:            "codex",
 		SideCount:       4,
 		MaxTurn:         6,
-		Aspect:          []string{"functional-logic", "security", "code-quality", "performance"},
 		DiffFrom:        "HEAD",
 		DiffTo:          ".",
 		Judge:           "none",
@@ -59,11 +57,10 @@ func Bind(cmd *cobra.Command) *Flags {
 
 	cmd.Flags().StringVar(&f.Main, "main", f.Main, "proposer agent: claude or codex (codex is v1)")
 	cmd.Flags().StringVar(&f.Side, "side", f.Side, "critic agent: claude or codex")
-	cmd.Flags().IntVar(&f.SideCount, "side-count", f.SideCount, "number of critic forks; must equal len(--aspect)")
+	cmd.Flags().IntVar(&f.SideCount, "side-count", f.SideCount, "number of critic forks; each declares its own topic in R1")
 	cmd.Flags().StringVar(&f.MainModel, "main-model", f.MainModel, "proposer model; required (and must differ from --side-model) when same family")
 	cmd.Flags().StringVar(&f.SideModel, "side-model", f.SideModel, "critic model; required (and must differ from --main-model) when same family")
 	cmd.Flags().IntVar(&f.MaxTurn, "max-turn", f.MaxTurn, "per-fork cap on P+C exchanges")
-	cmd.Flags().StringSliceVar(&f.Aspect, "aspect", f.Aspect, "comma-separated list of aspect names")
 	cmd.Flags().StringVar(&f.SessionID, "session-id", f.SessionID, "claude root session id (claude-as-proposer auto-trigger)")
 	cmd.Flags().StringVar(&f.Transcript, "transcript", f.Transcript, "path to root claude JSONL transcript")
 	cmd.Flags().StringVar(&f.DiffFrom, "diff-from", f.DiffFrom, "git ref for diff base")
@@ -118,16 +115,6 @@ func envBindings(f *Flags) []envBinding {
 			if n, err := strconv.Atoi(v); err == nil {
 				f.MaxTurn = n
 			}
-		}},
-		{"aspect", "DEBATE_ASPECT", func(v string) {
-			parts := strings.Split(v, ",")
-			out := make([]string, 0, len(parts))
-			for _, p := range parts {
-				if p = strings.TrimSpace(p); p != "" {
-					out = append(out, p)
-				}
-			}
-			f.Aspect = out
 		}},
 		{"session-id", "DEBATE_SESSION_ID", func(v string) { f.SessionID = v }},
 		{"transcript", "DEBATE_TRANSCRIPT", func(v string) { f.Transcript = v }},

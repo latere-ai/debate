@@ -19,7 +19,7 @@ func TestPersistWritesSummaryAndEnd(t *testing.T) {
 	}
 	sumRes := &round.Summary{
 		Sess: sess, Termination: round.TermSteadyState,
-		Forks:      []round.ForkOutcome{{Index: 1, Aspect: "security", Rounds: 4, Termination: round.TermSteadyState}},
+		Forks:      []round.ForkOutcome{{Index: 1, Topic: "security", Rounds: 4, Termination: round.TermSteadyState}},
 		TokensUsed: 1234, WallSeconds: 7,
 		Unresolved: 1,
 	}
