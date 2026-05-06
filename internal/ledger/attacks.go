@@ -11,7 +11,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/latere-ai/debate/internal/state"
+	"latere.ai/x/debate/internal/state"
 )
 
 // Status enumerates the on-disk values for the attack state machine.

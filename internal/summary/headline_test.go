@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/latere-ai/debate/internal/ledger"
+	"latere.ai/x/debate/internal/ledger"
 )
 
 func ptr(i int) *int { return &i }

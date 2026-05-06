@@ -12,14 +12,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/latere-ai/debate/internal/agent"
-	"github.com/latere-ai/debate/internal/cli"
-	"github.com/latere-ai/debate/internal/hook"
-	"github.com/latere-ai/debate/internal/input"
-	"github.com/latere-ai/debate/internal/ledger"
-	"github.com/latere-ai/debate/internal/round"
-	"github.com/latere-ai/debate/internal/state"
-	"github.com/latere-ai/debate/internal/summary"
+	"latere.ai/x/debate/internal/agent"
+	"latere.ai/x/debate/internal/cli"
+	"latere.ai/x/debate/internal/hook"
+	"latere.ai/x/debate/internal/input"
+	"latere.ai/x/debate/internal/ledger"
+	"latere.ai/x/debate/internal/round"
+	"latere.ai/x/debate/internal/state"
+	"latere.ai/x/debate/internal/summary"
 )
 
 // Set via -ldflags by goreleaser / Makefile.

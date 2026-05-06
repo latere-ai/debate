@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/latere-ai/debate/internal/state"
+	"latere.ai/x/debate/internal/state"
 )
 
 func freshSession(t *testing.T) *state.Session {

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/latere-ai/debate/internal/critic"
+	"latere.ai/x/debate/internal/critic"
 )
 
 func buildHelper(t *testing.T, name, src string) string {

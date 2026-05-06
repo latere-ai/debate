@@ -1,4 +1,4 @@
-module github.com/latere-ai/debate
+module latere.ai/x/debate
 
 go 1.23
 

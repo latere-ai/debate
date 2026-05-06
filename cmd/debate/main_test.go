@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/latere-ai/debate/internal/cli"
+	"latere.ai/x/debate/internal/cli"
 )
 
 func TestExitCodeFor(t *testing.T) {
