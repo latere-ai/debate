@@ -55,16 +55,16 @@ func (r *Render) Bytes(s *round.Summary, agg map[string]ledger.Record) ([]byte, 
 	fmt.Fprintf(&b, "debate cost: %d tokens, %d rounds, %d critics\n", tokens, totalRounds(s), len(s.Forks))
 	u := s.Usage
 	if u.Total() > 0 {
-		fmt.Fprintf(&b, "token usage (run): in=%d out=%d cache_create=%d cache_read=%d total=%d\n",
-			u.Input, u.Output, u.CacheCreate, u.CacheRead, u.Total())
+		fmt.Fprintf(&b, "token usage (run): in=%d out=%d cache_create=%d cache_read=%d total=%d cost=$%.4f\n",
+			u.Input, u.Output, u.CacheCreate, u.CacheRead, u.Total(), s.USD)
 		for _, f := range s.Forks {
 			fu := f.Usage.Total
 			topic := f.Topic
 			if topic == "" {
 				topic = "(no topic declared)"
 			}
-			fmt.Fprintf(&b, "  - fork %d (%s): in=%d out=%d cache_create=%d cache_read=%d total=%d\n",
-				f.Index, topic, fu.Input, fu.Output, fu.CacheCreate, fu.CacheRead, fu.Total())
+			fmt.Fprintf(&b, "  - fork %d (%s): in=%d out=%d cache_create=%d cache_read=%d total=%d cost=$%.4f\n",
+				f.Index, topic, fu.Input, fu.Output, fu.CacheCreate, fu.CacheRead, fu.Total(), f.Usage.TotalUSD)
 		}
 	}
 	if s.Sess != nil {

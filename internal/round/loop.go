@@ -59,6 +59,10 @@ type Summary struct {
 	Forks       []ForkOutcome
 	TokensUsed  int
 	Usage       agent.TokenUsage
+	// USD is the run-level total cost reported by the agent CLIs,
+	// summed across every fork and round. Zero when the agents do
+	// not surface a total_cost_usd field (e.g. codex critic, mocks).
+	USD         float64
 	WallSeconds int
 	Headline    *ledger.Record
 	Unresolved  int
@@ -78,12 +82,17 @@ type ForkOutcome struct {
 // ForkUsage aggregates one fork's token consumption split by role.
 // Critic and Proposer both contain TokenUsage broken down into input,
 // output, cache_creation, cache_read; Total is the convenience sum.
-// Stored to <session>/forks/critic-N/stats.json and surfaced on the
-// completion progress line.
+// CriticUSD, ProposerUSD and TotalUSD mirror the same split for the
+// total_cost_usd field reported by the agent CLIs (zero when the agent
+// does not surface it). Stored to <session>/forks/critic-N/stats.json
+// and surfaced on the completion progress line.
 type ForkUsage struct {
-	Critic   agent.TokenUsage `json:"critic"`
-	Proposer agent.TokenUsage `json:"proposer"`
-	Total    agent.TokenUsage `json:"total"`
+	Critic      agent.TokenUsage `json:"critic"`
+	Proposer    agent.TokenUsage `json:"proposer"`
+	Total       agent.TokenUsage `json:"total"`
+	CriticUSD   float64          `json:"critic_usd"`
+	ProposerUSD float64          `json:"proposer_usd"`
+	TotalUSD    float64          `json:"total_usd"`
 	// Rounds is the per-round breakdown in execution order, useful for
 	// spotting the round where the cache went cold.
 	Rounds []Usage `json:"rounds"`
@@ -91,10 +100,13 @@ type ForkUsage struct {
 
 // Usage records one critic-or-proposer round's token consumption.
 // Sits in ForkUsage.Rounds; package-qualified name is round.Usage.
+// USD is the agent-reported total_cost_usd for that round (zero when
+// the agent does not surface it).
 type Usage struct {
 	Round int              `json:"round"`
 	Role  string           `json:"role"`
 	Usage agent.TokenUsage `json:"usage"`
+	USD   float64          `json:"usd"`
 	MS    int              `json:"ms"`
 }
 
@@ -152,6 +164,7 @@ func (e *Engine) Run(ctx context.Context) (*Summary, error) {
 	sum.TokensUsed = cost.Used()
 	for _, f := range sum.Forks {
 		sum.Usage.Add(f.Usage.Total)
+		sum.USD += f.Usage.TotalUSD
 	}
 	sum.WallSeconds = int(time.Since(start).Seconds())
 	return sum, nil
@@ -201,8 +214,10 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 			cost.Add(res.tokens)
 			out.Usage.Critic.Add(res.usage)
 			out.Usage.Total.Add(res.usage)
+			out.Usage.CriticUSD += res.usd
+			out.Usage.TotalUSD += res.usd
 			out.Usage.Rounds = append(out.Usage.Rounds, Usage{
-				Round: round, Role: "critic", Usage: res.usage,
+				Round: round, Role: "critic", Usage: res.usage, USD: res.usd,
 				MS: int(time.Since(roundStart).Milliseconds()),
 			})
 			e.progf("[debate] fork %d/%d %s: R%d critic done in %s (new=%d, re-attack=%d, withdraw=%d, dropped=%d)",
@@ -248,8 +263,10 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 			cost.Add(pr.Tokens)
 			out.Usage.Proposer.Add(pr.Usage)
 			out.Usage.Total.Add(pr.Usage)
+			out.Usage.ProposerUSD += pr.USD
+			out.Usage.TotalUSD += pr.USD
 			out.Usage.Rounds = append(out.Usage.Rounds, Usage{
-				Round: round, Role: "proposer", Usage: pr.Usage,
+				Round: round, Role: "proposer", Usage: pr.Usage, USD: pr.USD,
 				MS: int(pr.Duration.Milliseconds()),
 			})
 			body := pr.Response + "\n\n---\nmodified-files:\n"
@@ -284,9 +301,9 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 		return out, "", err
 	}
 	u := out.Usage.Total
-	e.progf("[debate] fork %d/%d %s: terminated %s after R%d (in=%d out=%d cache_create=%d cache_read=%d total=%d)",
+	e.progf("[debate] fork %d/%d %s: terminated %s after R%d (in=%d out=%d cache_create=%d cache_read=%d total=%d cost=$%.4f)",
 		forkIdx, e.ForkCount, forkLabel(out.Topic), ifEmpty(string(runStop), string(out.Termination)),
-		out.Rounds, u.Input, u.Output, u.CacheCreate, u.CacheRead, u.Total())
+		out.Rounds, u.Input, u.Output, u.CacheCreate, u.CacheRead, u.Total(), out.Usage.TotalUSD)
 	return out, runStop, nil
 }
 
@@ -340,6 +357,7 @@ func ifEmpty(a, b string) string {
 type criticRoundResult struct {
 	tokens        int
 	usage         agent.TokenUsage
+	usd           float64
 	priorIDs      []string
 	declaredTopic string
 }
@@ -383,7 +401,7 @@ func (e *Engine) criticRound(ctx context.Context, cri agent.Critic, a critic.Asp
 	}
 	attacks, stats, err := critic.Parse(res.Markdown, expected, forkIdx, round, priorIDs, critic.ParseOption{})
 	if err != nil {
-		return criticRoundResult{tokens: res.Tokens, usage: res.Usage, declaredTopic: declared}, stats, err
+		return criticRoundResult{tokens: res.Tokens, usage: res.Usage, usd: res.USD, declaredTopic: declared}, stats, err
 	}
 	renderTopic := expected
 	if renderTopic == "" {
@@ -391,7 +409,7 @@ func (e *Engine) criticRound(ctx context.Context, cri agent.Critic, a critic.Asp
 	}
 	rendered := critic.Render(forkIdx, round, renderTopic, attacks)
 	if err := state.WriteRound(e.Sess, forkIdx, round, state.RoleCritic, rendered); err != nil {
-		return criticRoundResult{tokens: res.Tokens, usage: res.Usage, declaredTopic: declared}, stats, err
+		return criticRoundResult{tokens: res.Tokens, usage: res.Usage, usd: res.USD, declaredTopic: declared}, stats, err
 	}
 	for _, at := range attacks {
 		st := ledger.StatusOpen
@@ -437,7 +455,7 @@ func (e *Engine) criticRound(ctx context.Context, cri agent.Critic, a critic.Asp
 	for id := range idSet {
 		out = append(out, id)
 	}
-	return criticRoundResult{tokens: tokens, usage: usage, priorIDs: out, declaredTopic: declared}, stats, nil
+	return criticRoundResult{tokens: tokens, usage: usage, usd: res.USD, priorIDs: out, declaredTopic: declared}, stats, nil
 }
 
 func ifNonZero(v int) *int {
