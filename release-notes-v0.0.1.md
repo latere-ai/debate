@@ -73,12 +73,19 @@ verdict: TBD
 
 ```
 gate: install-hook-smoke
-host_os: TBD
-binary_sha256: TBD
-fresh_install_valid: TBD
-generated_command: TBD
-idempotent_second_run: TBD
+host_os: darwin (Darwin 25.4.0, arm64)
+binary_sha256: 6426377b35078e14815c27172481392bc6e8a9d60db5609500f12c5fa0ab4e72
+fresh_install_valid: yes
+generated_command: /Users/changkun/dev/changkun.de/debate/scripts/debate-stop-hook.sh
+idempotent_second_run: yes
+verdict: PASS
 ```
+
+Notes: command path resolves at install time to the in-repo
+`scripts/debate-stop-hook.sh`. In a release tarball install, this would
+resolve to the script shipped alongside the binary instead. The
+verbose-format Stop hook entry has `matcher: ""` and a single
+command-type hook, matching [24-stop-hook.md](specs/24-stop-hook.md).
 
 ### real-claude end-to-end (G16) - specs/34
 
