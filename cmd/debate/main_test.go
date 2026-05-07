@@ -89,18 +89,23 @@ func TestInstallHookCmd_ProjectScope(t *testing.T) {
 	}
 }
 
-func TestInstallHookCmd_DefaultsLocateScript(t *testing.T) {
+func TestInstallHookCmd_DefaultsToBinaryHookSubcommand(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 
 	cmd := installHookCmd()
-	cmd.SetArgs(nil) // no --script-path; falls back to LocateScript()
+	cmd.SetArgs(nil) // no --command; falls back to "<exe> hook"
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
 	b, _ := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
-	if !contains(string(b), "debate-stop-hook.sh") {
-		t.Errorf("install-hook with no --script-path did not record any script: %s", b)
+	// The default command should be an absolute path to the running
+	// binary plus " hook", not a bare shell-script reference.
+	if !contains(string(b), " hook") {
+		t.Errorf("install-hook default did not record the hook subcommand: %s", b)
+	}
+	if contains(string(b), "debate-stop-hook.sh") {
+		t.Errorf("install-hook default should no longer reference the .sh script: %s", b)
 	}
 }
 

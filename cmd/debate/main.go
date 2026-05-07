@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -77,7 +78,7 @@ func realMain(args []string, stdout, stderr io.Writer) int {
 		return runErr
 	}
 
-	root.AddCommand(installHookCmd(), uninstallHookCmd())
+	root.AddCommand(installHookCmd(), uninstallHookCmd(), hookCmd())
 
 	// Install the signal-aware context so SIGINT / SIGTERM cancel the
 	// root context and propagate down through agent.Exec's process-group
@@ -286,7 +287,7 @@ func exitCodeFor(err error) int {
 }
 
 func installHookCmd() *cobra.Command {
-	var scope, scriptPath string
+	var scope, command string
 	cmd := &cobra.Command{
 		Use:   "install-hook",
 		Short: "Install the Stop hook into ~/.claude/settings.json (or project)",
@@ -295,15 +296,104 @@ func installHookCmd() *cobra.Command {
 			if scope == "project" {
 				s = hook.ScopeProject
 			}
-			if scriptPath == "" {
-				scriptPath = hook.LocateScript()
+			// Default: `<absolute-path-to-this-binary> hook`. Self-
+			// contained: no shell script on PATH, no `jq` dependency,
+			// works after a bare `go install`.
+			if command == "" {
+				exe, err := os.Executable()
+				if err != nil {
+					return fmt.Errorf("locate self for hook command: %w", err)
+				}
+				command = exe + " hook"
 			}
-			return hook.Install(s, scriptPath)
+			return hook.Install(s, command)
 		},
 	}
 	cmd.Flags().StringVar(&scope, "scope", "user", "user | project")
-	cmd.Flags().StringVar(&scriptPath, "script-path", "", "explicit path to debate-stop-hook.sh")
+	cmd.Flags().StringVar(&command, "command", "",
+		"explicit hook command string (default: \"<this binary> hook\")")
+	// Back-compat: old name. Same effect.
+	cmd.Flags().StringVar(&command, "script-path", command,
+		"deprecated alias for --command; pass a script path or any shell command")
+	_ = cmd.Flags().MarkDeprecated("script-path", "use --command instead")
 	return cmd
+}
+
+// hookCmd is the Stop-hook entry point. claude invokes it with the
+// hook payload on stdin; we parse session_id / transcript_path / cwd
+// out of it and run the orchestrator in --hook-mode. This replaces
+// the v0 shell-script trampoline (scripts/debate-stop-hook.sh) so a
+// bare `go install` is enough to make the hook work; no separate
+// script on PATH, no `jq` dependency.
+func hookCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:    "hook",
+		Short:  "Stop-hook entry point. Reads claude's payload from stdin.",
+		Hidden: true,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runHook(cmd.Context())
+		},
+	}
+}
+
+func runHook(ctx context.Context) error {
+	// Recursion guard. The orchestrator spawns claude / codex
+	// subprocesses; those also fire the Stop hook. Without this guard
+	// the hook would re-enter the orchestrator on every round.
+	if os.Getenv("DEBATE_IN_PROGRESS") != "" {
+		return nil
+	}
+
+	// Parse claude's hook payload from stdin. Best-effort: an empty
+	// payload still falls through to the orchestrator's preflight.
+	payload, _ := io.ReadAll(os.Stdin)
+	var p struct {
+		SessionID      string `json:"session_id"`
+		TranscriptPath string `json:"transcript_path"`
+		Cwd            string `json:"cwd"`
+	}
+	_ = json.Unmarshal(payload, &p)
+
+	// Stale ANTHROPIC_API_KEY in env causes 401 in claude --print
+	// subprocesses on OAuth-only accounts. Strip it; the orchestrator
+	// also strips it from agent subprocess envs via CleanEnv (spec 16).
+	_ = os.Unsetenv("ANTHROPIC_API_KEY")
+
+	// claude --resume is cwd-scoped; cd to where the user's session
+	// lives so the resume call hits the right project dir.
+	if p.Cwd != "" {
+		if err := os.Chdir(p.Cwd); err != nil {
+			return fmt.Errorf("cd to hook cwd %q: %w", p.Cwd, err)
+		}
+	}
+
+	// Build flags as if `--hook-mode --session-id <id> --transcript
+	// <path> --max-turn 6` were passed, then drive the same Effective
+	// → Preflight → Run pipeline as the root command.
+	sub := &cobra.Command{Use: "debate"}
+	flags := cli.Bind(sub)
+	flags.HookMode = true
+	flags.MaxTurn = 6
+	flags.SessionID = p.SessionID
+	flags.Transcript = p.TranscriptPath
+	if _, err := cli.Effective(sub, flags); err != nil {
+		return err
+	}
+	plan, err := cli.Preflight(ctx, flags)
+	if err != nil {
+		if errors.Is(err, cli.ErrRecursionGuard) {
+			return nil
+		}
+		return err
+	}
+	code, runErr := Run(ctx, flags, plan)
+	if runErr == nil && code != 0 {
+		// hook-mode forces exit 0 inside Run on the happy path; a
+		// non-zero code here means a preflight-style failure that
+		// should propagate so claude marks the hook as failed.
+		os.Exit(code)
+	}
+	return runErr
 }
 
 func uninstallHookCmd() *cobra.Command {

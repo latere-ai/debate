@@ -148,7 +148,13 @@ func entryReferencesDebate(entry map[string]any) bool {
 			continue
 		}
 		s, _ := m["command"].(string)
+		// Either the legacy shell-script trampoline or the modern
+		// `<path-to>/debate hook` subcommand form. The shell-script
+		// form is kept for back-compat with older release tarballs.
 		if strings.HasSuffix(s, "debate-stop-hook.sh") {
+			return true
+		}
+		if strings.HasSuffix(s, "/debate hook") || s == "debate hook" {
 			return true
 		}
 	}

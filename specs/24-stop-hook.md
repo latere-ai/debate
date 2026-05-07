@@ -8,9 +8,24 @@
 
 ## Scope
 
-In: the `debate-stop-hook.sh` bash script (verbose hook format, recursion guard, env hygiene, `--hook-mode` wiring), the install path (user-level vs project-level `settings.json`), an `install`/`uninstall` subcommand on the `debate` CLI for one-step setup, and the documented manual install path.
+In: the Stop hook entry shape (verbose format, recursion guard, env hygiene, `--hook-mode` wiring), the install path (user-level vs project-level `settings.json`), `install-hook`/`uninstall-hook` subcommands on the `debate` CLI for one-step setup, and the documented manual install path.
 
 Out: the no-output Stop-hook probe ([25](25-probes.md)).
+
+## Hook command
+
+The hook command in `settings.json` is **`<path-to>/debate hook`** - a built-in
+subcommand of the `debate` binary that reads claude's payload from stdin, applies
+the recursion guard, scrubs `ANTHROPIC_API_KEY`, cd's to the payload's cwd, and
+hands off to the orchestrator in `--hook-mode`. This was previously a separate
+`debate-stop-hook.sh` shell script, but `go install` ships only the binary, so
+users got `/bin/sh: debate-stop-hook.sh: command not found`. The subcommand
+form makes the binary self-contained: no `jq` dependency, no second file to
+ship, no PATH search.
+
+The legacy `scripts/debate-stop-hook.sh` is retained for back-compat with
+release tarballs that ship it alongside the binary, and `entryReferencesDebate`
+recognises both shapes for idempotent install / clean uninstall.
 
 ## Hook script
 
