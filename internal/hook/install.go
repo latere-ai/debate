@@ -77,9 +77,10 @@ func Uninstall(scope Scope) error {
 
 // InstallStatusLine writes a statusLine entry pointing at command.
 // Idempotent: replaces an existing debate-owned statusLine; leaves a
-// foreign statusLine alone (returns ErrStatusLineConflict so the
-// caller can decide to overwrite or skip).
-func InstallStatusLine(scope Scope, command string) error {
+// foreign statusLine alone unless force is true. When force is false
+// and a foreign statusLine is present, returns ErrStatusLineConflict
+// so the caller can report the existing command.
+func InstallStatusLine(scope Scope, command string, force bool) error {
 	if command == "" {
 		return fmt.Errorf("statusLine command required")
 	}
@@ -95,7 +96,7 @@ func InstallStatusLine(scope Scope, command string) error {
 	// it as debate-owned. A non-object value (string, array, number,
 	// bool) is foreign by definition - debate only ever writes the
 	// {type, command} object form.
-	if raw, present := settings["statusLine"]; present {
+	if raw, present := settings["statusLine"]; present && !force {
 		obj, ok := raw.(map[string]any)
 		if !ok {
 			return ErrStatusLineConflict
@@ -110,6 +111,30 @@ func InstallStatusLine(scope Scope, command string) error {
 		"command": command,
 	}
 	return writeSettingsAtomic(p, settings)
+}
+
+// ReadStatusLineCommand returns the current statusLine command in
+// scope's settings.json, or "" if no statusLine is set or settings.json
+// can't be read. Used by the install-hook UX to report what the user
+// has now before deciding whether to force-overwrite.
+func ReadStatusLineCommand(scope Scope) string {
+	p, err := SettingsPath(scope)
+	if err != nil {
+		return ""
+	}
+	settings, err := readSettings(p)
+	if err != nil {
+		return ""
+	}
+	switch v := settings["statusLine"].(type) {
+	case map[string]any:
+		if cmd, ok := v["command"].(string); ok {
+			return cmd
+		}
+	case string:
+		return v
+	}
+	return ""
 }
 
 // ErrStatusLineConflict signals that a non-debate statusLine entry is

@@ -266,7 +266,7 @@ func TestInstallStatusLine_RejectsStringForeignValue(t *testing.T) {
 		[]byte(`{"statusLine":"foreign command"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	err := InstallStatusLine(ScopeUser, "/usr/local/bin/debate status")
+	err := InstallStatusLine(ScopeUser, "/usr/local/bin/debate status", false)
 	if !errors.Is(err, ErrStatusLineConflict) {
 		t.Fatalf("got %v, want ErrStatusLineConflict", err)
 	}
@@ -280,11 +280,70 @@ func TestInstallStatusLine_RejectsStringForeignValue(t *testing.T) {
 func TestInstallStatusLine_OverwritesDebateOwned(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
-	if err := InstallStatusLine(ScopeUser, "/usr/local/bin/debate status"); err != nil {
+	if err := InstallStatusLine(ScopeUser, "/usr/local/bin/debate status", false); err != nil {
 		t.Fatal(err)
 	}
-	if err := InstallStatusLine(ScopeUser, "/opt/debate status"); err != nil {
+	if err := InstallStatusLine(ScopeUser, "/opt/debate status", false); err != nil {
 		t.Fatalf("re-install on debate-owned entry should succeed: %v", err)
+	}
+}
+
+func TestInstallStatusLine_ForceOverwritesForeign(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	settings := filepath.Join(dir, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(settings), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(settings,
+		[]byte(`{"statusLine":{"type":"command","command":"node /path/to/foreign.cjs"}}`),
+		0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := InstallStatusLine(ScopeUser, "/usr/local/bin/debate status", true); err != nil {
+		t.Fatalf("force should overwrite foreign value: %v", err)
+	}
+	b, _ := os.ReadFile(settings)
+	if !strings.Contains(string(b), "/usr/local/bin/debate status") {
+		t.Errorf("debate status not written: %s", b)
+	}
+	if strings.Contains(string(b), "foreign.cjs") {
+		t.Errorf("foreign value should be replaced under force: %s", b)
+	}
+}
+
+func TestReadStatusLineCommand(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+
+	// No settings.json yet -> empty.
+	if got := ReadStatusLineCommand(ScopeUser); got != "" {
+		t.Errorf("missing file: got %q", got)
+	}
+
+	settings := filepath.Join(dir, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(settings), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Object form.
+	if err := os.WriteFile(settings,
+		[]byte(`{"statusLine":{"type":"command","command":"node /a.cjs"}}`),
+		0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := ReadStatusLineCommand(ScopeUser); got != "node /a.cjs" {
+		t.Errorf("object form: got %q", got)
+	}
+
+	// Bare-string form.
+	if err := os.WriteFile(settings,
+		[]byte(`{"statusLine":"node /b.cjs"}`),
+		0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := ReadStatusLineCommand(ScopeUser); got != "node /b.cjs" {
+		t.Errorf("string form: got %q", got)
 	}
 }
 

@@ -317,8 +317,7 @@ func exitCodeFor(err error) int {
 }
 
 func installHookCmd() *cobra.Command {
-	var scope, command string
-	var withStatusLine bool
+	var scope, command, withStatusLine string
 	cmd := &cobra.Command{
 		Use:   "install-hook",
 		Short: "Install the Stop hook into ~/.claude/settings.json (or project)",
@@ -340,18 +339,27 @@ func installHookCmd() *cobra.Command {
 			if err := hook.Install(s, command); err != nil {
 				return err
 			}
-			if withStatusLine {
-				err := hook.InstallStatusLine(s, exe+" status")
+			switch withStatusLine {
+			case "":
+				// flag not passed; do nothing
+			case "auto", "force":
+				force := withStatusLine == "force"
+				err := hook.InstallStatusLine(s, exe+" status", force)
 				switch {
 				case err == nil:
 					_, _ = fmt.Fprintln(os.Stderr,
 						"debate: statusLine installed; live progress will render at the bottom of the claude TUI during a hook-triggered run")
 				case errors.Is(err, hook.ErrStatusLineConflict):
-					_, _ = fmt.Fprintln(os.Stderr,
-						"debate: statusLine already set to a non-debate command; left it alone. To switch, remove the existing entry from your settings.json and re-run install-hook --with-statusline.")
+					existing := hook.ReadStatusLineCommand(s)
+					_, _ = fmt.Fprintf(os.Stderr,
+						"debate: statusLine already set to:\n  %s\nleft it alone. Re-run with --with-statusline=force to overwrite,\n"+
+							"or compose manually by writing a wrapper that runs both commands and prints both output lines.\n",
+						existing)
 				default:
 					return err
 				}
+			default:
+				return fmt.Errorf("--with-statusline: unknown value %q (allowed: auto, force)", withStatusLine)
 			}
 			return nil
 		},
@@ -359,8 +367,15 @@ func installHookCmd() *cobra.Command {
 	cmd.Flags().StringVar(&scope, "scope", "user", "user | project")
 	cmd.Flags().StringVar(&command, "command", "",
 		"explicit hook command string (default: \"<this binary> hook\")")
-	cmd.Flags().BoolVar(&withStatusLine, "with-statusline", false,
-		"also install a statusLine entry pointing at \"<this binary> status\" so live progress renders in the claude TUI")
+	cmd.Flags().StringVar(&withStatusLine, "with-statusline", "",
+		"also install a statusLine entry pointing at \"<this binary> status\" "+
+			"(values: auto = skip if a non-debate statusLine is already set; "+
+			"force = overwrite it). Default empty = do not install.")
+	// `--with-statusline` with no value -> "auto" (preserves the
+	// natural "boolean-ish" UX of the original flag).
+	if f := cmd.Flags().Lookup("with-statusline"); f != nil {
+		f.NoOptDefVal = "auto"
+	}
 	// Back-compat: old name. Same effect.
 	cmd.Flags().StringVar(&command, "script-path", command,
 		"deprecated alias for --command; pass a script path or any shell command")
