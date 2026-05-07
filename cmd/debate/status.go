@@ -6,12 +6,19 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 )
+
+// roundFileRE matches the on-disk round-file naming contract:
+// r<n>-critic.md or r<n>-proposer.md (n >= 1). Matching anything
+// looser (e.g. `r*.md`) lets a stray markdown file in the rounds
+// directory advance the displayed round count.
+var roundFileRE = regexp.MustCompile(`^r\d+-(critic|proposer)\.md$`)
 
 // statusCmd renders a one-line status for the most recent debate run
 // in the current cwd. Designed for Claude Code's `statusLine` setting:
@@ -182,7 +189,10 @@ func countRoundFiles(roundsDir string) int {
 	}
 	n := 0
 	for _, e := range entries {
-		if !e.IsDir() && strings.HasPrefix(e.Name(), "r") && strings.HasSuffix(e.Name(), ".md") {
+		if e.IsDir() {
+			continue
+		}
+		if roundFileRE.MatchString(e.Name()) {
 			n++
 		}
 	}

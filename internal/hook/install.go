@@ -91,8 +91,16 @@ func InstallStatusLine(scope Scope, command string) error {
 	if err != nil {
 		return err
 	}
-	if existing, ok := settings["statusLine"].(map[string]any); ok {
-		cmd, _ := existing["command"].(string)
+	// Treat any pre-existing value as foreign unless we can recognise
+	// it as debate-owned. A non-object value (string, array, number,
+	// bool) is foreign by definition - debate only ever writes the
+	// {type, command} object form.
+	if raw, present := settings["statusLine"]; present {
+		obj, ok := raw.(map[string]any)
+		if !ok {
+			return ErrStatusLineConflict
+		}
+		cmd, _ := obj["command"].(string)
 		if !statusLineIsDebate(cmd) {
 			return ErrStatusLineConflict
 		}

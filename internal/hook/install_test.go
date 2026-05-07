@@ -2,6 +2,7 @@ package hook
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -246,6 +247,44 @@ func TestInstallNonexistentScopeError(t *testing.T) {
 func TestEntryReferencesDebate_NoCommand(t *testing.T) {
 	if entryReferencesDebate(map[string]any{}) {
 		t.Error("entry without hooks should not match")
+	}
+}
+
+// Regression for critic c1-2 (specs/14): a non-object foreign
+// statusLine value (string, array, etc.) was silently overwritten
+// because the type-assert to map[string]any failed and was treated
+// as "no existing entry". Now any pre-existing value that isn't a
+// debate-owned object is a conflict.
+func TestInstallStatusLine_RejectsStringForeignValue(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	settings := filepath.Join(dir, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(settings), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(settings,
+		[]byte(`{"statusLine":"foreign command"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := InstallStatusLine(ScopeUser, "/usr/local/bin/debate status")
+	if !errors.Is(err, ErrStatusLineConflict) {
+		t.Fatalf("got %v, want ErrStatusLineConflict", err)
+	}
+	// Foreign value must remain intact.
+	b, _ := os.ReadFile(settings)
+	if !strings.Contains(string(b), `"foreign command"`) {
+		t.Errorf("foreign value was clobbered: %s", b)
+	}
+}
+
+func TestInstallStatusLine_OverwritesDebateOwned(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	if err := InstallStatusLine(ScopeUser, "/usr/local/bin/debate status"); err != nil {
+		t.Fatal(err)
+	}
+	if err := InstallStatusLine(ScopeUser, "/opt/debate status"); err != nil {
+		t.Fatalf("re-install on debate-owned entry should succeed: %v", err)
 	}
 }
 

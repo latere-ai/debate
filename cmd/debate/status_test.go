@@ -58,6 +58,28 @@ func TestComputeStatusLine_StartingNoRoundsYet(t *testing.T) {
 	}
 }
 
+// Regression for critic c1-3 (specs/14): countRoundFiles used to
+// match every r*.md file, so a stray markdown file in the rounds
+// directory advanced the displayed round count past r1-critic.md.
+// Tightened to only accept r<digits>-(critic|proposer).md.
+func TestComputeStatusLine_IgnoresNonRoundMarkdown(t *testing.T) {
+	dir := t.TempDir()
+	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
+	rounds := filepath.Join(sess, "forks", "critic-1", "rounds")
+	mustMkdir(t, rounds)
+	mustWrite(t, filepath.Join(sess, "start.json"), `{"config":{"side_count":1}}`)
+	mustWrite(t, filepath.Join(rounds, "r1-critic.md"), "aspect: x\n")
+	// A stray non-round markdown file in the same directory must NOT
+	// be counted as a round file.
+	mustWrite(t, filepath.Join(rounds, "readme.md"), "notes")
+	mustWrite(t, filepath.Join(rounds, "r1-critic.md.bak"), "backup")
+
+	got := computeStatusLine(dir, time.Now())
+	if !strings.Contains(got, "R2 proposer") {
+		t.Errorf("got %q, want status to remain at R2 proposer", got)
+	}
+}
+
 func TestCountAttackStatuses_FoldByID(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "attacks.jsonl")

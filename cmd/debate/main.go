@@ -348,7 +348,7 @@ func installHookCmd() *cobra.Command {
 						"debate: statusLine installed; live progress will render at the bottom of the claude TUI during a hook-triggered run")
 				case errors.Is(err, hook.ErrStatusLineConflict):
 					_, _ = fmt.Fprintln(os.Stderr,
-						"debate: statusLine already set to a non-debate command; left it alone (pass --with-statusline=overwrite to force)")
+						"debate: statusLine already set to a non-debate command; left it alone. To switch, remove the existing entry from your settings.json and re-run install-hook --with-statusline.")
 				default:
 					return err
 				}
