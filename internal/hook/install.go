@@ -59,7 +59,8 @@ func Install(scope Scope, scriptPath string) error {
 }
 
 // Uninstall removes any Stop hook whose command ends in
-// debate-stop-hook.sh.
+// debate-stop-hook.sh or `/debate hook`, plus any debate-owned
+// statusLine entry.
 func Uninstall(scope Scope) error {
 	p, err := SettingsPath(scope)
 	if err != nil {
@@ -70,7 +71,56 @@ func Uninstall(scope Scope) error {
 		return err
 	}
 	patched := removeStopHook(settings)
+	patched = removeStatusLine(patched)
 	return writeSettingsAtomic(p, patched)
+}
+
+// InstallStatusLine writes a statusLine entry pointing at command.
+// Idempotent: replaces an existing debate-owned statusLine; leaves a
+// foreign statusLine alone (returns ErrStatusLineConflict so the
+// caller can decide to overwrite or skip).
+func InstallStatusLine(scope Scope, command string) error {
+	if command == "" {
+		return fmt.Errorf("statusLine command required")
+	}
+	p, err := SettingsPath(scope)
+	if err != nil {
+		return err
+	}
+	settings, err := readSettings(p)
+	if err != nil {
+		return err
+	}
+	if existing, ok := settings["statusLine"].(map[string]any); ok {
+		cmd, _ := existing["command"].(string)
+		if !statusLineIsDebate(cmd) {
+			return ErrStatusLineConflict
+		}
+	}
+	settings["statusLine"] = map[string]any{
+		"type":    "command",
+		"command": command,
+	}
+	return writeSettingsAtomic(p, settings)
+}
+
+// ErrStatusLineConflict signals that a non-debate statusLine entry is
+// already in settings.json; the caller should report the existing
+// command rather than overwrite silently.
+var ErrStatusLineConflict = fmt.Errorf("statusLine already set to a non-debate command")
+
+func removeStatusLine(settings map[string]any) map[string]any {
+	if existing, ok := settings["statusLine"].(map[string]any); ok {
+		cmd, _ := existing["command"].(string)
+		if statusLineIsDebate(cmd) {
+			delete(settings, "statusLine")
+		}
+	}
+	return settings
+}
+
+func statusLineIsDebate(cmd string) bool {
+	return strings.HasSuffix(cmd, "/debate status") || cmd == "debate status"
 }
 
 func readSettings(path string) (map[string]any, error) {

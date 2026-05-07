@@ -108,7 +108,7 @@ func realMain(args []string, stdout, stderr io.Writer) int {
 		return runErr
 	}
 
-	root.AddCommand(installHookCmd(), uninstallHookCmd(), hookCmd())
+	root.AddCommand(installHookCmd(), uninstallHookCmd(), hookCmd(), statusCmd())
 
 	// Install the signal-aware context so SIGINT / SIGTERM cancel the
 	// root context and propagate down through agent.Exec's process-group
@@ -318,6 +318,7 @@ func exitCodeFor(err error) int {
 
 func installHookCmd() *cobra.Command {
 	var scope, command string
+	var withStatusLine bool
 	cmd := &cobra.Command{
 		Use:   "install-hook",
 		Short: "Install the Stop hook into ~/.claude/settings.json (or project)",
@@ -329,19 +330,37 @@ func installHookCmd() *cobra.Command {
 			// Default: `<absolute-path-to-this-binary> hook`. Self-
 			// contained: no shell script on PATH, no `jq` dependency,
 			// works after a bare `go install`.
+			exe, err := os.Executable()
+			if err != nil {
+				return fmt.Errorf("locate self for hook command: %w", err)
+			}
 			if command == "" {
-				exe, err := os.Executable()
-				if err != nil {
-					return fmt.Errorf("locate self for hook command: %w", err)
-				}
 				command = exe + " hook"
 			}
-			return hook.Install(s, command)
+			if err := hook.Install(s, command); err != nil {
+				return err
+			}
+			if withStatusLine {
+				err := hook.InstallStatusLine(s, exe+" status")
+				switch {
+				case err == nil:
+					_, _ = fmt.Fprintln(os.Stderr,
+						"debate: statusLine installed; live progress will render at the bottom of the claude TUI during a hook-triggered run")
+				case errors.Is(err, hook.ErrStatusLineConflict):
+					_, _ = fmt.Fprintln(os.Stderr,
+						"debate: statusLine already set to a non-debate command; left it alone (pass --with-statusline=overwrite to force)")
+				default:
+					return err
+				}
+			}
+			return nil
 		},
 	}
 	cmd.Flags().StringVar(&scope, "scope", "user", "user | project")
 	cmd.Flags().StringVar(&command, "command", "",
 		"explicit hook command string (default: \"<this binary> hook\")")
+	cmd.Flags().BoolVar(&withStatusLine, "with-statusline", false,
+		"also install a statusLine entry pointing at \"<this binary> status\" so live progress renders in the claude TUI")
 	// Back-compat: old name. Same effect.
 	cmd.Flags().StringVar(&command, "script-path", command,
 		"deprecated alias for --command; pass a script path or any shell command")

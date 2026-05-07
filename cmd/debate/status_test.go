@@ -1,0 +1,123 @@
+package main
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestComputeStatusLine_NoSession(t *testing.T) {
+	if got := computeStatusLine(t.TempDir(), time.Now()); got != "" {
+		t.Errorf("expected empty, got %q", got)
+	}
+}
+
+func TestComputeStatusLine_FinishedSessionIsEmpty(t *testing.T) {
+	dir := t.TempDir()
+	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
+	mustMkdir(t, sess)
+	mustWrite(t, filepath.Join(sess, "end.json"), `{}`)
+	if got := computeStatusLine(dir, time.Now()); got != "" {
+		t.Errorf("finished session should produce empty status; got %q", got)
+	}
+}
+
+func TestComputeStatusLine_InProgress(t *testing.T) {
+	dir := t.TempDir()
+	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
+	mustMkdir(t, filepath.Join(sess, "forks", "critic-1", "rounds"))
+	mustWrite(t, filepath.Join(sess, "start.json"),
+		`{"schema":"debate.start.v0","config":{"side_count":4}}`)
+	mustWrite(t, filepath.Join(sess, "forks", "critic-1", "rounds", "r1-critic.md"),
+		"# Critic 1 - round 1 attacks\n\naspect: input-validation-security\n\n")
+	mustWrite(t, filepath.Join(sess, "attacks.jsonl"),
+		`{"attack_id":"c1-1","status":"open"}`+"\n"+
+			`{"attack_id":"c1-2","status":"conceded"}`+"\n")
+
+	got := computeStatusLine(dir, time.Now().Add(15*time.Second))
+	for _, want := range []string{
+		"[debate]", "1/4", "input-validation-securi", "R2 proposer", "1o 1c",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("want %q in status line, got %q", want, got)
+		}
+	}
+}
+
+func TestComputeStatusLine_StartingNoRoundsYet(t *testing.T) {
+	dir := t.TempDir()
+	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
+	mustMkdir(t, filepath.Join(sess, "forks", "critic-1", "rounds"))
+	mustWrite(t, filepath.Join(sess, "start.json"),
+		`{"config":{"side_count":2}}`)
+	got := computeStatusLine(dir, time.Now())
+	if !strings.Contains(got, "1/2") || !strings.Contains(got, "R1 critic") {
+		t.Errorf("expected starting/R1-critic shape, got %q", got)
+	}
+}
+
+func TestCountAttackStatuses_FoldByID(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "attacks.jsonl")
+	body := `{"attack_id":"c1-1","status":"open"}` + "\n" +
+		`{"attack_id":"c1-1","status":"conceded"}` + "\n" +
+		`{"attack_id":"c1-2","status":"open"}` + "\n" +
+		`{"attack_id":"c1-3","status":"rebutted"}` + "\n"
+	mustWrite(t, p, body)
+	open, conceded, rebutted := countAttackStatuses(p)
+	if open != 1 || conceded != 1 || rebutted != 1 {
+		t.Errorf("got open=%d conceded=%d rebutted=%d, want 1/1/1", open, conceded, rebutted)
+	}
+}
+
+func TestShortTopic(t *testing.T) {
+	if got := shortTopic("short"); got != "short" {
+		t.Errorf("got %q", got)
+	}
+	long := strings.Repeat("x", 40)
+	got := shortTopic(long)
+	if !strings.HasSuffix(got, "…") {
+		t.Errorf("long topic not ellipsized: %q", got)
+	}
+	// 23 ascii xs + the ellipsis rune; rune count is 24, byte length
+	// is 23 + 3 (UTF-8 ellipsis is 3 bytes).
+	if n := len([]rune(got)); n != 24 {
+		t.Errorf("rune count: got %d, want 24", n)
+	}
+}
+
+func TestFmtElapsed(t *testing.T) {
+	cases := map[time.Duration]string{
+		5 * time.Second:               "5s",
+		59 * time.Second:              "59s",
+		60 * time.Second:              "1m00s",
+		90 * time.Second:              "1m30s",
+		3*time.Minute + 5*time.Second: "3m05s",
+	}
+	for in, want := range cases {
+		if got := fmtElapsed(in); got != want {
+			t.Errorf("fmtElapsed(%s) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// helpers
+
+func mustMkdir(t *testing.T, p string) {
+	t.Helper()
+	if err := os.MkdirAll(p, 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func mustWrite(t *testing.T, p, body string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
