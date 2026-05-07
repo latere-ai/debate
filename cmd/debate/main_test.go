@@ -191,6 +191,14 @@ func TestRealMain_BareShowsHelp(t *testing.T) {
 
 func TestRealMain_PreflightExitCode(t *testing.T) {
 	// --judge llm is rejected by preflight (v0 only supports 'none').
+	// Explicitly unset DEBATE_IN_PROGRESS so an outer shell that's been
+	// running hook smokes (and exported it) does not silently trigger
+	// the recursion guard and mask the failure we're testing.
+	t.Setenv("DEBATE_IN_PROGRESS", "")
+	if err := os.Unsetenv("DEBATE_IN_PROGRESS"); err != nil {
+		t.Fatal(err)
+	}
+
 	var buf strings.Builder
 	code := realMain([]string{
 		"--task-context", "x",
