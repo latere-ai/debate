@@ -258,6 +258,47 @@ func TestInstallHookCmd_WithStatusLineFalseAlias(t *testing.T) {
 	}
 }
 
+// Pins the concession to debate critic c1-3: pflag.BoolVar uses
+// strconv.ParseBool, which accepts t / T / TRUE / True / f / F /
+// FALSE / False on top of the lowercase forms rc7 added. The
+// --with-statusline back-compat handler matches the same set
+// case-insensitively.
+func TestInstallHookCmd_WithStatusLineLegacyBoolAliases(t *testing.T) {
+	enables := []string{"t", "T", "TRUE", "True", "1", "yes", "true"}
+	disables := []string{"f", "F", "FALSE", "False", "0", "no", "false"}
+
+	for _, v := range enables {
+		t.Run("enable-"+v, func(t *testing.T) {
+			dir := t.TempDir()
+			t.Setenv("HOME", dir)
+			cmd := installHookCmd()
+			cmd.SetArgs([]string{"--with-statusline=" + v})
+			if err := cmd.Execute(); err != nil {
+				t.Fatalf("--with-statusline=%s: %v", v, err)
+			}
+			b, _ := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
+			if !strings.Contains(string(b), "\"statusLine\"") {
+				t.Errorf("=%s should install statusLine; got: %s", v, b)
+			}
+		})
+	}
+	for _, v := range disables {
+		t.Run("disable-"+v, func(t *testing.T) {
+			dir := t.TempDir()
+			t.Setenv("HOME", dir)
+			cmd := installHookCmd()
+			cmd.SetArgs([]string{"--with-statusline=" + v})
+			if err := cmd.Execute(); err != nil {
+				t.Fatalf("--with-statusline=%s: %v", v, err)
+			}
+			b, _ := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
+			if strings.Contains(string(b), "\"statusLine\"") {
+				t.Errorf("=%s should NOT install statusLine; got: %s", v, b)
+			}
+		})
+	}
+}
+
 func TestInstallHookCmd_WithStatusLineUnknownValueErrors(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)

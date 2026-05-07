@@ -11,6 +11,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"syscall"
 	"time"
 
@@ -340,16 +341,19 @@ func installHookCmd() *cobra.Command {
 				return err
 			}
 			// Map back-compat boolean values from the rc5 BoolVar flag
-			// onto the rc6 tri-state. `true` and `1` are the explicit
-			// "enable" form (= auto); `false`, `0`, `no` are the
-			// explicit "disable" form (no-op). Without these aliases,
-			// any wrapper script that emitted --with-statusline=true
-			// or =false against rc5 fails hard against rc6.
+			// onto the rc6 tri-state. pflag's BoolVar uses
+			// strconv.ParseBool, which accepts every spelling in
+			// {1, t, T, TRUE, true, True} for true and the equivalent
+			// false set, so the alias table matches strconv.ParseBool
+			// case-insensitively, plus the user-friendly yes/no.
+			// Without this, any wrapper script that emitted
+			// --with-statusline=TRUE / =T / =F against rc5 fails hard
+			// against rc6.
 			normalized := withStatusLine
-			switch withStatusLine {
-			case "true", "1", "yes":
+			switch strings.ToLower(withStatusLine) {
+			case "true", "t", "1", "yes":
 				normalized = "auto"
-			case "false", "0", "no":
+			case "false", "f", "0", "no":
 				normalized = ""
 			}
 			switch normalized {
