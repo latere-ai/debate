@@ -228,6 +228,13 @@ func agentFamily(name string) string {
 // whether the transcript's session lives under the current working
 // directory.
 //
+// The match requires the *.claude/projects/<encoded>* triple
+// consecutively, not just any directory named "projects". An
+// unrelated `projects` segment in a workspace path (e.g.
+// /tmp/work/projects/notes/session.jsonl) used to false-flag and
+// reject otherwise-valid transcripts (regression spotted by debate
+// c1-1, 2026-05-07).
+//
 // Decoding the segment back to a path is intrinsically lossy (claude
 // maps both `/` and `.` to `-`), so any check that needs to be sound
 // must compare in encoded space.
@@ -237,9 +244,9 @@ func encodedSegmentFromTranscript(path string) string {
 		return ""
 	}
 	parts := strings.Split(filepath.ToSlash(abs), "/")
-	for i, p := range parts {
-		if p == "projects" && i+1 < len(parts) {
-			return parts[i+1]
+	for i := 0; i+2 < len(parts); i++ {
+		if parts[i] == ".claude" && parts[i+1] == "projects" {
+			return parts[i+2]
 		}
 	}
 	return ""

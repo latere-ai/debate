@@ -130,6 +130,13 @@ func TestEncodedSegmentFromTranscript(t *testing.T) {
 		{"projects-segment-passthrough", "/Users/x/.claude/projects/-tmp-abc/sess.jsonl", "-tmp-abc"},
 		{"with-dotted-segment", "/Users/x/.claude/projects/-Users-y-foo-bar-baz/sess.jsonl", "-Users-y-foo-bar-baz"},
 		{"empty", "", ""},
+
+		// Regression for debate c1-1 (2026-05-07): an unrelated
+		// "projects" directory in a workspace path must NOT be
+		// treated as claude's projects/ marker. Only `.claude/projects/<x>`
+		// consecutively counts.
+		{"non-claude-projects-dir-ignored", "/tmp/work/projects/notes/session.jsonl", ""},
+		{"projects-without-dot-claude-parent", "/var/projects/sub/session.jsonl", ""},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -138,6 +145,17 @@ func TestEncodedSegmentFromTranscript(t *testing.T) {
 				t.Errorf("got %q, want %q", got, c.want)
 			}
 		})
+	}
+}
+
+// Verbatim repro from critic c1-1 (specs/14 attack format):
+// /tmp/work/projects/notes/session.jsonl must return "" because
+// the helper is documented as matching ~/.claude/projects/<encoded>/
+// only.
+func TestEncodedSegmentFromTranscriptIgnoresNonClaudeProjectsDir(t *testing.T) {
+	got := encodedSegmentFromTranscript("/tmp/work/projects/notes/session.jsonl")
+	if got != "" {
+		t.Fatalf("got %q, want empty for non-.claude/projects transcript path", got)
 	}
 }
 
