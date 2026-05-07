@@ -3,7 +3,11 @@ package cli
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
+
+	"latere.ai/x/debate/internal/input"
 )
 
 func TestPreflightCostCapMin(t *testing.T) {
@@ -79,17 +83,57 @@ func TestPreflightErrorNoWrap(t *testing.T) {
 	}
 }
 
-func TestDecodeCwdFromTranscript(t *testing.T) {
+// TestPreflightTranscriptDottedCwdDoesNotFalseFlag pins the bug
+// reported on rc2: a repo path containing a dot (e.g.
+// /Users/x/dev/changkun.de/debate) was rejected by preflight because
+// the lossy decoder mapped both `/` and `.` to `-`, then decoded `-`
+// blindly to `/`. Now we compare in encoded space and the dotted
+// path matches itself.
+func TestPreflightTranscriptDottedCwdDoesNotFalseFlag(t *testing.T) {
+	tmp := t.TempDir()
+	dotted := filepath.Join(tmp, "host.tld", "repo")
+	if err := os.MkdirAll(dotted, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dotted)
+
+	// Synthesize a transcript path that lives under the encoded form
+	// of the dotted cwd.
+	home := t.TempDir()
+	encoded := input.EncodeCwd(dotted)
+	transcriptDir := filepath.Join(home, ".claude", "projects", encoded)
+	if err := os.MkdirAll(transcriptDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	transcript := filepath.Join(transcriptDir, "abc.jsonl")
+	if err := os.WriteFile(transcript, []byte(`{}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	f := DefaultFlags()
+	f.Transcript = transcript
+	if _, err := Preflight(context.Background(), f); err != nil {
+		var pe *PreflightError
+		if errors.As(err, &pe) && pe.Code == 101 {
+			t.Errorf("preflight false-flagged a dotted-cwd transcript: %v", err)
+		}
+		// Other errors (e.g. validation paths unrelated to transcript)
+		// are not the regression we're guarding against.
+	}
+}
+
+func TestEncodedSegmentFromTranscript(t *testing.T) {
 	cases := []struct {
 		name, in, want string
 	}{
 		{"no-projects-segment", "/some/random/file.jsonl", ""},
-		{"projects-segment-decoded", "/Users/x/.claude/projects/-tmp-abc/sess.jsonl", "/tmp/abc"},
+		{"projects-segment-passthrough", "/Users/x/.claude/projects/-tmp-abc/sess.jsonl", "-tmp-abc"},
+		{"with-dotted-segment", "/Users/x/.claude/projects/-Users-y-foo-bar-baz/sess.jsonl", "-Users-y-foo-bar-baz"},
 		{"empty", "", ""},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := decodeCwdFromTranscript(c.in)
+			got := encodedSegmentFromTranscript(c.in)
 			if got != c.want {
 				t.Errorf("got %q, want %q", got, c.want)
 			}

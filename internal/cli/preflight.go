@@ -66,13 +66,24 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 		return nil, &PreflightError{Code: 101, Msg: "cannot make cwd absolute", Wrap: err}
 	}
 	if f.Transcript != "" {
-		// Best-effort: if the transcript path encodes a different cwd,
-		// flag it. The full encoding logic lives in spec 07; here we
-		// only short-circuit on the obvious mismatch.
-		if expected := decodeCwdFromTranscript(f.Transcript); expected != "" && expected != cwd {
-			return nil, &PreflightError{
-				Code: 101,
-				Msg:  fmt.Sprintf("--transcript points at a session whose cwd does not match the current directory; cd to %s and retry", expected),
+		// Compare in encoded space, not decoded. Decoding is lossy
+		// because claude maps both `/` and `.` to `-`, so a path
+		// containing a dot (e.g. /Users/x/dev/foo.bar/repo) decodes
+		// ambiguously and would falsely flag a real match. The
+		// --session-id branch below has always done this right;
+		// this branch used to use the lossy decoder and rejected
+		// any cwd with a `.` in it.
+		if expected := encodedSegmentFromTranscript(f.Transcript); expected != "" {
+			ours := input.EncodeCwd(cwd)
+			if expected != ours {
+				return nil, &PreflightError{
+					Code: 101,
+					Msg: fmt.Sprintf(
+						"--transcript points at a session under projects/%s but the current cwd encodes to %s; "+
+							"the original directory is approximately %q (claude's encoding maps both `/` and `.` to `-` so this hint may need a `.` or a `-` swapped); "+
+							"cd there and rerun (claude --resume is cwd-scoped)",
+						expected, ours, input.DecodeCwd(expected)),
+				}
 			}
 		}
 	} else if f.SessionID != "" {
@@ -210,10 +221,17 @@ func agentFamily(name string) string {
 	}
 }
 
-// decodeCwdFromTranscript best-effort decodes the encoded cwd embedded
-// in a path like ~/.claude/projects/-Users-x-y/<id>.jsonl. Returns "" if
-// the path does not match that shape.
-func decodeCwdFromTranscript(path string) string {
+// encodedSegmentFromTranscript pulls the encoded cwd directory name
+// embedded in a path like ~/.claude/projects/-Users-x-y/<id>.jsonl
+// and returns it verbatim. Returns "" if the path doesn't match that
+// shape. Compare the result against input.EncodeCwd(cwd) to check
+// whether the transcript's session lives under the current working
+// directory.
+//
+// Decoding the segment back to a path is intrinsically lossy (claude
+// maps both `/` and `.` to `-`), so any check that needs to be sound
+// must compare in encoded space.
+func encodedSegmentFromTranscript(path string) string {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return ""
@@ -221,8 +239,7 @@ func decodeCwdFromTranscript(path string) string {
 	parts := strings.Split(filepath.ToSlash(abs), "/")
 	for i, p := range parts {
 		if p == "projects" && i+1 < len(parts) {
-			encoded := parts[i+1]
-			return strings.ReplaceAll(encoded, "-", "/")
+			return parts[i+1]
 		}
 	}
 	return ""
