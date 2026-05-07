@@ -79,3 +79,66 @@ a numbered GA gate from spec 27 and writes its outcome into
 All specs are marked ✅ implemented. Spec status lines individually
 record what's verified, what's deferred, and what was changed during
 the release cut.
+
+## Related research and future work
+
+`debate` productizes the architecture from
+[agents-byzantine-tolerance](https://github.com/changkun/agents-byzantine-tolerance)
+spec 07 ([Adversarial
+Debate](https://github.com/changkun/agents-byzantine-tolerance/blob/main/specs/07-adversarial-debate.md)).
+The same research line has six follow-up specs (08–13) that explore
+extensions and limits of the debate protocol. Each one's empirical
+result either licenses or constrains the productization direction
+here:
+
+- **[BFT 08 - Compute-Asymmetric Debate](https://github.com/changkun/agents-byzantine-tolerance/blob/main/specs/08-compute-asymmetric-debate.md)**
+  - tests Brown-Cohen et al. (2023) doubly-efficient debate at
+  {1×, 5×, 10×, 50×} compute asymmetry between honest and Byzantine
+  players. **Future work:** if soundness stays flat under compute
+  asymmetry, expose per-role compute knobs (proposer vs. critic
+  model, max-turn, retry budget) so users can defend against a
+  well-resourced attacker without paying matched compute themselves.
+- **[BFT 09 - Debate Depth and Recursive Sub-Debate](https://github.com/changkun/agents-byzantine-tolerance/blob/main/specs/09-debate-depth-recursion.md)**
+  - sweeps round budget K ∈ {2, 4, 8, 12} on the flat protocol and
+  compares flat-K vs. recursive sub-debate at matched total compute.
+  **Future work:** the answer determines whether the v1 productization
+  axis is "more rounds" (just raise `--max-turn` defaults) or
+  "structured recursion" (a real architectural addition: sub-debates
+  spawned per unresolved leaf).
+- **[BFT 10 - Stochastic-System Soundness](https://github.com/changkun/agents-byzantine-tolerance/blob/main/specs/10-stochastic-system-soundness.md)**
+  - necessary-condition check that soundness survives the LLM
+  temperature range. **Future work:** if soundness drops above some
+  T\*, debate must pin temperature on both proposer and critic - which
+  means a `--temperature` flag and refusing to run against agent
+  configs that override it. Today we trust the agent CLI defaults.
+- **[BFT 11 - Verifier as Spot-Check (PCP leaf format)](https://github.com/changkun/agents-byzantine-tolerance/blob/main/specs/11-pcp-leaf-spot-check.md)**
+  - tightens leaf "stakes" from freeform prose to structured tuples
+  (`{file_path, line_range, expected_byte_pattern}`) and measures the
+  soundness/judge-cost Pareto. **Future work:** narrower stakes
+  reduce the human's read time on `summary.md`; spec 13 here already
+  picks the stake from the critic's reproduction field, but a
+  structured leaf format would let the headline render as a
+  click-to-jump reference instead of a paragraph.
+- **[BFT 12 - Adversarial Obfuscation / Prover-Estimator Debate](https://github.com/changkun/agents-byzantine-tolerance/blob/main/specs/12-prover-estimator-obfuscation.md)**
+  - identifies the obfuscated-arguments attack class and tests the
+  Prover-Estimator fix from Brown-Cohen et al. (2025). **Future
+  work:** if obfuscation is a real LLM attack class, the binary
+  concede/rebut/withdraw critic in spec 13 here is unsound on
+  pathological diffs. The fix is replacing the critic's
+  binary-disposition contract with a scalar plausibility estimator.
+  This is a v2-class architectural change, not a config tweak.
+- **[BFT 13 - Debate Query Complexity (DQC) Scaling](https://github.com/changkun/agents-byzantine-tolerance/blob/main/specs/13-dqc-scaling.md)**
+  - measures whether judge-read tokens scale as O(log *n*) or
+  O(*n*^a) as snippet complexity grows. **Future work:** the empirical
+  scaling slope bounds the headline-rendering story. If LLM debate
+  doesn't realize the doubly-efficient property at scale, the
+  contention-scored headline (spec 22 here) becomes the *only*
+  doubly-efficient channel and `summary.md` body length needs an
+  explicit cap.
+
+The general pattern: the BFT-repo line answers "is debate sound under
+condition X?"; this repo asks "given the answer, what does the
+production tool look like?" Most of the answers point at v1 work
+items already in [01-overview.md §v1](01-overview.md), but BFT specs
+12 (Prover-Estimator) and 09 (recursion) describe architectural
+changes large enough to be v2 territory.
