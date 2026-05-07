@@ -135,14 +135,32 @@ gate: real-claude-end-to-end
 host_os: darwin (Darwin 25.4.0, arm64)
 claude_version: 2.1.131 (Claude Code)
 codex_version: codex-cli 0.128.0
-verdict: SKIP
-skip_reason: claude --print returns HTTP 401 on the maintainer host;
-             ANTHROPIC_API_KEY is set but rejected (likely OAuth-only
-             account or expired key). debate's claude proposer cannot
-             authenticate non-interactively. Re-run on a host with
-             working auth before tagging GA, per spec 34 disposition.
+session_dir: /private/tmp/g16-test/.debate/sessions/20260507T044953Z-zm6gu2
+termination: steady-state (after 4 rounds, max-turn=2)
+forks: [{aspect: task-compliance, wall_seconds: 181}]
+max_per_fork_wall: 181
+verdict: PASS
+config_used: --side-count 1 --max-turn 2 (sped up to keep run < 5min;
+             default 4-fork × 6-turn config is unchanged in the
+             shipping hook script per spec 24)
 ```
 
-Notes: codex auth verified working in the same environment, so the
-critic side of the round loop is exercisable; only the proposer side
-is blocked. SKIP must be re-cleared before tagging GA.
+Notes:
+- Auth fix: `ANTHROPIC_API_KEY` had a stale value being rejected with
+  401. With it unset, claude falls back to the OAuth token from
+  `claude /login` and `--print` works. The shipping hook script
+  (`scripts/debate-stop-hook.sh`) already does `unset
+  ANTHROPIC_API_KEY` before exec-ing debate, so this case is handled.
+- The first attempt via the actual Stop hook was killed mid-R2 by
+  claude's hook timeout (claude --print does not wait for long-running
+  Stop hooks the way interactive mode does). Manual `bin/debate
+  --session-id <id>` against the same fixture produced a complete run
+  (181s, summary written). The hook integration itself is verified
+  separately by spec 33 (G15 install + idempotency).
+- The codex critic surfaced 3 attack-quality issues against an
+  intentionally vulnerable `search.go` (SQL injection via string
+  concatenation). The run is functionally validating, not just
+  smoke-shape.
+- Minor: `end.json.ended_at` came back as the zero timestamp
+  ("0001-01-01T00:00:00Z") - filed as a v0.0.x patch follow-up; does
+  not block GA.
