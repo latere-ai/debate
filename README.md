@@ -12,12 +12,34 @@ which topics are taken and pick something else. No debate content
 ever lands in the root Claude session - debate happens in branched
 forks off the root.
 
-> Status: v0 implementation complete. Design lives in
-> [specs/01-overview.md](specs/01-overview.md); per-component
-> contracts under [specs/](specs/). v0 GA is gated on upstream
-> [agents-byzantine-tolerance](https://github.com/changkun/agents-byzantine-tolerance)
-> 07a per-topic rates and the no-output Stop-hook probe - see
-> [specs/27-release.md](specs/27-release.md).
+## Specs
+
+The design and per-component contracts live under [specs/](specs/).
+Read in order; each builds on the ones before it.
+
+- [01 Overview](specs/01-overview.md) - architecture, fork model, v0/v1 split
+- [02 Go module + layout](specs/02-go-module.md)
+- [03 CI, lint, release](specs/03-ci-lint-release.md)
+- [04 CLI flags](specs/04-cli-flags.md)
+- [05 `.debate.toml` config](specs/05-config-file.md)
+- [06 Preflight](specs/06-preflight.md)
+- [07 Claude transcript ingest](specs/07-claude-transcript.md)
+- [08 Diff capture](specs/08-diff.md)
+- [09 State directory](specs/09-state-dir.md) - [10 Run artifacts](specs/10-run-artifacts.md) - [11 Fork artifacts](specs/11-fork-artifacts.md)
+- [12 Attacks ledger](specs/12-attacks-ledger.md) - [13 Critic output format](specs/13-critic-output-format.md) - [14 Attack parser](specs/14-attack-parser.md)
+- [15 Aspect prompts](specs/15-aspect-prompts.md)
+- [16 Subprocess infra](specs/16-subprocess-infra.md) - [17 Claude proposer](specs/17-claude-proposer.md) - [18 Critic drivers](specs/18-critic-drivers.md)
+- [19 Round loop](specs/19-round-loop.md) - [20 Termination](specs/20-termination.md) - [21 Signals](specs/21-signals.md)
+- [22 Contention headline](specs/22-contention-headline.md) - [23 Summary render](specs/23-summary-render.md)
+- [24 Stop hook](specs/24-stop-hook.md)
+- [25 Probes](specs/25-probes.md) - [26 Tests](specs/26-tests.md) - [27 Release](specs/27-release.md)
+- [28-34](specs/28-probe-no-output-stop-hook-outcome.md) release-cut gate recordings; [35](specs/35-release-notes-channel.md) chooses the in-repo notes file.
+
+Release-cut evidence (probe outcomes, smoke recordings) is committed
+to [release-notes-v0.0.1.md](release-notes-v0.0.1.md). v0 GA is also
+gated on upstream
+[agents-byzantine-tolerance](https://github.com/changkun/agents-byzantine-tolerance)
+07a per-topic rates - see [specs/27-release.md](specs/27-release.md).
 
 ## Installation
 
@@ -72,11 +94,10 @@ debate \
   --max-turn 6
 ```
 
-There is no `--aspect` flag. Each of the four critics picks its own
-topic in R1; the orchestrator passes prior critics' topics to each
-later critic as anti-duplication signal. `debate --help` lists every
-flag. Exit codes: 0 clean, 1 unresolved leaves, 130 interrupted, 100s
-pre-flight failure.
+Each of the four critics picks its own topic in R1; the orchestrator
+passes prior critics' topics to each later critic as anti-duplication
+signal. `debate --help` lists every flag. Exit codes: 0 clean,
+1 unresolved leaves, 130 interrupted, 100s pre-flight failure.
 
 ## Design architecture
 
@@ -105,8 +126,10 @@ Five load-bearing pieces (full design in
 
 - **Forked debate, no debate content in root.** Each critic gets its
   own claude fork via `--fork-session`. The user's root transcript
-  never sees a debate turn. (The Stop-hook path may add a single
-  hook-status attachment per run - probe owed before v0 GA.)
+  never sees a debate turn. Probe-confirmed against claude 2.1.131:
+  a no-output Stop hook produces zero `hook_*` attachments, so the
+  invariant holds across modes including the Stop-hook path. See
+  [specs/28](specs/28-probe-no-output-stop-hook-outcome.md).
 - **Verbatim channel.** Critic output reaches the proposer-clone as a
   plain user turn pointing at a file: `Some comments at @<path>.
   Please resolve or respond.` No skill, slash-command, or
