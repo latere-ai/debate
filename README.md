@@ -19,25 +19,22 @@ to [release-notes-v0.0.1.md](release-notes-v0.0.1.md).
 
 ## Installation
 
-Pre-compiled binaries (recommended). Pick the archive matching your
-platform from the
-[latest release](https://github.com/latere-ai/debate/releases/latest)
-- four targets: `darwin_amd64`, `darwin_arm64`, `linux_amd64`,
-`linux_arm64`. With `gh` installed:
-
 ```sh
-TAG=$(gh release list --limit 1 --json tagName -q '.[0].tagName' --repo latere-ai/debate)
-gh release download $TAG --repo latere-ai/debate \
-  --pattern "debate_*_$(uname -s | tr A-Z a-z)_$(uname -m | sed 's/x86_64/amd64/').tar.gz"
-tar -xzf debate_*_*_*.tar.gz
-sudo install debate /usr/local/bin/
-debate install-hook --scope user
+curl -fsSL https://raw.githubusercontent.com/latere-ai/debate/main/install.sh | sh
 ```
 
-The tarball ships the binary plus `LICENSE`, `README.md`, and the
-legacy `debate-stop-hook.sh` for users who prefer the script-based
-hook. Verify with `sha256sum -c checksums.txt` from the release
-assets.
+The script detects your OS / arch, fetches the latest release tarball
+from
+[github.com/latere-ai/debate/releases](https://github.com/latere-ai/debate/releases),
+verifies the sha256 checksum, installs `debate` to `/usr/local/bin`
+(via `sudo` if needed), and runs `debate install-hook --scope user`.
+Knobs:
+
+```sh
+DEBATE_VERSION=v0.0.1-rc2  # pin a specific tag; default: latest
+DEBATE_PREFIX=$HOME/.local # binary lands at $DEBATE_PREFIX/bin
+DEBATE_NO_HOOK=1           # skip the install-hook step
+```
 
 From source (requires Go 1.26+):
 
@@ -48,7 +45,7 @@ debate install-hook --scope user
 
 `install-hook` merges the verbose-format Stop hook entry into
 `~/.claude/settings.json` (or `./.claude/settings.json` with `--scope
-project`). The entry is `<path-to>/debate hook` - a built-in
+project`). The entry is `<path-to>/debate hook` — a built-in
 subcommand of the binary, so no separate shell script needs to be on
 PATH. `uninstall-hook` removes it.
 
