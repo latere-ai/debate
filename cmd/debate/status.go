@@ -89,8 +89,14 @@ func computeStatusLine(cwd string, now time.Time) string {
 	// Finished. Show a terminal-state summary briefly so the user can
 	// see "the run just ended"; after that, fall through to idleBar so
 	// the stale progress frame doesn't stick.
+	//
+	// Require age >= 0 too: a future-dated end.json (clock skew,
+	// restored backup, or fixture-generated future mtime) would
+	// otherwise produce a negative `now.Sub(...)` that trivially
+	// satisfies `<= window` and pin the terminal-state line forever.
 	if endInfo, err := os.Stat(filepath.Join(sessDir, "end.json")); err == nil {
-		if now.Sub(endInfo.ModTime()) <= recentlyDoneWindow {
+		age := now.Sub(endInfo.ModTime())
+		if age >= 0 && age <= recentlyDoneWindow {
 			return finishedStatusLine(sessDir)
 		}
 		return idleBar

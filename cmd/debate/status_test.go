@@ -33,6 +33,30 @@ func TestComputeStatusLine_RecentlyFinishedShowsTerminalState(t *testing.T) {
 	}
 }
 
+// TestComputeStatusLine_FutureEndMTimeFallsThroughToIdle pins the
+// regression flagged by critic c1-1 (specs/14, attack-format
+// reproduction): a future-dated end.json mtime made `now.Sub(...)`
+// negative, which trivially satisfied `<= recentlyDoneWindow` and
+// kept the terminal-state line visible indefinitely. The window now
+// requires age >= 0 too.
+func TestComputeStatusLine_FutureEndMTimeFallsThroughToIdle(t *testing.T) {
+	dir := t.TempDir()
+	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
+	mustMkdir(t, sess)
+	endPath := filepath.Join(sess, "end.json")
+	mustWrite(t, endPath, `{"termination":{"reason":"steady-state"}}`)
+
+	now := time.Now()
+	future := now.Add(24 * time.Hour)
+	if err := os.Chtimes(endPath, future, future); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := computeStatusLine(dir, now); got != idleBar {
+		t.Fatalf("future-dated end.json should not be recently done; got %q, want %q", got, idleBar)
+	}
+}
+
 func TestComputeStatusLine_OldFinishedFallsThroughToIdle(t *testing.T) {
 	dir := t.TempDir()
 	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
