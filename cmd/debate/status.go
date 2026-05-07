@@ -48,6 +48,20 @@ func statusCmd() *cobra.Command {
 	}
 }
 
+// recentlyDoneWindow controls how long after a session finishes we
+// keep showing the terminal-state line in the status bar instead of
+// going silent. Long enough that a finished run is visible after the
+// user notices their prompt returned; short enough not to confuse a
+// later, brand-new run.
+const recentlyDoneWindow = 2 * time.Minute
+
+// idleBar is what we print when there's nothing to show. A single
+// space rather than the empty string: claude's statusLine keeps the
+// previous frame visible across empty outputs, which would freeze
+// the bar on the last in-flight snapshot of a finished run. A space
+// is non-empty so claude renders it and the stale frame goes away.
+const idleBar = " "
+
 // computeStatusLine inspects <cwd>/.debate/sessions/<latest>/ and
 // returns a concise progress line. now is injected for tests; pass
 // time.Now() in production.
@@ -55,7 +69,7 @@ func computeStatusLine(cwd string, now time.Time) string {
 	sessionsDir := filepath.Join(cwd, ".debate", "sessions")
 	entries, err := os.ReadDir(sessionsDir)
 	if err != nil || len(entries) == 0 {
-		return ""
+		return idleBar
 	}
 
 	// Sessions are named "<UTC-timestamp>-<rand>" so lexicographic max
@@ -67,15 +81,19 @@ func computeStatusLine(cwd string, now time.Time) string {
 		}
 	}
 	if len(names) == 0 {
-		return ""
+		return idleBar
 	}
 	sort.Strings(names)
 	sessDir := filepath.Join(sessionsDir, names[len(names)-1])
 
-	// Finished -> emit nothing. Once end.json lands the user already
-	// has the path on stdout from the run itself.
-	if _, err := os.Stat(filepath.Join(sessDir, "end.json")); err == nil {
-		return ""
+	// Finished. Show a terminal-state summary briefly so the user can
+	// see "the run just ended"; after that, fall through to idleBar so
+	// the stale progress frame doesn't stick.
+	if endInfo, err := os.Stat(filepath.Join(sessDir, "end.json")); err == nil {
+		if now.Sub(endInfo.ModTime()) <= recentlyDoneWindow {
+			return finishedStatusLine(sessDir)
+		}
+		return idleBar
 	}
 
 	// Total fork count from start.json (config.side_count).
@@ -137,6 +155,38 @@ func computeStatusLine(cwd string, now time.Time) string {
 		line += fmt.Sprintf(" | %do %dc %dr", open, conceded, rebutted)
 	}
 	return line
+}
+
+// finishedStatusLine renders a one-line "the run just ended" summary
+// from end.json: termination reason + unresolved/total counts. Falls
+// back to a generic "[debate] done" if end.json is unparseable.
+func finishedStatusLine(sessDir string) string {
+	b, err := os.ReadFile(filepath.Join(sessDir, "end.json"))
+	if err != nil {
+		return "[debate] done"
+	}
+	var end struct {
+		Termination struct {
+			Reason string `json:"reason"`
+		} `json:"termination"`
+		Stats struct {
+			ByStatus map[string]int `json:"by_status"`
+			Total    int            `json:"total_attacks"`
+		} `json:"stats"`
+	}
+	if err := json.Unmarshal(b, &end); err != nil {
+		return "[debate] done"
+	}
+	reason := end.Termination.Reason
+	if reason == "" {
+		reason = "done"
+	}
+	unresolved := end.Stats.ByStatus["unresolved"] + end.Stats.ByStatus["open"]
+	if end.Stats.Total > 0 {
+		return fmt.Sprintf("[debate] %s • %d/%d unresolved • see summary.md",
+			reason, unresolved, end.Stats.Total)
+	}
+	return fmt.Sprintf("[debate] %s", reason)
 }
 
 func findActiveFork(forksDir string) (idx int, name string, newest time.Time) {

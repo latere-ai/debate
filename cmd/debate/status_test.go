@@ -8,19 +8,44 @@ import (
 	"time"
 )
 
-func TestComputeStatusLine_NoSession(t *testing.T) {
-	if got := computeStatusLine(t.TempDir(), time.Now()); got != "" {
-		t.Errorf("expected empty, got %q", got)
+func TestComputeStatusLine_NoSessionPrintsIdleBar(t *testing.T) {
+	// idleBar is a single space, not the empty string: claude's
+	// statusLine keeps the previous frame visible across empty
+	// outputs. A space forces a render and clears any stale
+	// in-flight frame from a previous run.
+	if got := computeStatusLine(t.TempDir(), time.Now()); got != idleBar {
+		t.Errorf("expected idleBar %q, got %q", idleBar, got)
 	}
 }
 
-func TestComputeStatusLine_FinishedSessionIsEmpty(t *testing.T) {
+func TestComputeStatusLine_RecentlyFinishedShowsTerminalState(t *testing.T) {
 	dir := t.TempDir()
 	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
 	mustMkdir(t, sess)
-	mustWrite(t, filepath.Join(sess, "end.json"), `{}`)
-	if got := computeStatusLine(dir, time.Now()); got != "" {
-		t.Errorf("finished session should produce empty status; got %q", got)
+	mustWrite(t, filepath.Join(sess, "end.json"),
+		`{"termination":{"reason":"steady-state"},`+
+			`"stats":{"total_attacks":5,"by_status":{"unresolved":2,"conceded":3}}}`)
+	got := computeStatusLine(dir, time.Now())
+	for _, want := range []string{"steady-state", "2/5 unresolved", "summary.md"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("want %q in finished status; got %q", want, got)
+		}
+	}
+}
+
+func TestComputeStatusLine_OldFinishedFallsThroughToIdle(t *testing.T) {
+	dir := t.TempDir()
+	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
+	mustMkdir(t, sess)
+	endPath := filepath.Join(sess, "end.json")
+	mustWrite(t, endPath, `{}`)
+	// Backdate end.json beyond the recently-done window.
+	old := time.Now().Add(-1 * time.Hour)
+	if err := os.Chtimes(endPath, old, old); err != nil {
+		t.Fatal(err)
+	}
+	if got := computeStatusLine(dir, time.Now()); got != idleBar {
+		t.Errorf("expected idleBar after window, got %q", got)
 	}
 }
 
