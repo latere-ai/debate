@@ -339,11 +339,24 @@ func installHookCmd() *cobra.Command {
 			if err := hook.Install(s, command); err != nil {
 				return err
 			}
+			// Map back-compat boolean values from the rc5 BoolVar flag
+			// onto the rc6 tri-state. `true` and `1` are the explicit
+			// "enable" form (= auto); `false`, `0`, `no` are the
+			// explicit "disable" form (no-op). Without these aliases,
+			// any wrapper script that emitted --with-statusline=true
+			// or =false against rc5 fails hard against rc6.
+			normalized := withStatusLine
 			switch withStatusLine {
+			case "true", "1", "yes":
+				normalized = "auto"
+			case "false", "0", "no":
+				normalized = ""
+			}
+			switch normalized {
 			case "":
-				// flag not passed; do nothing
+				// flag not passed (or explicitly disabled); do nothing
 			case "auto", "force":
-				force := withStatusLine == "force"
+				force := normalized == "force"
 				err := hook.InstallStatusLine(s, exe+" status", force)
 				switch {
 				case err == nil:
@@ -359,7 +372,9 @@ func installHookCmd() *cobra.Command {
 					return err
 				}
 			default:
-				return fmt.Errorf("--with-statusline: unknown value %q (allowed: auto, force)", withStatusLine)
+				return fmt.Errorf(
+					"--with-statusline: unknown value %q (allowed: auto, force, true, false)",
+					withStatusLine)
 			}
 			return nil
 		},

@@ -222,6 +222,53 @@ func TestRealMain_RecursionGuardSilent(t *testing.T) {
 	}
 }
 
+// Pins the concessions to debate critic c1-1 / c1-2 (session
+// 20260507T114552Z-mrye2a): --with-statusline rc5 was a BoolVar so
+// `=true` and `=false` were valid. rc6 changed the flag to a string
+// with values {auto, force}. These tests guard the back-compat
+// aliasing so wrapper scripts that always emit explicit booleans
+// don't crash.
+func TestInstallHookCmd_WithStatusLineTrueAlias(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+
+	cmd := installHookCmd()
+	cmd.SetArgs([]string{"--with-statusline=true"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("--with-statusline=true should be accepted: %v", err)
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
+	if !strings.Contains(string(b), "\"statusLine\"") {
+		t.Errorf("=true should install the statusLine entry; settings:\n%s", b)
+	}
+}
+
+func TestInstallHookCmd_WithStatusLineFalseAlias(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+
+	cmd := installHookCmd()
+	cmd.SetArgs([]string{"--with-statusline=false"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("--with-statusline=false should be accepted as no-op: %v", err)
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
+	if strings.Contains(string(b), "\"statusLine\"") {
+		t.Errorf("=false should NOT install statusLine; settings:\n%s", b)
+	}
+}
+
+func TestInstallHookCmd_WithStatusLineUnknownValueErrors(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+
+	cmd := installHookCmd()
+	cmd.SetArgs([]string{"--with-statusline=bogus"})
+	if err := cmd.Execute(); err == nil {
+		t.Errorf("--with-statusline=bogus should error")
+	}
+}
+
 func TestRealMain_InstallHookSubcommand(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
