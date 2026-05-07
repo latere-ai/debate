@@ -131,10 +131,22 @@ Five load-bearing pieces (full design in
   - research repo studying multi-agent Byzantine fault tolerance,
   including
   [spec 07 / Adversarial Debate](https://github.com/changkun/agents-byzantine-tolerance/blob/main/specs/07-adversarial-debate.md),
-  the architecture this tool productizes.
+  the architecture this tool productizes. Specs 08–13 in the same
+  repo extend the line: compute-asymmetric debate, recursive
+  sub-debate, stochastic-system soundness, PCP-style leaf format,
+  Prover-Estimator obfuscation defense, and DQC scaling. Each one's
+  empirical result either licenses or constrains a future-work
+  direction here - see
+  [specs/README.md §Related research and future work](specs/README.md#related-research-and-future-work)
+  for the per-spec mapping.
 - Irving, Christiano & Amodei,
   [*AI Safety via Debate*](https://arxiv.org/abs/1805.00899) (2018) -
   one agent proposes, another finds flaws, a judge inspects only the
   single disputed claim that decides the debate. The
   complexity-theoretic intuition (debate ≈ PSPACE under optimal
   play) motivates the architecture.
+- Brown-Cohen, Irving & Piliouras,
+  [*Scalable AI Safety via Doubly-Efficient Debate*](https://arxiv.org/abs/2311.14125)
+  (2023) - extends 2018 to stochastic systems and proves soundness
+  under unbounded compute asymmetry between the players. The formal
+  license for applying debate to LLMs at all.
