@@ -12,34 +12,10 @@ which topics are taken and pick something else. No debate content
 ever lands in the root Claude session - debate happens in branched
 forks off the root.
 
-## Specs
-
-The design and per-component contracts live under [specs/](specs/).
-Read in order; each builds on the ones before it.
-
-- [01 Overview](specs/01-overview.md) - architecture, fork model, v0/v1 split
-- [02 Go module + layout](specs/02-go-module.md)
-- [03 CI, lint, release](specs/03-ci-lint-release.md)
-- [04 CLI flags](specs/04-cli-flags.md)
-- [05 `.debate.toml` config](specs/05-config-file.md)
-- [06 Preflight](specs/06-preflight.md)
-- [07 Claude transcript ingest](specs/07-claude-transcript.md)
-- [08 Diff capture](specs/08-diff.md)
-- [09 State directory](specs/09-state-dir.md) - [10 Run artifacts](specs/10-run-artifacts.md) - [11 Fork artifacts](specs/11-fork-artifacts.md)
-- [12 Attacks ledger](specs/12-attacks-ledger.md) - [13 Critic output format](specs/13-critic-output-format.md) - [14 Attack parser](specs/14-attack-parser.md)
-- [15 Aspect prompts](specs/15-aspect-prompts.md)
-- [16 Subprocess infra](specs/16-subprocess-infra.md) - [17 Claude proposer](specs/17-claude-proposer.md) - [18 Critic drivers](specs/18-critic-drivers.md)
-- [19 Round loop](specs/19-round-loop.md) - [20 Termination](specs/20-termination.md) - [21 Signals](specs/21-signals.md)
-- [22 Contention headline](specs/22-contention-headline.md) - [23 Summary render](specs/23-summary-render.md)
-- [24 Stop hook](specs/24-stop-hook.md)
-- [25 Probes](specs/25-probes.md) - [26 Tests](specs/26-tests.md) - [27 Release](specs/27-release.md)
-- [28-34](specs/28-probe-no-output-stop-hook-outcome.md) release-cut gate recordings; [35](specs/35-release-notes-channel.md) chooses the in-repo notes file.
-
+Design and per-component contracts live under [specs/](specs/) -
+start at [specs/README.md](specs/README.md) for the index.
 Release-cut evidence (probe outcomes, smoke recordings) is committed
-to [release-notes-v0.0.1.md](release-notes-v0.0.1.md). v0 GA is also
-gated on upstream
-[agents-byzantine-tolerance](https://github.com/changkun/agents-byzantine-tolerance)
-07a per-topic rates - see [specs/27-release.md](specs/27-release.md).
+to [release-notes-v0.0.1.md](release-notes-v0.0.1.md).
 
 ## Installation
 
