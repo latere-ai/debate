@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -31,6 +32,35 @@ var (
 	commit  = "none"
 	date    = "unknown"
 )
+
+// init populates version/commit/date from runtime build info when
+// -ldflags didn't set them. This is the `go install` path: the
+// toolchain stamps module version + vcs.revision into the binary
+// even though -ldflags is empty. Without this, `go install ...@v0.0.1`
+// would print "debate dev (none, unknown)".
+func init() {
+	if version != "dev" {
+		return // ldflags wins; goreleaser / Makefile path
+	}
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return
+	}
+	if v := bi.Main.Version; v != "" && v != "(devel)" {
+		version = v
+	}
+	for _, s := range bi.Settings {
+		switch s.Key {
+		case "vcs.revision":
+			commit = s.Value
+			if len(commit) > 7 {
+				commit = commit[:7]
+			}
+		case "vcs.time":
+			date = s.Value
+		}
+	}
+}
 
 func main() {
 	os.Exit(realMain(os.Args[1:], os.Stdout, os.Stderr))
