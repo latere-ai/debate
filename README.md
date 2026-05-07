@@ -131,14 +131,13 @@ Five load-bearing pieces (full design in
   - research repo studying multi-agent Byzantine fault tolerance,
   including
   [spec 07 / Adversarial Debate](https://github.com/changkun/agents-byzantine-tolerance/blob/main/specs/07-adversarial-debate.md),
-  the architecture this tool productizes. Specs 08–13 in the same
-  repo extend the line: compute-asymmetric debate, recursive
-  sub-debate, stochastic-system soundness, PCP-style leaf format,
-  Prover-Estimator obfuscation defense, and DQC scaling. Each one's
-  empirical result either licenses or constrains a future-work
-  direction here - see
-  [specs/README.md §Related research and future work](specs/README.md#related-research-and-future-work)
-  for the per-spec mapping.
+  the architecture this tool productizes. Specs 08–13 explore
+  protocol variants (compute asymmetry, recursive sub-debate,
+  stochastic systems, PCP-style leaves, Prover-Estimator,
+  DQC scaling). None drive v0; each one's empirical result *could*
+  license a specific change here if it goes a particular way - see
+  [specs/README.md §Related research](specs/README.md#related-research)
+  for the conditional mapping.
 - Irving, Christiano & Amodei,
   [*AI Safety via Debate*](https://arxiv.org/abs/1805.00899) (2018) -
   one agent proposes, another finds flaws, a judge inspects only the
