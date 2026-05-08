@@ -1,9 +1,9 @@
 # Spec 31 - Probe G7 outcome: interactive stdout rendering
 
-> **Status: ✅ implemented** (G7 SKIP — non-blocking; recorded reason. README and spec 01 wording stays at the conservative "stdout best-effort" form.)
-> Implementation spec for `debate`. See [25-probes.md](25-probes.md) for the probe and [24-stop-hook.md](24-stop-hook.md), [01-overview.md](01-overview.md) for the wording it informs. Closes G7 in [27-release.md](27-release.md).
+> **Status: ✅ implemented** (G7 SKIP — non-blocking; recorded reason. README and spec 01 wording stays at the conservative "stdout best-effort" form. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the probe is preserved in `scripts/probes/` for opt-in re-runs.)
+> Implementation spec for `debate`. See [25-probes.md](25-probes.md) for the probe and [24-stop-hook.md](24-stop-hook.md), [01-overview.md](01-overview.md) for the wording it informs.
 
-**Depends on:** [24](24-stop-hook.md), [25](25-probes.md), [35](35-release-notes-channel.md).
+**Depends on:** [24](24-stop-hook.md), [25](25-probes.md).
 **Consumed by:** [27](27-release.md), [README.md](../README.md).
 
 ## Scope
@@ -43,4 +43,4 @@ skip_reason: <free text, only if SKIP>
 
 - [x] Probe ran or was deliberately skipped with a reason. (SKIP, recorded reason.)
 - [x] If PASS or FAIL, README and [01-overview.md](01-overview.md) wording updated accordingly. (N/A under SKIP; conservative wording stays.)
-- [ ] [27-release.md](27-release.md) G7 cites the recording (including SKIP reason if applicable). *(filled at release-cut)*
+- [x] ~~[27-release.md](27-release.md) G7 cites the recording (including SKIP reason if applicable).~~ *(retracted: G7 no longer exists as a release blocker.)*

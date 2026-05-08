@@ -1,7 +1,7 @@
 # Spec 32 - Real-e2e suite (write or retract)
 
-> **Status: ✅ implemented** (Path A; `e2e/real/full_test.go` lives behind `//go:build real_e2e`; G13 outcome filled in at release-cut).
-> Implementation spec for `debate`. Resolves the gap between [.github/workflows/real-e2e.yml](../.github/workflows/real-e2e.yml), [26-tests.md](26-tests.md), and the actual file tree. Closes G13 in [27-release.md](27-release.md).
+> **Status: ✅ implemented** (Path A; `e2e/real/full_test.go` lives behind `//go:build real_e2e`. The release-blocker gate G13 this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the suite remains as opt-in `workflow_dispatch` coverage.)
+> Implementation spec for `debate`. Resolves the gap between [.github/workflows/real-e2e.yml](../.github/workflows/real-e2e.yml), [26-tests.md](26-tests.md), and the actual file tree.
 
 **Depends on:** [16](16-subprocess-infra.md), [17](17-claude-proposer.md), [18](18-critic-drivers.md), [19](19-round-loop.md), [26](26-tests.md).
 **Consumed by:** [27](27-release.md), [.github/workflows/real-e2e.yml](../.github/workflows/real-e2e.yml).
@@ -47,9 +47,9 @@ If maintainer time is the binding constraint at GA, Path B is acceptable but req
 ## Acceptance criteria
 
 - [x] Maintainer chooses Path A or Path B in this spec's "Decision" section.
-- [x] If Path A: `e2e/real/full_test.go` exists with the build tag and skip logic; `RUN_REAL=1 go test -tags real_e2e ./e2e/real/...` exits 0 once on the maintainer's machine; outcome cited via [35](35-release-notes-channel.md).
+- [x] If Path A: `e2e/real/full_test.go` exists with the build tag and skip logic; `RUN_REAL=1 go test -tags real_e2e ./e2e/real/...` exits 0 once on the maintainer's machine.
 - [ ] If Path B: [26-tests.md](26-tests.md) and [27-release.md](27-release.md) updated; `.github/workflows/real-e2e.yml` removed. *(N/A: Path A chosen)*
-- [ ] [27-release.md](27-release.md) G13 either cites the recording (Path A) or is removed (Path B). *(filled at release-cut)*
+- [x] ~~[27-release.md](27-release.md) G13 either cites the recording (Path A) or is removed (Path B).~~ *(retracted: G13 no longer exists as a release blocker; the test stays as opt-in coverage.)*
 
 ## Decision
 

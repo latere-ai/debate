@@ -1,9 +1,9 @@
 # Spec 28 - Probe G4 outcome: no-output Stop hook
 
-> **Status: ✅ implemented** (G4 PASS against claude 2.1.131. Spec 01 wording tightened to drop the "probe owed" caveats.)
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"v0 release blockers" and [25-probes.md](25-probes.md) for design intent. This spec closes G4 in [27-release.md](27-release.md).
+> **Status: ✅ implemented** (G4 PASS against claude 2.1.131. Spec 01 wording tightened to drop the "probe owed" caveats. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the probe and its disposition stand as historical record.)
+> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"v0 release blockers" and [25-probes.md](25-probes.md) for design intent.
 
-**Depends on:** [25](25-probes.md), [27](27-release.md), [35](35-release-notes-channel.md).
+**Depends on:** [25](25-probes.md), [27](27-release.md).
 **Consumed by:** [27](27-release.md).
 
 ## Scope
@@ -52,9 +52,9 @@ In either branch, [27-release.md](27-release.md) G4 flips from `[x]` (aspiration
 ## Acceptance criteria
 
 - [x] Probe ran once on the release-candidate machine; full stdout captured.
-- [x] Recording committed via the channel chosen in [35](35-release-notes-channel.md) (in-repo `release-notes-v0.0.1.md`).
+- [x] Recording captured (originally in `release-notes-v0.0.1.md`; removed in the 2026-05-08 simplification along with the release-evidence bundle). The probe stdout transcript stays in the maintainer's local notes; outcome is not an artifact per simplified [27](27-release.md).
 - [x] [01-overview.md](01-overview.md) wording updated per disposition: lines 23, 71, 565 now read "probe-confirmed 2026-05" instead of "probe owed before v0 GA".
-- [ ] [27-release.md](27-release.md) G4 outcome line cites the recording by name. *(filled at release-cut)*
+- [x] ~~[27-release.md](27-release.md) G4 outcome line cites the recording by name.~~ *(retracted: G4 no longer exists as a release blocker.)*
 
 ## Out-of-scope-but-fixed
 

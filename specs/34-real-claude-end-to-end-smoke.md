@@ -1,9 +1,9 @@
 # Spec 34 - Real-claude end-to-end smoke
 
-> **Status: ✅ implemented** (G16 PASS at 181s/fork; recording in `release-notes-v0.0.1.md`. Auth was unblocked by `unset ANTHROPIC_API_KEY` so claude falls back to the OAuth token from `/login`; the shipping hook script already does this.)
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"v0 release blockers" for design intent. Closes G16 in [27-release.md](27-release.md).
+> **Status: ✅ implemented** (G16 PASS at 181s/fork on v0.0.1 rc binary. Auth was unblocked by `unset ANTHROPIC_API_KEY` so claude falls back to the OAuth token from `/login`; the shipping hook script already does this. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the smoke remains as a developer sanity check.)
+> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"v0 release blockers" for design intent.
 
-**Depends on:** [17](17-claude-proposer.md), [18](18-critic-drivers.md), [19](19-round-loop.md), [24](24-stop-hook.md), [33](33-install-hook-smoke.md), [35](35-release-notes-channel.md).
+**Depends on:** [17](17-claude-proposer.md), [18](18-critic-drivers.md), [19](19-round-loop.md), [24](24-stop-hook.md), [33](33-install-hook-smoke.md).
 **Consumed by:** [27](27-release.md).
 
 ## What we're proving
@@ -66,5 +66,5 @@ verdict: PASS | FAIL    # PASS iff max_per_fork_wall ≤ 300s and a summary file
 
 - [x] One real-claude session ran to completion; recording captured. (Run via `bin/debate --session-id <real-id>` against a fixture with a 46-line diff; the Stop-hook trigger path is functionally identical and is verified separately by spec 33's install-hook smoke.)
 - [x] `verdict: PASS` and `max_per_fork_wall ≤ 300s`. Measured: 181 s.
-- [ ] [27-release.md](27-release.md) G16 cites the recording. *(filled at release-cut)*
+- [x] ~~[27-release.md](27-release.md) G16 cites the recording.~~ *(retracted: G16 no longer exists as a release blocker.)*
 - [x] Disposition updated to allow SKIP when `claude --print` is unauthenticated (HTTP 401), with the escape-hatch wording above. Now superseded by the PASS recording, but the escape hatch stays for future maintainers on hosts without working auth.

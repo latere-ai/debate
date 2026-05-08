@@ -1,7 +1,45 @@
 # Spec 35 - Release-notes channel for probe & gate outcomes
 
-> **Status: ✅ implemented** (Option 1 chosen; spec 27 amended; `release-notes-v0.0.1.md` skeleton committed).
-> Implementation spec for `debate`. Resolves an internal contradiction in [27-release.md](27-release.md). Consumed by every other follow-up that records a recording block (28, 29, 30, 31, 32, 33, 34).
+> **Status: ❌ retracted (2026-05-08)** - The premise of this spec (a separate "release-notes channel" carrying probe/gate evidence) was abandoned in favour of the standard goreleaser flow used by sibling repos (e.g. `latere-cli`): tag → CI → goreleaser publishes binaries + auto-generated changelog from the commit log. No separate release-notes file or release-evidence asset is shipped. Probes under `scripts/probes/` remain as developer tooling; their outcomes are not artifacts. Spec [27](27-release.md) was simplified in the same pass to drop the G1-G18 release-blocker checklist down to a short pre-tag sanity list.
+>
+> Original content (Option 1 vs Option 2 debate, the 2026-05-08 amendment introducing Option 3, and the file-structure / spec 27 amendments / acceptance criteria sections) is preserved below as historical record. Nothing below this banner is active.
+
+---
+
+## Original (retracted) content
+
+## Amendment (2026-05-08)
+
+Option 1 was implemented but does not match the natural release workflow:
+
+> 1. Tag a new release.
+> 2. CI triggers an execution: builds binaries, attaches them to the GitHub release, generates release notes from commits.
+> 3. The release page is the artifact users land on.
+
+Option 1 inserts a manual step *before* the tag: a human runs probes locally, pastes the recordings into `release-notes-v0.0.1.md`, commits, then tags. That coupling is what the user pushed back on. Option 2 (mutable GH release body) is closer to the workflow but loses the audit-trail posture spec 35 was protecting.
+
+Neither original option is right. A third option - **release-asset bundle** - was missed.
+
+### Option 3: release-asset bundle
+
+Probes emit their recordings into a build-output directory (e.g. `dist/release-evidence/`); CI (or a human running `make probe` followed by `gh release upload`) attaches that directory as a `.tar.gz` asset on the GitHub release alongside the binaries.
+
+Pros:
+- **Matches the user-expected workflow**: tag → CI → release with binaries + evidence bundle. No pre-tag commit dance.
+- **Audit-trail preserved**: GitHub release assets are immutable once uploaded (unlike the release body). `gh release download v0.0.1 -p evidence.tar.gz` fetches the exact bytes that shipped.
+- **No per-version file proliferation**: nothing accumulates in the repo tree across `v0.0.2`, `v0.0.3`, ... .
+- **Cross-spec citations resolve**: follow-up specs cite "release asset `evidence.tar.gz` of `<tag>`" and the bytes are reachable offline via `gh release download`.
+- **Goreleaser integration is one-line**: `extra_files` under the release block, or `archives.files` if bundled into the per-arch tarballs (preferred: separate asset, since evidence is platform-independent).
+
+Cons:
+- Probes that need a real claude install (G4, G16) still cannot run in CI - they have to be run locally and the bundle uploaded by hand. But this is true under Option 1 too; the only change is the upload mechanism (`gh release upload` instead of `git commit`).
+- Slightly less greppable from a clone: `gh release download` is one command but is not `grep -r`. Mitigated because the bundle is small and a maintainer can keep one extracted locally during a release cut.
+
+### Why Option 3 wins
+
+The audit-trail argument that picked Option 1 over Option 2 still stands; Option 3 satisfies it via release-asset immutability rather than git history. The user-workflow argument that broke Option 1 does not break Option 3, because evidence collection is decoupled from the tag/commit flow.
+
+The acceptance criteria below replace the original Option 1 criteria. The original criteria are kept (struck through) for traceability.
 
 **Depends on:** [27](27-release.md).
 **Consumed by:** [27](27-release.md), [28](28-probe-no-output-stop-hook-outcome.md), [29](29-probe-signal-latency-outcome.md), [30](30-probe-trivial-diff-perf-outcome.md), [31](31-probe-interactive-stdout-outcome.md), [32](32-real-e2e-suite.md), [33](33-install-hook-smoke.md), [34](34-real-claude-end-to-end-smoke.md).
@@ -51,9 +89,47 @@ Cons:
 
 If the maintainer prefers Option 2 anyway, that is acceptable provided every cross-spec citation in [28](28-probe-no-output-stop-hook-outcome.md)–[34](34-real-claude-end-to-end-smoke.md) is updated to read "GH release body of v0.0.1" instead of "release-notes-v0.0.1.md".
 
-## File structure (Option 1)
+## File structure (Option 3, active)
 
-`release-notes-v0.0.1.md` at repo root:
+Probes write their recording blocks under `dist/release-evidence/` (gitignored). At release time the directory is packaged into a single asset attached to the GitHub release:
+
+```
+dist/release-evidence/
+├── README.md              # human-readable index with the same section layout as the
+│                          # original Option 1 file (probe outcomes, test gates, UX gates)
+├── probes/
+│   ├── no-output-stop-hook.txt   # spec 28 recording block
+│   ├── signal-latency.txt        # spec 29
+│   ├── trivial-diff-perf.txt     # spec 30
+│   └── interactive-stdout.txt    # spec 31
+├── gates/
+│   ├── real-e2e.txt              # spec 32 (or "retracted" marker)
+│   ├── install-hook-smoke.txt    # spec 33
+│   └── real-claude-end-to-end.txt # spec 34
+└── manifest.json          # {tag, host_os, claude_version, codex_version,
+                           #  binary_sha256, generated_at, gates: [...]}
+```
+
+Packaged at release time as `release-evidence-<tag>.tar.gz` and uploaded via:
+
+```sh
+tar -czf dist/release-evidence-${TAG}.tar.gz -C dist release-evidence
+gh release upload "${TAG}" dist/release-evidence-${TAG}.tar.gz
+```
+
+Or wired into `.goreleaser.yaml` via `release.extra_files`:
+
+```yaml
+release:
+  extra_files:
+    - glob: ./dist/release-evidence-*.tar.gz
+```
+
+`.gitignore` adds `dist/release-evidence/` and `dist/release-evidence-*.tar.gz`; nothing about evidence is committed.
+
+### File structure (Option 1, superseded)
+
+Original Option 1 design - kept here so prior commits citing `release-notes-v0.0.1.md` remain readable:
 
 ```markdown
 # debate v0.0.1
@@ -61,52 +137,52 @@ If the maintainer prefers Option 2 anyway, that is acceptable provided every cro
 Release-cut evidence. See specs/27-release.md for the gate process.
 
 ## Probe outcomes
-
-### no-output-stop-hook (G4)
-<verbatim recording block from spec 28>
-
-### signal-latency (G5)
-<verbatim recording block from spec 29>
-
-### trivial-diff-perf (G6)
-<verbatim recording block from spec 30>
-
-### interactive-stdout (G7)
-<verbatim recording block from spec 31>
+### no-output-stop-hook (G4)         # verbatim recording block from spec 28
+### signal-latency (G5)              # spec 29
+### trivial-diff-perf (G6)           # spec 30
+### interactive-stdout (G7)          # spec 31
 
 ## Test gates
-
-### real-e2e (G13)
-<recording from spec 32; or "retracted - see specs/32-real-e2e-suite.md">
+### real-e2e (G13)                   # spec 32 (or retracted)
 
 ## UX gates
-
-### install-hook smoke (G15)
-<verbatim recording block from spec 33>
-
-### real-claude end-to-end (G16)
-<verbatim recording block from spec 34>
+### install-hook smoke (G15)         # spec 33
+### real-claude end-to-end (G16)     # spec 34
 ```
 
-`.gitignore` does not need updating; the file is intentionally committed.
+The committed `release-notes-v0.0.1.md` at repo root is removed as part of the Option 3 transition.
 
 ## Spec 27 amendments
 
-After this spec lands:
+Required for Option 3:
 
-- [27-release.md](27-release.md) §"Release notes" body keeps the goreleaser-generated changelog paragraph but the contradicting "no static file" sentence is replaced by:
-  > Probe and gate outcomes (G4–G7, G13, G15, G16) are committed to `release-notes-v0.0.1.md` alongside the tag. The auto-generated GitHub release body covers code changes; the in-repo notes file covers release-cut evidence.
-- [27-release.md](27-release.md) §"Test contract" line about `release-notes-v0.0.1.md` stays as-is.
-- [27-release.md](27-release.md) §"Acceptance criteria" line stays as-is.
+- [27-release.md](27-release.md) §"Release notes" replaces the "committed to `release-notes-v<version>.md` alongside the tag" paragraph with:
+  > Probe and gate outcomes (G4–G7, G13, G15, G16) ship as a release asset (`release-evidence-<tag>.tar.gz`) attached to the GitHub release. Probes write into `dist/release-evidence/` locally; the directory is packaged and uploaded at release time (via `gh release upload` or goreleaser `release.extra_files`). The auto-generated GitHub release body covers code changes; the asset bundle covers release-cut evidence. Audit-trail posture is preserved by GitHub release-asset immutability.
+- [27-release.md](27-release.md) §"Release flow" step 3 ("Run real-e2e + probes") gains a sub-step: package `dist/release-evidence/` into the bundle and upload to the rc release.
+- [27-release.md](27-release.md) §"Release artifacts" lists `release-evidence-<version>.tar.gz` alongside the four per-arch archives and `checksums.txt`.
+- [27-release.md](27-release.md) §"Test contract" line referencing `release-notes-v0.0.1.md` is rewritten to reference the asset bundle: "`release-evidence-v0.0.1.tar.gz` is attached to the GA release with all probe outcomes inside."
+- [27-release.md](27-release.md) §"Acceptance criteria" line about `release-notes-v0.0.1.md` is rewritten in the same way.
+- Gate-row descriptions (G4, G13) that read "recorded in `release-notes-v0.0.1.md`" become "recorded in `dist/release-evidence/probes/<name>.txt`, shipped in the release asset bundle".
 
-(Or, if Option 2 wins: the spec 27 body keeps its current "no static file" wording and the acceptance line is rewritten to point at the GH release body, *and* every recording-citing follow-up spec is mass-edited.)
+Follow-up specs [28](28-probe-no-output-stop-hook-outcome.md)–[34](34-real-claude-end-to-end-smoke.md) need a parallel pass: every "appended to `release-notes-v0.0.1.md`" instruction is rewritten to "written to `dist/release-evidence/<area>/<name>.txt`". The recording-block format is unchanged; only the destination path changes.
 
 ## Decision
 
-**Option 1: in-repo file `release-notes-v0.0.1.md`.** Audit-trail posture trumps file-count cleanliness. Goreleaser still owns the auto-generated changelog (code changes between tags); the in-repo notes file owns release-cut evidence. Both can coexist - they cover different things.
+**Option 3: release-asset bundle.** Tag → CI builds binaries + uploads evidence asset → release page is the single landing artifact. The audit-trail posture is preserved through GitHub release-asset immutability rather than git history. Goreleaser owns the auto-generated changelog (code changes between tags); the asset bundle owns release-cut evidence. Both ship together with the tag and neither pre-tag commits nor mutable release-body edits are needed.
 
 ## Acceptance criteria
 
-- [x] Option 1 selected (this section).
-- [x] [27-release.md](27-release.md) §"Release notes" edited to remove the contradiction.
-- [x] `release-notes-v0.0.1.md` skeleton committed; follow-up specs ([28](28-probe-no-output-stop-hook-outcome.md)–[34](34-real-claude-end-to-end-smoke.md)) write into it.
+Active (Option 3):
+
+- [ ] Option 3 selected and Option 1 marked superseded (this amendment).
+- [ ] [27-release.md](27-release.md) §"Release notes", §"Release flow", §"Release artifacts", §"Test contract", §"Acceptance criteria", and gate-row descriptions for G4/G13 are updated per [§Spec 27 amendments](#spec-27-amendments).
+- [ ] Follow-up specs [28](28-probe-no-output-stop-hook-outcome.md)–[34](34-real-claude-end-to-end-smoke.md) are updated to write into `dist/release-evidence/<area>/<name>.txt` instead of appending to `release-notes-v0.0.1.md`.
+- [ ] `dist/release-evidence/` and `dist/release-evidence-*.tar.gz` are added to `.gitignore`.
+- [ ] `.goreleaser.yaml` `release.extra_files` (or an equivalent `gh release upload` step in `.github/workflows/release.yml`) attaches `release-evidence-<tag>.tar.gz` to the GitHub release.
+- [ ] `release-notes-v0.0.1.md` is removed from the repo root; its current contents are migrated into `dist/release-evidence/` for the v0.0.1 release cut so no evidence is lost.
+
+Superseded (Option 1, retained for traceability):
+
+- [x] ~~Option 1 selected (this section).~~
+- [x] ~~[27-release.md](27-release.md) §"Release notes" edited to remove the contradiction.~~
+- [x] ~~`release-notes-v0.0.1.md` skeleton committed; follow-up specs ([28](28-probe-no-output-stop-hook-outcome.md)–[34](34-real-claude-end-to-end-smoke.md)) write into it.~~

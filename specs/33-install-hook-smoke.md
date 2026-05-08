@@ -1,9 +1,9 @@
 # Spec 33 - install-hook smoke verification
 
-> **Status: ✅ implemented** (G15 PASS recorded in `release-notes-v0.0.1.md`).
-> Implementation spec for `debate`. See [24-stop-hook.md](24-stop-hook.md) for the underlying behaviour. Closes G15 in [27-release.md](27-release.md).
+> **Status: ✅ implemented** (G15 PASS verified once on v0.0.1 rc binary. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the smoke remains as a developer sanity check to be re-run when [24](24-stop-hook.md) changes.)
+> Implementation spec for `debate`. See [24-stop-hook.md](24-stop-hook.md) for the underlying behaviour.
 
-**Depends on:** [24](24-stop-hook.md), [35](35-release-notes-channel.md).
+**Depends on:** [24](24-stop-hook.md).
 **Consumed by:** [27](27-release.md).
 
 ## What we're proving
@@ -58,4 +58,4 @@ idempotent_second_run: yes|no|not_tested
 - [x] Smoke ran against the release-candidate binary in a throwaway `$HOME`.
 - [x] `fresh_install_valid: yes` and the generated command string is recorded verbatim.
 - [x] Idempotent second-run check: second invocation does not duplicate the Stop entry (length stays at 1).
-- [ ] [27-release.md](27-release.md) G15 cites the recording. *(filled at release-cut)*
+- [x] ~~[27-release.md](27-release.md) G15 cites the recording.~~ *(retracted: G15 no longer exists as a release blocker.)*

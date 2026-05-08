@@ -1,9 +1,9 @@
 # Spec 30 - Probe G6 outcome: trivial-diff fast path
 
-> **Status: ✅ implemented** (G6 PASS at 99 ms median, 200 ms budget. Spec 25 line 168 reconciled to match the as-shipped probe threshold.)
-> Implementation spec for `debate`. See [08-diff.md](08-diff.md) for the perf claim and [25-probes.md](25-probes.md) for the probe. Closes G6 in [27-release.md](27-release.md).
+> **Status: ✅ implemented** (G6 PASS at 99 ms median, 200 ms budget. Spec 25 line 168 reconciled to match the as-shipped probe threshold. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the probe stays in `scripts/probes/` as developer tooling.)
+> Implementation spec for `debate`. See [08-diff.md](08-diff.md) for the perf claim and [25-probes.md](25-probes.md) for the probe.
 
-**Depends on:** [08](08-diff.md), [25](25-probes.md), [35](35-release-notes-channel.md).
+**Depends on:** [08](08-diff.md), [25](25-probes.md).
 **Consumed by:** [27](27-release.md).
 
 ## Scope
@@ -46,4 +46,4 @@ CI-host noise: this probe is only meaningful on a quiet host. A CI runner under 
 
 - [x] Probe ran 3× on a quiet release-candidate host; min/median/max recorded.
 - [x] Median < 200 ms (reconciled budget; see "What we're proving"). Measured 99 ms median, 84 ms min, 136 ms max across three batches.
-- [ ] [27-release.md](27-release.md) G6 cites the recording. *(filled at release-cut)*
+- [x] ~~[27-release.md](27-release.md) G6 cites the recording.~~ *(retracted: G6 no longer exists as a release blocker.)*

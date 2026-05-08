@@ -1,9 +1,9 @@
 # Spec 29 - Probe G5 outcome: signal latency
 
-> **Status: ✅ implemented** (G5 PASS at sub-50 ms after fixing a wired-but-unused signal handler in `cmd/debate/main.go`. Outcome recorded in `release-notes-v0.0.1.md`.)
-> Implementation spec for `debate`. See [21-signals.md](21-signals.md) for the underlying invariant and [25-probes.md](25-probes.md) for the probe. Closes G5 in [27-release.md](27-release.md).
+> **Status: ✅ implemented** (G5 PASS at sub-50 ms after fixing a wired-but-unused signal handler in `cmd/debate/main.go`. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the signal-handler fix stands and is regression-pinned by `e2e/cli/signal_test.go`.)
+> Implementation spec for `debate`. See [21-signals.md](21-signals.md) for the underlying invariant and [25-probes.md](25-probes.md) for the probe.
 
-**Depends on:** [21](21-signals.md), [25](25-probes.md), [35](35-release-notes-channel.md).
+**Depends on:** [21](21-signals.md), [25](25-probes.md).
 **Consumed by:** [27](27-release.md).
 
 ## Scope
@@ -44,7 +44,7 @@ A flaky FAIL (one failure, one PASS) does not unblock GA - the probe must pass o
 - [x] Probe ran on the release-candidate host; outcome recorded.
 - [x] If FAIL, root-cause and fix landed; probe re-run to PASS. (See "Out-of-scope-but-fixed" below.)
 - [x] Regression test added (`e2e/cli/signal_test.go`) so the wiring cannot silently regress again.
-- [ ] [27-release.md](27-release.md) G5 cites the recording. *(filled at release-cut)*
+- [x] ~~[27-release.md](27-release.md) G5 cites the recording.~~ *(retracted: G5 no longer exists as a release blocker; regression covered by `e2e/cli/signal_test.go`.)*
 
 ## Out-of-scope-but-fixed
 

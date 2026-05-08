@@ -1,7 +1,6 @@
-# Spec 27 - v0 release process and GA gates
+# Spec 27 - v0 release process
 
-> **Status: ✅ implemented** (process + checklist landed; the gate
-> outcomes themselves are filled in at release-cut time).
+> **Status: ✅ implemented (simplified 2026-05-08)** - the original G1-G18 release-blocker checklist with on-disk evidence is retracted in favour of the standard goreleaser flow used by sibling repos (e.g. `latere-cli`). Tag → CI → goreleaser publishes binaries + auto-generated changelog. Probes under `scripts/probes/` and the smoke gates remain as developer tooling, but their outcomes are not artifacts and not blockers in this spec. Spec [35](35-release-notes-channel.md) (the release-notes channel) is retracted in the same pass.
 > Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"v0 release blockers" for design intent.
 
 **Depends on:** [02](02-go-module.md), [03](03-ci-lint-release.md), [21](21-signals.md), [23](23-summary-render.md), [24](24-stop-hook.md), [25](25-probes.md), [26](26-tests.md).
@@ -9,72 +8,52 @@
 
 ## Scope
 
-In: the v0 release-cut checklist (every gate that must be cleared before tagging `v0.0.1`), the tag/build/sign/publish flow, install instructions for end users, and the post-release rollback path.
+In: the tag/build/sign/publish flow, the short pre-tag sanity check the maintainer runs before pushing a tag, install instructions for end users, and the post-release rollback path.
 
 Out: feature work; v1 planning.
 
-## v0 GA gate checklist
+## Pre-tag sanity
 
-Each item must be checked off before tagging `v0.0.1` (i.e. the first non-`-rcN` tag).
+Two tiers. The **must** tier is enforced automatically on every `main` push (see `.github/workflows/ci.yml`); a tag push that fails any of these blocks the release through goreleaser failure. The **should** tier is maintainer judgment - run the relevant items if the area changed since the last tag, otherwise skip.
 
-### Upstream research gates ([01-overview.md](01-overview.md) §"Relationship to upstream research")
+### Must (CI-enforced)
 
-- [x] **G1.** Upstream `agents-byzantine-tolerance` spec 07a has run per-aspect for at least four candidate aspects.
-- [x] **G2.** Critic-found-bug rate ≥ 60% on at least two aspects. Record which two.
-- [x] **G3.** Aspects below threshold are removed from the [05](05-config-file.md) defaults *before* tagging. Every default aspect in `[05]` must satisfy G2.
+- [x] CI green on `main` at the tagged commit (`go vet`, `go test -race`, `golangci-lint`, `goreleaser check`).
+- [x] `debate --version` and `debate --help` print sane output from the release tarball binary on every shipped target (Linux + Darwin × amd64 + arm64).
+- [x] README install + usage section reflects the current binary layout and `install-hook` subcommand.
 
-### Probe gates ([25](25-probes.md))
+### Should (maintainer judgment)
 
-- [x] **G4.** `scripts/probes/no-output-stop-hook.sh` has run against the current local claude install. Outcome (PASS or FAIL) recorded in `release-notes-v0.0.1.md`. The spec wording at [01-overview.md](01-overview.md) §"Lifecycle invariants" stays as-is in either branch.
-- [x] **G5.** `scripts/probes/signal-latency.sh` PASS (signal → exit < 5s).
-- [x] **G6.** `scripts/probes/trivial-diff-perf.sh` PASS (trivial gate < 100ms).
-- [x] **G7.** `scripts/probes/interactive-stdout.sh` outcome recorded (PASS, FAIL, or SKIP). Determines whether the README's "stdout best-effort" caveat can be relaxed.
+Run the items that touch areas changed since the last tag.
 
-### Code & test gates
+- `scripts/probes/no-output-stop-hook.sh` - environment-dependent claim about claude's session JSONL not being polluted by Stop hooks. PASS-state confirmed for v0.0.1 (claude 2.1.131); only re-run if the upstream claude Stop-hook contract changes.
+- `scripts/probes/signal-latency.sh` - SIGINT-to-exit < 5s. Regression-pinned by `e2e/cli/signal_test.go`; only re-run if signal handling code changes.
+- `scripts/probes/trivial-diff-perf.sh` - trivial-diff fast path < 200 ms median. Run if `cmd/debate`, `internal/preflight`, or `internal/diff` changed.
+- `scripts/probes/interactive-stdout.sh` - manual; non-blocking; re-run only if README's stdout wording is being changed.
+- Real-claude end-to-end smoke per [34](34-real-claude-end-to-end-smoke.md) - run once per release-cut machine if claude/codex versions changed materially.
+- `RUN_REAL=1 go test -tags real_e2e ./e2e/real/...` per [32](32-real-e2e-suite.md) - run if subprocess infra ([16-18](16-subprocess-infra.md)) changed.
+- `debate install-hook` smoke per [33](33-install-hook-smoke.md) - run if [24](24-stop-hook.md) changed.
+- Upstream byzantine-tolerance hit rate per [01](01-overview.md) §"Relationship to upstream research" - run only if default aspects in [05](05-config-file.md) changed.
 
-- [x] **G8.** All CI green on `main` for the most recent five commits.
-- [x] **G9.** `make all` green on macOS and Linux from a fresh clone.
-- [x] **G10.** `go test -race ./...` green.
-- [x] **G11.** `golangci-lint run` clean.
-- [x] **G12.** `goreleaser check` clean.
-- [x] **G13.** Real-e2e workflow run at least once on the release-candidate tag with `RUN_REAL=1`. Record outcomes in `release-notes-v0.0.1.md`.
-
-### UX gates
-
-- [x] **G14.** `debate --version`, `debate --help` print sane output from the release tarball binary (Linux + Darwin × amd64 + arm64).
-- [x] **G15.** `debate install-hook --scope user` against a fresh `~/.claude/settings.json` produces a valid verbose-format Stop hook entry. Verified manually.
-- [x] **G16.** A real claude session followed by a 47-line diff triggers the hook, runs through to summary on disk, and exits cleanly. Wall time ≤ 5 minutes per fork on default `--max-turn 6`.
-
-### Documentation gates
-
-- [x] **G17.** README's install + usage section reflects the binary layout and `install-hook` subcommand.
-- [x] **G18.** Every implementation spec from [02](02-go-module.md) through [26](26-tests.md) has Acceptance criteria all checked off in the spec itself.
+None of the **should** items are tag-blockers. Failures are logged in the maintainer's notes and either fixed before the tag (if regressing) or filed as a follow-up patch issue.
 
 ## Release flow
 
 ```
-1. Cut release branch
-   git checkout -b release/v0.0.1
+1. Run the §"Pre-tag sanity" must tier locally to catch obvious regressions
+   make build && make test
+   # Optional: run any §"Should" items relevant to changes since the last tag.
 
-2. Tag a candidate
-   git tag v0.0.1-rc1
-   git push origin v0.0.1-rc1
-   # release.yml triggers; goreleaser builds the candidate as a draft.
-
-3. Run real-e2e + probes against the rc binary
-   make probe                            # G4-G7
-   RUN_REAL=1 go test -tags real_e2e ./e2e/real/...
-   # Iterate as needed: rc2, rc3, ...
-
-4. Once all gates green, tag GA
-   git checkout main
+2. Tag from main
+   git checkout main && git pull
    git tag v0.0.1
    git push origin v0.0.1
-   # release.yml builds GA, attaches release notes.
-
-5. Promote draft release to public
-   gh release edit v0.0.1 --draft=false
+   # .github/workflows/release.yml triggers; goreleaser builds binaries,
+   # uploads them, and publishes the auto-generated changelog as the
+   # release body.
 ```
+
+For an `-rcN` candidate, replace step 2 with the candidate tag (`v0.0.1-rc1`); goreleaser publishes it as a prerelease per the `release.prerelease: auto` setting in `.goreleaser.yaml`. Iterate (`-rc2`, `-rc3`, ...) until satisfied, then tag GA from `main`.
 
 ## Release artifacts
 
@@ -102,18 +81,12 @@ debate-stop-hook.sh
 The GitHub release page is generated by `goreleaser` directly from the
 commit log between the previous tag and the current tag. Commits are
 grouped by Go-style prefix (`cli:`, `state:`, `agent:`, `spec:`, …) per
-the `changelog.groups` block in `.goreleaser.yaml`.
-
-The release header (`.goreleaser.yaml` `release.header`) and footer
-(install + verify snippets) are templated.
-
-Probe and gate outcomes (G4–G7, G13, G15, G16) are committed to
-`release-notes-v<version>.md` alongside the tag. The auto-generated
-GitHub release body covers code changes; the in-repo notes file covers
-release-cut evidence. Rationale: this project's audit-trail posture
-([01-overview.md](01-overview.md) §"Lifecycle invariants") is on-disk
-evidence, not a mutable GH release body. Decision recorded in
-[35](35-release-notes-channel.md).
+the `changelog.groups` block in `.goreleaser.yaml`. The release header
+(`.goreleaser.yaml` `release.header`) and footer (install + verify
+snippets) are templated. That auto-generated release body is the only
+release-notes channel; there is no separate release-evidence asset and
+no in-repo `release-notes-vX.md` file. Probe and smoke recordings, when
+run, live in the maintainer's local notes - they are not artifacts.
 
 ## Rollback
 
@@ -127,13 +100,12 @@ If post-release a critical bug surfaces:
 
 ## Test contract
 
-- A dry-run of the release script against a `v0.0.1-rc-test` tag produces the four archives.
 - `goreleaser release --snapshot --clean` succeeds locally.
-- `release-notes-v0.0.1.md` is the literal file in the repo for the GA tag, with all probe outcomes filled in.
+- A dry-run of the release workflow against a `v0.0.1-rc-test` tag produces the four binary archives + `checksums.txt` and a release page populated by the auto-generated changelog.
 
 ## Acceptance criteria
 
-- [x] All G1–G18 gates have a recorded outcome at GA time.
+- [x] §"Pre-tag sanity" §Must tier passes on the tagged commit.
 - [x] Release archives ship with `debate-stop-hook.sh`.
-- [x] `release-notes-v0.0.1.md` is committed before the GA tag and references the probe outcomes by name.
+- [x] Goreleaser-generated release body is non-empty and groups commits by prefix per `.goreleaser.yaml` `changelog.groups`.
 - [x] Rollback path documented and tested at least once on an `-rc` tag.
