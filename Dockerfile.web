@@ -1,0 +1,30 @@
+# Agon landing site (agon.latere.ai). Separate from the `debate`
+# CLI release (goreleaser): this image is built only by
+# .github/workflows/site.yml. Bun-built vite-ssg dist is embedded
+# into the cmd/agon-web Go binary, served from a distroless image.
+
+FROM oven/bun:1-alpine AS frontend
+WORKDIR /src
+COPY frontend/package.json frontend/bun.lock ./
+RUN bun install --frozen-lockfile
+COPY frontend/ ./
+RUN bun run build
+
+FROM golang:1.26-alpine AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN rm -rf internal/web/spa/dist
+COPY --from=frontend /src/dist internal/web/spa/dist/
+ARG VERSION=dev
+RUN CGO_ENABLED=0 go build -trimpath \
+    -ldflags "-s -w -X main.version=${VERSION}" \
+    -o /agon-web ./cmd/agon-web
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /agon-web /agon-web
+USER nonroot:nonroot
+EXPOSE 8080
+ENTRYPOINT ["/agon-web"]
+CMD ["-addr", ":8080"]

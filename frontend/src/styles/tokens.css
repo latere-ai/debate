@@ -1,0 +1,90 @@
+@import './fonts.css';
+
+/* ===== Theme Variables ===== */
+:root {
+    --bg: #fafafa;
+    --bg-surface: #ffffff;
+    --bg-raised: #f5f5f5;
+    --bg-code: #f0f0f0;
+    --accent: #171717;
+    --accent-hover: #404040;
+    --accent-subtle: rgba(0, 0, 0, 0.04);
+    --accent-glow: rgba(0, 0, 0, 0.08);
+    --accent-glow-strong: rgba(0, 0, 0, 0.15);
+    --text: #0a0a0a;
+    --text-secondary: #666666;
+    --text-muted: #a0a0a0;
+    --border: rgba(0,0,0,0.08);
+    --border-strong: rgba(0,0,0,0.12);
+    --shadow: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-lg: 0 16px 48px rgba(0,0,0,0.08);
+    --grid-color: rgba(0,0,0,0.035);
+    --gradient-a: #c8b8a8;
+    --gradient-b: #d4c4b4;
+    --gradient-c: #ccbcac;
+}
+
+[data-theme="dark"] {
+    --bg: #09090b;
+    --bg-surface: #111113;
+    --bg-raised: #18181b;
+    --bg-code: #1a1a1e;
+    --accent: #e4e4e7;
+    --accent-hover: #a1a1aa;
+    --accent-subtle: rgba(255, 255, 255, 0.04);
+    --accent-glow: rgba(255, 255, 255, 0.06);
+    --accent-glow-strong: rgba(255, 255, 255, 0.1);
+    --text: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-muted: #52525b;
+    --border: rgba(255,255,255,0.06);
+    --border-strong: rgba(255,255,255,0.1);
+    --shadow: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
+    --shadow-lg: 0 16px 48px rgba(0,0,0,0.4);
+    --grid-color: rgba(255,255,255,0.025);
+    --gradient-a: #555;
+    --gradient-b: #888;
+    --gradient-c: #666;
+}
+
+/* ===== Agon Theme (crimson/garnet, matches latere-ai .agon-brand) ===== */
+body:has(.agon-page) {
+    --bg: #faf6f5;
+    --bg-surface: #fffafa;
+    --bg-raised: #f3e9e8;
+    --accent: #9a2f30;
+    --accent-hover: #74201f;
+    --accent-subtle: rgba(154, 47, 48, 0.06);
+    --accent-glow: rgba(154, 47, 48, 0.14);
+    --accent-glow-strong: rgba(154, 47, 48, 0.28);
+    --text: #1f1413;
+    --text-secondary: #5f4f4e;
+    --text-muted: #9c8b8a;
+    --border: rgba(116,32,31,0.10);
+    --border-strong: #e2cfcd;
+    --shadow: 0 1px 3px rgba(60,10,10,0.07);
+    --shadow-lg: 0 8px 24px rgba(60,10,10,0.11);
+    --grid-color: rgba(116,32,31,0.035);
+    background: #faf6f5;
+}
+[data-theme="dark"] body:has(.agon-page) {
+    --bg: #150b0b;
+    --bg-surface: #1d1011;
+    --bg-raised: #24090a;
+    --accent: #d2655f;
+    --accent-hover: #e08079;
+    --accent-subtle: rgba(210, 101, 95, 0.08);
+    --accent-glow: rgba(210, 101, 95, 0.1);
+    --accent-glow-strong: rgba(210, 101, 95, 0.2);
+    --text: #f6e9e8;
+    --text-secondary: #b9a4a2;
+    --text-muted: #8a7472;
+    --border: rgba(255,255,255,0.06);
+    --border-strong: #3a2422;
+    --shadow: 0 1px 3px rgba(0,0,0,0.35);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.55);
+    --grid-color: rgba(255,255,255,0.025);
+    background: #150b0b;
+}

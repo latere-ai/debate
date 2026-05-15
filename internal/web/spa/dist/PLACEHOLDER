@@ -1,0 +1,8 @@
+This file keeps internal/web/spa/dist/ present so `//go:embed all:dist`
+compiles without a frontend build. The Docker build (Dockerfile.web)
+removes this directory and replaces it with the real vite-ssg output
+from frontend/dist before `go build ./cmd/agon-web`.
+
+When only this placeholder is embedded (no index.html), the server
+serves a 503 "frontend not built" — expected for `go build ./...`
+and CI that do not run the Bun stage.

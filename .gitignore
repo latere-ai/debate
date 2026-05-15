@@ -3,4 +3,13 @@ bin/
 *.test
 *.out
 coverage.txt
-dist/
+/dist/
+
+# Frontend (Bun + Vite)
+frontend/node_modules/
+frontend/dist/
+node_modules/
+
+# Go-embedded SPA: keep the directory and placeholder, ignore built assets
+internal/web/spa/dist/*
+!internal/web/spa/dist/PLACEHOLDER

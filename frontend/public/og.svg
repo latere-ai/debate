@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#faf6f5"/>
+  <rect width="1200" height="630" fill="url(#g)" opacity="0.10"/>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c0413f"/><stop offset="0.58" stop-color="#9a2f30"/><stop offset="1" stop-color="#74201f"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(110 250) scale(7)" stroke="#9a2f30" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M4 6 L11 12 L4 18 Z"/>
+    <path d="M20 6 L13 12 L20 18 Z"/>
+    <path d="M12 3.5 V20.5" opacity="0.7"/>
+  </g>
+  <text x="290" y="300" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="120" fill="#9a2f30">Agon</text>
+  <text x="294" y="370" font-family="-apple-system, Segoe UI, sans-serif" font-size="34" fill="#5f4f4e">Adversarial verification for AI-produced work</text>
+  <text x="294" y="430" font-family="-apple-system, Segoe UI, sans-serif" font-size="26" fill="#9c8b8a">Defend or concede every concrete attack. Only survivors reach a human.</text>
+</svg>
