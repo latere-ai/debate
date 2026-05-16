@@ -42,7 +42,7 @@ The audit-trail argument that picked Option 1 over Option 2 still stands; Option
 The acceptance criteria below replace the original Option 1 criteria. The original criteria are kept (struck through) for traceability.
 
 **Depends on:** [27](27-release.md).
-**Consumed by:** [27](27-release.md), [28](28-probe-no-output-stop-hook-outcome.md), [29](29-probe-signal-latency-outcome.md), [30](30-probe-trivial-diff-perf-outcome.md), [31](31-probe-interactive-stdout-outcome.md), [32](32-real-e2e-suite.md), [33](33-install-hook-smoke.md), [34](34-real-claude-end-to-end-smoke.md).
+**Consumed by:** [27](27-release.md), [29](29-probe-signal-latency-outcome.md), [30](30-probe-trivial-diff-perf-outcome.md), [32](32-real-e2e-suite.md), [34](34-real-claude-end-to-end-smoke.md).
 
 ## The contradiction
 
@@ -98,13 +98,10 @@ dist/release-evidence/
 ├── README.md              # human-readable index with the same section layout as the
 │                          # original Option 1 file (probe outcomes, test gates, UX gates)
 ├── probes/
-│   ├── no-output-stop-hook.txt   # spec 28 recording block
 │   ├── signal-latency.txt        # spec 29
-│   ├── trivial-diff-perf.txt     # spec 30
-│   └── interactive-stdout.txt    # spec 31
+│   └── trivial-diff-perf.txt     # spec 30
 ├── gates/
 │   ├── real-e2e.txt              # spec 32 (or "retracted" marker)
-│   ├── install-hook-smoke.txt    # spec 33
 │   └── real-claude-end-to-end.txt # spec 34
 └── manifest.json          # {tag, host_os, claude_version, codex_version,
                            #  binary_sha256, generated_at, gates: [...]}
@@ -137,16 +134,13 @@ Original Option 1 design - kept here so prior commits citing `release-notes-v0.0
 Release-cut evidence. See specs/27-release.md for the gate process.
 
 ## Probe outcomes
-### no-output-stop-hook (G4)         # verbatim recording block from spec 28
 ### signal-latency (G5)              # spec 29
 ### trivial-diff-perf (G6)           # spec 30
-### interactive-stdout (G7)          # spec 31
 
 ## Test gates
 ### real-e2e (G13)                   # spec 32 (or retracted)
 
 ## UX gates
-### install-hook smoke (G15)         # spec 33
 ### real-claude end-to-end (G16)     # spec 34
 ```
 

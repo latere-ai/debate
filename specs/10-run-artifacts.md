@@ -48,7 +48,6 @@ Written atomically before any agent process spawns. Once written, never modified
     "aspects":           ["functional-logic", "security", "code-quality", "performance"],
     "cost_cap":          50000,
     "changed_lines_min": 10,
-    "hook_mode":         false,
     "format":            "markdown",
     "main_model":        "claude-sonnet-4-6",
     "side_model":        ""
@@ -108,7 +107,7 @@ Written atomically at termination, success or failure.
     "contention":    4
   } | null,
 
-  "exit_code":       1,                  // 1 = unresolved leaves; 0 = clean. --hook-mode override applied AFTER write.
+  "exit_code":       1,                  // 1 = unresolved leaves; 0 = clean.
   "summary_path":    "summary.md"
 }
 ```
@@ -117,7 +116,7 @@ Rules:
 
 - `termination.reason` is one of: `"steady-state" | "max-turn" | "cost-cap" | "malformed-output" | "interrupted"`. ([20](20-termination.md) owns the detection.)
 - `headline` is `null` iff `by_status.unresolved == 0`.
-- `exit_code` records the *intrinsic* exit code (before `--hook-mode` rewrites it for the OS). [21](21-signals.md)/[23](23-summary-render.md) translate this to the actual process exit.
+- `exit_code` records the process exit code (0 = clean, 1 = unresolved leaves). [21](21-signals.md)/[23](23-summary-render.md) own how it maps to the process exit.
 - Written *before* `log.jsonl` (see lifecycle invariants in [09](09-state-dir.md)).
 
 ## transcript.jsonl

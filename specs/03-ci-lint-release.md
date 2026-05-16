@@ -108,7 +108,6 @@ archives:
     files:
       - LICENSE
       - README.md
-      - scripts/agon-stop-hook.sh
 checksum:
   name_template: "checksums.txt"
 release:
@@ -132,4 +131,4 @@ Tags: `v0.0.1` style. Tag pushes trigger a separate `release.yml` GitHub Action 
 - [x] `.golangci.yml` exists and `make lint` is clean.
 - [x] `cmd/agon/main.go` exposes `version`, `commit`, `date` as set-via-ldflags vars.
 - [x] `.goreleaser.yaml` validates with `goreleaser check`.
-- [x] Tagging `v0.0.1-rc1` produces a draft release with darwin/linux × amd64/arm64 tarballs and `agon-stop-hook.sh` packaged alongside.
+- [x] Tagging `v0.0.1-rc1` produces a draft release with darwin/linux × amd64/arm64 tarballs.

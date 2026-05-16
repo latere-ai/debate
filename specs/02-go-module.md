@@ -10,7 +10,7 @@
 
 In: Go module declaration, repo directory layout, Makefile targets, `.gitignore`, empty-package skeleton.
 
-Out: build/test pipeline ([03](03-ci-lint-release.md)), CLI logic ([04](04-cli-flags.md)), any subprocess driver, the Stop-hook script.
+Out: build/test pipeline ([03](03-ci-lint-release.md)), CLI logic ([04](04-cli-flags.md)), any subprocess driver.
 
 ## Module path and toolchain
 
@@ -31,10 +31,8 @@ agon/
 │   ├── critic/                # filled by 13, 14, 15
 │   ├── agent/                 # filled by 16, 17, 18
 │   ├── round/                 # filled by 19, 20, 21
-│   ├── summary/               # filled by 22, 23
-│   └── hook/                  # filled by 24
+│   └── summary/               # filled by 22, 23
 ├── scripts/
-│   ├── agon-stop-hook.sh    # filled by 24
 │   └── probes/                # filled by 25
 ├── testdata/                  # fixtures (filled per-spec)
 ├── specs/                     # this directory

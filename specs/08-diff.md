@@ -72,7 +72,7 @@ The orchestrator calls `Compute` immediately after pre-flight and before opening
    ```
    [agon] skipped: trivial diff (<n> changed lines < <m> threshold)
    ```
-3. Exit 0. (Under `--hook-mode` also 0; the gate fires before the unresolved-leaves logic.)
+3. Exit 0. (The gate fires before the unresolved-leaves logic.)
 
 Total wall time on the trivial path must be `< 100ms` excluding `git diff`. Measured in [25](25-probes.md)'s perf probe.
 

@@ -8,7 +8,7 @@
 
 ## Scope
 
-In: shared subprocess primitives - environment scrubbing, JSON output decoding tolerant to control characters, deadlines, child-tree teardown on signal, recursion-guard env propagation, structured stderr capture.
+In: shared subprocess primitives - environment scrubbing, JSON output decoding tolerant to control characters, deadlines, child-tree teardown on signal, structured stderr capture.
 
 Out: any specific agent's invocation arguments ([17](17-claude-proposer.md), [18](18-critic-drivers.md)).
 
@@ -41,7 +41,7 @@ type Result struct {
 func Exec(ctx context.Context, r Run) (Result, error)
 
 // CleanEnv returns a copy of os.Environ with the named keys removed
-// and AGON_IN_PROGRESS=1 added.
+// and LC_ALL=C added.
 func CleanEnv(remove ...string) []string
 
 // DecodeJSONLine decodes one JSON object out of a byte slice that may
@@ -59,7 +59,6 @@ func StreamJSON(stdout io.Reader, visit func(json.RawMessage) error) error
 `CleanEnv` always:
 
 - Removes `ANTHROPIC_API_KEY` (see [01-overview.md](01-overview.md) §"Constraints uncovered").
-- Sets `AGON_IN_PROGRESS=1` (recursion guard contract - see [06](06-preflight.md), [24](24-stop-hook.md)).
 - Sets `LC_ALL=C` for stable command output where it matters ([08](08-diff.md) git wrapper).
 - Preserves `HOME`, `PATH`, `XDG_*`, `CLAUDE_*` (other than the API key), `CODEX_*`.
 
@@ -77,7 +76,7 @@ On context cancel: `syscall.Kill(-pgid, syscall.SIGINT)` then a 2-second timer; 
 
 Darwin: same `Setpgid` field is supported; the kill loop is identical.
 
-Windows: not supported in v0 (the Stop hook is a bash script anyway). The build still targets `windows/amd64` for the binary so `agon --version` works in CI; subprocess-cancellation tests skip on Windows.
+Windows: not supported in v0. The build still targets `windows/amd64` for the binary so `agon --version` works in CI; subprocess-cancellation tests skip on Windows.
 
 `Result.Killed = true` when the process exited because of context cancellation (not when it self-exited with non-zero).
 
@@ -112,13 +111,9 @@ This is a heartbeat, not a kill - only context cancellation kills.
 
 Subprocess stderr is captured into `Result.Stderr` and *also* mirrored to the orchestrator's stderr at `--verbose >= 2`. At `--verbose < 2` it's silent (claude/codex stderr is noisy by default).
 
-## Recursion-guard propagation
-
-Every subprocess inherits `AGON_IN_PROGRESS=1` (set by `CleanEnv`). The Stop hook script ([24](24-stop-hook.md)) checks this env on entry and exits 0 if set, breaking the recursion that would otherwise occur when the proposer-clone's claude subprocess fires the Stop hook on its own completion.
-
 ## Test contract
 
-- Unit: `CleanEnv` removes `ANTHROPIC_API_KEY` and sets `AGON_IN_PROGRESS=1`.
+- Unit: `CleanEnv` removes `ANTHROPIC_API_KEY` and sets `LC_ALL=C`.
 - Unit: `Exec` against `sleep 5` cancels via context within 100ms of cancellation; `Result.Killed == true`.
 - Unit: `Exec` against a child that spawns its own child propagates SIGINT to both (process-group test).
 - Unit: `DecodeJSONLine` succeeds against a payload with `\x00` and `\x01` inside a string field.
@@ -129,4 +124,3 @@ Every subprocess inherits `AGON_IN_PROGRESS=1` (set by `CleanEnv`). The Stop hoo
 - [x] No subprocess invocation in [17](17-claude-proposer.md) or [18](18-critic-drivers.md) calls `os/exec` directly; all go through `agent.Exec`.
 - [x] Process-group teardown verified by an integration test that spawns a child-of-child and asserts both die on cancellation.
 - [x] JSON sanitizer's pass-through rate ≥ 99.9% on a 10k-line replay of real claude output (perf bound, not correctness).
-- [x] `AGON_IN_PROGRESS=1` is observable in every spawned process's `/proc/self/environ` (Linux integration test).

@@ -154,7 +154,7 @@ Not an error. Does not auto-edit ([01-overview.md](01-overview.md) §`.gitignore
 | 130 | no task-context source |
 | 140 | state-dir parent not writable |
 
-`--hook-mode` overrides exits 1 and ≥101 to 0 only after pre-flight passes; pre-flight failures *always* propagate the real exit code (the hook script's `exec` will surface the failure visibly to the user via stderr).
+Pre-flight failures (codes ≥101) always propagate their real exit code to the process exit; they are surfaced on stderr.
 
 ## Test contract
 

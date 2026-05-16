@@ -3,7 +3,7 @@
 > **Status: ✅ implemented.**
 > Implementation spec for `agon`. See [01-overview.md](01-overview.md) for design intent.
 
-**Depends on:** every implementation spec from [04](04-cli-flags.md) through [24](24-stop-hook.md).
+**Depends on:** every implementation spec from [04](04-cli-flags.md) through [23](23-summary-render.md).
 **Consumed by:** [27](27-release.md).
 
 ## Scope
@@ -116,7 +116,7 @@ testdata/
 | [03](03-ci-lint-release.md) | CI workflow validates by running. |
 | [04](04-cli-flags.md) | Unit (each flag round-trip + env override). |
 | [05](05-config-file.md) | Unit (layering matrix). |
-| [06](06-preflight.md) | Unit (each exit code path) + integration (recursion guard). |
+| [06](06-preflight.md) | Unit (each exit code path). |
 | [07](07-claude-transcript.md) | Unit (path encode/decode, parse, edge cases) + fixture transcripts. |
 | [08](08-diff.md) | Unit (computed line counts) + integration (real git fixture). |
 | [09](09-state-dir.md) | Unit (atomic-write semantics) + race test (`-race -count=10`). |
@@ -128,13 +128,12 @@ testdata/
 | [15](15-aspect-prompts.md) | Golden (per-aspect) + cross-aspect filter test. |
 | [16](16-subprocess-infra.md) | Unit (env scrub, JSON sanitize, cancellation latency). |
 | [17](17-claude-proposer.md) | Mock-driven unit + real-e2e gated by `RUN_REAL=1`. |
-| [18](18-critic-drivers.md) | Mock-driven unit + recursion-guard probe. |
+| [18](18-critic-drivers.md) | Mock-driven unit. |
 | [19](19-round-loop.md) | Mock-driven integration (full fork sequences). |
 | [20](20-termination.md) | Unit (each detector) + integration (run-level termination). |
 | [21](21-signals.md) | Unit (handler) + integration (process-tree teardown). |
 | [22](22-contention-headline.md) | Unit + property (determinism). |
 | [23](23-summary-render.md) | Golden (per termination shape). |
-| [24](24-stop-hook.md) | Unit (settings merge) + integration (script invocation). |
 | [25](25-probes.md) | Smoke against mock binaries; real-claude probes manual. |
 
 ## CI integration

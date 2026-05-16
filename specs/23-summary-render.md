@@ -4,11 +4,11 @@
 > Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Output format" and §"Surfacing rule" for design intent.
 
 **Depends on:** [10](10-run-artifacts.md), [11](11-fork-artifacts.md), [12](12-attacks-ledger.md), [19](19-round-loop.md), [20](20-termination.md), [21](21-signals.md), [22](22-contention-headline.md).
-**Consumed by:** [24](24-stop-hook.md), [25](25-probes.md), [27](27-release.md).
+**Consumed by:** [25](25-probes.md), [27](27-release.md).
 
 ## Scope
 
-In: the `summary.md` template + renderer, the Stats block, the surfacing rule (silent vs surface on stdout), and the exit-code matrix taking `--hook-mode` into account.
+In: the `summary.md` template + renderer, the Stats block, the surfacing rule (silent vs surface on stdout), and the exit-code matrix.
 
 Out: contention scoring ([22](22-contention-headline.md)), the `--format json` alternate output (deferred to v1; placeholder behavior described).
 
@@ -65,7 +65,7 @@ func (r *Render) Render(s *round.Summary, agg map[string]ledger.Record) ([]byte,
 type SurfacingDecision struct {
     Surface     bool   // true: print line; false: silent (one log.jsonl pointer only)
     StdoutLine  string // exact line to print, no trailing newline
-    ExitCode    int    // intrinsic exit code; --hook-mode overrides separately
+    ExitCode    int    // process exit code (0 clean, 1 unresolved, 130 interrupted)
 }
 
 func Decide(s *round.Summary) SurfacingDecision
@@ -108,20 +108,20 @@ Decide(s):
     }
 ```
 
-The stdout line is *exactly one line*, no leading whitespace. It goes to the orchestrator's stdout (which `exec`s through to the surrounding shell under the Stop hook - see [24](24-stop-hook.md)).
+The stdout line is *exactly one line*, no leading whitespace. It goes to the orchestrator's stdout.
 
 ## Exit-code matrix (recap from [21](21-signals.md))
 
-| `Surface` | `Termination` | `unresolved` | intrinsic | `--hook-mode` |
-|---|---|---|---|---|
-| false | steady-state | 0 | 0 | 0 |
-| true  | steady-state | ≥ 1 | 1 | 0 |
-| true  | max-turn | any | 1 | 0 |
-| true  | cost-cap | any | 1 | 0 |
-| true  | malformed-output | any | 1 | 0 |
-| true  | interrupted | any | 130 | 0 |
+| `Surface` | `Termination` | `unresolved` | exit code |
+|---|---|---|---|
+| false | steady-state | 0 | 0 |
+| true  | steady-state | ≥ 1 | 1 |
+| true  | max-turn | any | 1 |
+| true  | cost-cap | any | 1 |
+| true  | malformed-output | any | 1 |
+| true  | interrupted | any | 130 |
 
-`--hook-mode` collapses every non-pre-flight exit to 0 (so the Stop hook script's `exec agon ...` doesn't propagate failure semantics to claude). Pre-flight failures (codes 100+) always exit with their intrinsic code regardless of `--hook-mode` ([06](06-preflight.md)).
+Pre-flight failures (codes 100+) always exit with their intrinsic code ([06](06-preflight.md)).
 
 ## --format json (v1)
 
@@ -152,5 +152,5 @@ v0 does not implement this; the flag is accepted but stored alongside `Format = 
 - [x] Renderer is deterministic (no map-order leaks; sort-stable inputs).
 - [x] All sections optional except `## Stats` (audit test).
 - [x] Stdout lines match the `Decide` table exactly (golden-string test).
-- [x] `--hook-mode` exit-code override applied at `cmd/agon/main.go`, not in this package; renderer is hook-agnostic.
+- [x] Exit-code mapping applied at `cmd/agon/main.go`, not in this package; renderer is exit-code-agnostic.
 - [x] `--format json` is rejected with a clear panic in v0; the placeholder is not silently ignored.

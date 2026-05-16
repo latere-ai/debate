@@ -8,7 +8,7 @@
 
 ## Scope
 
-In: stateless-per-round critic invocation for codex and claude. Prompt assembly (system + task + diff + prior round files), JSON event parsing for codex, plain JSON parsing for claude, hook-recursion contract verification.
+In: stateless-per-round critic invocation for codex and claude. Prompt assembly (system + task + diff + prior round files), JSON event parsing for codex, plain JSON parsing for claude.
 
 Out: parsing the critic's output ([14](14-attack-parser.md)), choosing the aspect prompt ([15](15-aspect-prompts.md)).
 
@@ -131,12 +131,6 @@ Output: same JSON shape as [17](17-claude-proposer.md):
 
 `Markdown = result`. `ThreadID = session_id` (per-round, not stable).
 
-## Hook-recursion contract (claude critic only)
-
-`ClaudeCritic` invocations also fire the user's Stop hook. The hook script ([24](24-stop-hook.md)) checks `AGON_IN_PROGRESS=1` and exits 0; that env is set by [16](16-subprocess-infra.md)'s `CleanEnv`.
-
-Test: an integration test runs `ClaudeCritic` with the user's hook script wired up and asserts the hook exits 0 fast (recursion-guard test). Lives in [25](25-probes.md) but the contract is owned here.
-
 ## Cwd policy
 
 In v0, both critic drivers run with `Cwd` set to the repo cwd (the same as the proposer's). This is "best-effort isolation" per [01-overview.md](01-overview.md) §"Critic isolation".
@@ -165,7 +159,6 @@ Hook for v1: when [01-overview.md](01-overview.md)'s strict-isolation v1 lands, 
 - Unit (mock claude): JSON `result` extracted into `Markdown`.
 - Unit: empty `agent_message` returns `ErrEmptyResult`.
 - Unit: rate-limit substring in codex stderr returns `ErrRateLimit`.
-- Recursion-guard: `ClaudeCritic` fixture run with `AGON_IN_PROGRESS=1` in env doesn't recurse.
 - Integration (gated `RUN_AGENT_TESTS=1`): real codex against a 5-line diff produces non-empty markdown.
 
 ## Acceptance criteria

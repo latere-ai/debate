@@ -8,7 +8,7 @@
 
 ## Scope
 
-In: SIGINT/SIGTERM handlers wired into the orchestrator's root `context.Context`, child-process tear-down, durable `end.json` write before exit, exit-code translation through `--hook-mode`.
+In: SIGINT/SIGTERM handlers wired into the orchestrator's root `context.Context`, child-process tear-down, durable `end.json` write before exit, exit-code translation.
 
 Out: cost-cap detection ([20](20-termination.md)), summary rendering ([23](23-summary-render.md)).
 
@@ -74,13 +74,7 @@ Same path as SIGINT. CI runners and PID-1 init systems use SIGTERM for shutdown;
 After `Engine.Run` returns, `cmd/agon/main.go` translates the result into a process exit code:
 
 ```
-intrinsic := summaryExitCode(summary)   // 0, 1, or pre-flight code from [06]
-
-if hookMode {
-    os.Exit(0)
-} else {
-    os.Exit(intrinsic)
-}
+os.Exit(summaryExitCode(summary))   // 0, 1, 130, or pre-flight code from [06]
 ```
 
 Where `summaryExitCode`:
@@ -92,9 +86,9 @@ Where `summaryExitCode`:
 | max-turn | any | 1 |
 | cost-cap | any | 1 |
 | malformed-output | any | 1 |
-| interrupted | any | 130 (manual) / 0 (`--hook-mode`) |
+| interrupted | any | 130 |
 
-(`--hook-mode` overrides intrinsic to 0 except in pre-flight failures, which always propagate. See [06](06-preflight.md), [23](23-summary-render.md).)
+(Pre-flight failures always exit with their intrinsic code (100+). See [06](06-preflight.md), [23](23-summary-render.md).)
 
 ## Process-tree teardown
 
@@ -113,4 +107,4 @@ Owned by [16](16-subprocess-infra.md) at the per-call level. This spec only requ
 - [x] Double SIGINT bypasses cleanup and exits 130 within 100ms.
 - [x] Subprocesses are killed (verified by `pgrep -f` after the test).
 - [x] Exit-code matrix above is covered by table-driven tests.
-- [x] Pre-flight failure exit codes propagate even under `--hook-mode`.
+- [x] Pre-flight failure exit codes propagate with their intrinsic code.

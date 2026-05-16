@@ -4,7 +4,7 @@
 > Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"CLI surface" for design intent.
 
 **Depends on:** [02](02-go-module.md), [03](03-ci-lint-release.md).
-**Consumed by:** [05](05-config-file.md), [06](06-preflight.md), [17](17-claude-proposer.md), [18](18-critic-drivers.md), [19](19-round-loop.md), [20](20-termination.md), [23](23-summary-render.md), [24](24-stop-hook.md).
+**Consumed by:** [05](05-config-file.md), [06](06-preflight.md), [17](17-claude-proposer.md), [18](18-critic-drivers.md), [19](19-round-loop.md), [20](20-termination.md), [23](23-summary-render.md).
 
 ## Scope
 
@@ -41,7 +41,6 @@ All flags exposed on the root command:
 | `--changed-lines-min` | int | `10` | `AGON_CHANGED_LINES_MIN` | trivial-diff gate. |
 | `--state-dir` | string | `.agon` | `AGON_STATE_DIR` | where session folders go. |
 | `--format` | string | `markdown` | `AGON_FORMAT` | `markdown` or `json` for `summary.md`/`summary.json`. |
-| `--hook-mode` | bool | `false` | `AGON_HOOK_MODE` | force exit 0; see [23](23-summary-render.md). |
 | `--config` | string | `""` | `AGON_CONFIG` | explicit `.agon.toml` path; overrides search ([05](05-config-file.md)). |
 | `--verbose` | count | `0` | `AGON_VERBOSE` | `-v`, `-vv` for log levels. |
 | `--version` | bool | - | - | prints version (see [03](03-ci-lint-release.md)) and exits 0. |
@@ -77,7 +76,6 @@ type Flags struct {
     ChangedLinesMin  int
     StateDir         string
     Format           string
-    HookMode         bool
     Config           string
     Verbose          int
 }
