@@ -1746,3 +1746,51 @@
     .v-dialectic, .v-dialectic * { transition: none !important; }
     .v-dialectic .reveal { opacity: 1; transform: none; }
 }
+
+/* ============================================================
+   Chinese typography (aligned to the latere-ai site)
+
+   Inter / Instrument Serif have no CJK glyphs, so zh text fell
+   back to whatever the OS picked and the serif-italic accents
+   rendered as ugly faux-italic. Latin runs still resolve to
+   Inter / Instrument Serif (brand wordmarks included); CJK glyphs
+   fall through to LXGW WenKai TC for body and a clean system CJK
+   sans for the large headings. Faux-italic is dropped for CJK.
+   prefs.locale = 'zh' → <html lang="zh">.
+   ============================================================ */
+:lang(zh) .v-dialectic {
+    --font-sans: 'Inter', 'LXGW WenKai TC', -apple-system, BlinkMacSystemFont,
+        'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo,
+        'LXGW WenKai TC', 'PingFang SC', monospace;
+}
+
+/* Large headings: crisp system CJK sans (WenKai is too light at
+   display weight), Latin still Inter. */
+:lang(zh) .v-dialectic .hero-title,
+:lang(zh) .v-dialectic .section-title,
+:lang(zh) .v-dialectic .install h2,
+:lang(zh) .v-dialectic .faq-item summary,
+:lang(zh) .v-dialectic .pillar-t,
+:lang(zh) .v-dialectic .uc-t {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC',
+        'Microsoft YaHei', sans-serif;
+}
+
+/* Serif-italic accents that carry Chinese: Instrument Serif has no
+   CJK and faux-italic reads badly. Use WenKai upright as a soft
+   calligraphic accent — the accent colour still differentiates it.
+   (Latin/number/symbol accents — agent α, signal numbers, §¶, the
+   English paper titles, the brand wordmark — keep serif italic.) */
+:lang(zh) .v-dialectic .hero-title em,
+:lang(zh) .v-dialectic .section-title em,
+:lang(zh) .v-dialectic .install h2 em,
+:lang(zh) .v-dialectic .pillar-t em,
+:lang(zh) .v-dialectic .honest strong,
+:lang(zh) .v-dialectic .pullquote q,
+:lang(zh) .v-dialectic .stage-verdict .vt,
+:lang(zh) .v-dialectic .tx-foot .tx-v {
+    font-family: 'LXGW WenKai TC', -apple-system, 'PingFang SC',
+        'Microsoft YaHei', serif;
+    font-style: normal;
+}
