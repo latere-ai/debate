@@ -249,11 +249,11 @@ export const en = {
             },
             {
                 yr: 'Repo',
-                cite: 'changkun/agents-byzantine-tolerance',
+                cite: 'changkun/agents-verification',
                 em: 'Research home',
                 tail: ' — adversarial debate, extended along compute, depth, stochasticity, leaf format, obfuscation, and query-complexity scaling.',
                 link: 'github →',
-                href: 'https://github.com/changkun/agents-byzantine-tolerance',
+                href: 'https://github.com/changkun/agents-verification',
             },
         ],
         pullquote: {
@@ -350,6 +350,6 @@ export const en = {
                 ],
             },
         ],
-        meta: '© {year} Latere AI · <a href="https://github.com/latere-ai/agon/blob/main/LICENSE">MIT</a> · v0.4.1',
+        meta: '© {year} Latere AI',
     },
 };

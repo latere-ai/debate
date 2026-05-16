@@ -249,11 +249,11 @@ export const zh = {
             },
             {
                 yr: '仓库',
-                cite: 'changkun/agents-byzantine-tolerance',
+                cite: 'changkun/agents-verification',
                 em: '研究主页',
                 tail: '：对抗式辩论，沿算力、深度、随机性、叶子形态、混淆与查询复杂度伸缩等维度扩展。',
                 link: 'github →',
-                href: 'https://github.com/changkun/agents-byzantine-tolerance',
+                href: 'https://github.com/changkun/agents-verification',
             },
         ],
         pullquote: {
@@ -350,6 +350,6 @@ export const zh = {
                 ],
             },
         ],
-        meta: '© {year} Latere AI · <a href="https://github.com/latere-ai/agon/blob/main/LICENSE">MIT</a> · v0.4.1',
+        meta: '© {year} Latere AI',
     },
 };
