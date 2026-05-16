@@ -1,0 +1,383 @@
+import type { LandingContent } from './types';
+
+export const zh: LandingContent = {
+  meta: {
+    title: 'Agon — 让 AI 为自己辩护',
+    description:
+      'Agon —— 面向 AI 产出的对抗式验证关卡。由一位独立评审对 AI 产出进行交叉质询；生产方辩护或让步；只有仍存争议的部分才会交到人手中。',
+  },
+
+  nav: {
+    by: 'by Latere',
+    links: [
+      { label: '演示', href: '#transcript' },
+      { label: '性质', href: '#why' },
+      { label: '研究', href: '#foundations' },
+      { label: '常见问题', href: '#faq' },
+    ],
+    github: 'GitHub',
+    install: '安装',
+  },
+
+  hero: {
+    stampProposer: 'PROPOSER',
+    stampCritic: 'CRITIC',
+    title:
+      '<em>对抗式</em>验证。<br><span class="ht-line">对 <em>AI</em> 逐手交叉质询 <span style="color:var(--accent)">★</span></span>',
+    sub:
+      '由 AI <span style="color:var(--text);font-weight:600">提议方</span> 给出产出。一位独立的 <span style="color:var(--accent);font-weight:600">评审</span> 发起攻击。两者进行有界辩论；评审将<strong>一条</strong>未解攻击押注为决定性叶子。裁判只审视那个叶子 —— 绝不看完整记录。人只复核最终存留的争议。',
+    ctaPrimary: '安装 Agon',
+    ctaSecondary: '工作原理 →',
+    worksWith: '兼容',
+    moreLabel: '+ 任意 CLI',
+  },
+
+  stage: {
+    head:
+      'case · 9f4c — 重构 token 缓存 <span style="color:var(--text-muted);margin-left:8px">· 跨家族配对</span>',
+    proposerCol: '提议方',
+    criticCol: '评审',
+    proposerName: 'agent α',
+    criticName: 'agent β',
+    rows: [
+      {
+        r: 'R1',
+        side: 'p',
+        label: '提议',
+        html: '将缓存重构为 LRU。通过 <code>atomic.Value</code> 实现无锁读取。基准测试：<strong style="color:var(--text)">p99 提升 2.4×</strong>，无回归。',
+      },
+      {
+        r: 'R2',
+        side: 'c',
+        label: '攻击',
+        html: '两个 goroutine 在冷键上并发 invalidate + load。缓存在 TTL 内持有<strong style="color:var(--accent)">过期值</strong>。这违反了你文档中的保证。',
+      },
+      {
+        r: 'R3',
+        side: 'p',
+        label: '辩护',
+        html: '不同意 —— invalidate 会<em>先</em>递增版本计数器再发布。<code>atomic.Value</code> 满足 acquire-release 语义，是安全的。',
+      },
+      {
+        r: 'R4',
+        side: 'c',
+        label: '押注',
+        html: '<strong style="color:var(--accent)">★ 押注。</strong>具体测试：<code>TestConcurrentInvalidateColdLoad</code> 在 16 核上每 40 次运行失败 1 次。已附复现脚本。',
+      },
+    ],
+    verdictKey: '裁决',
+    verdictText: '裁判只审视被押注的叶子 —— 绝不看完整记录。',
+    verdictRight: '争议度 0.74 · 需人工复核',
+  },
+
+  transcript: {
+    eyebrow: '实时记录',
+    title: '一场辩论<em>就是这个样子。</em>',
+    lead: '一次真实 Agon 会话的解剖：一场可分叉出子辩论的有界辩论、覆盖整棵树的争议度、单一被押注的叶子。全程可审计。',
+    case: 'agon://session/9f4c · diff: refactor token cache',
+    meta: 'session · 00:00:42 · α/β · 跨家族',
+    rows: [
+      {
+        n: 'R1·01',
+        actor: 'proposer',
+        actorLabel: 'PROPOSER',
+        html: '将缓存重构为 LRU，通过 atomic.Value 实现免互斥锁读取。基准测试：p99 提升 2.4×，单元测试无回归。',
+      },
+      {
+        n: 'R2·02',
+        actor: 'critic',
+        actorLabel: 'CRITIC',
+        tag: { label: '∎ ATK-1', kind: 'attack' },
+        html: '输入：两个 goroutine 在冷键上并发 invalidate + load。输出：过期值被缓存达 TTL。违反文档中“invalidate 后不读到过期值”的保证。',
+      },
+      {
+        n: 'R2·03',
+        actor: 'critic',
+        actorLabel: 'CRITIC',
+        tag: { label: '∎ ATK-2', kind: 'attack' },
+        html: '“免互斥锁读取” —— 版本计数器自增在竞争下仍是一个 CAS 循环。声称无锁有误导性。',
+      },
+      {
+        n: 'R2·04',
+        actor: 'critic',
+        actorLabel: 'CRITIC',
+        tag: { label: '∎ ATK-3', kind: 'attack' },
+        html: '基准测试用 4 核，缓存键基数为 64。热路径从未触及会暴露回归的冷加载分支。',
+      },
+      {
+        n: 'R3·05',
+        actor: 'proposer',
+        actorLabel: 'PROPOSER',
+        tag: { label: 'RESOLVED ATK-2', kind: 'resolved' },
+        html: '让步：“免互斥锁”表述不严谨。已改为“无锁快路径”。慢路径为 CAS，现已写入文档。',
+      },
+      {
+        n: 'R3·06',
+        actor: 'proposer',
+        actorLabel: 'PROPOSER',
+        tag: { label: 'RESOLVED ATK-3', kind: 'resolved' },
+        html: '已在基数 4096 下补充冷加载微基准；p99 仍提升 1.8×。diff 已更新。',
+      },
+      {
+        n: 'R3·07',
+        actor: 'proposer',
+        actorLabel: 'PROPOSER',
+        tag: { label: 'CONTESTED ATK-1', kind: 'contested' },
+        html: '不同意：invalidate 路径在发布所加载的值之前已递增版本计数器。反论据：该排序满足 acquire-release，是安全的；参见 atomic.Value 语义。',
+      },
+      {
+        n: '↳ sub',
+        actor: 'critic',
+        actorLabel: 'CRITIC',
+        tag: { label: '⌐ FORK ATK-1', kind: 'attack' },
+        html: '子辩论：<strong>这条反论据本身就有争议。</strong>amd64 上的 acquire-release ≠ 弱内存序 ARM 上的 acquire-release。下方复现脚本专门针对 ARM。',
+      },
+      {
+        n: 'R4·08',
+        actor: 'critic',
+        actorLabel: 'CRITIC',
+        tag: { label: '★ STAKED LEAF', kind: 'stake' },
+        html: '押注 ATK-1（子辩论叶子）。具体测试：TestConcurrentInvalidateColdLoad 在 16 核 ARM 机器上每 40 次运行失败 1 次。已附复现脚本。',
+        isStake: true,
+      },
+      {
+        n: 'R5·09',
+        actor: 'judge',
+        actorLabel: 'JUDGE',
+        html: '仅审视 ATK-1。复现已确认：当 invalidate 与冷加载竞争时，存在约 340ns 的过期读窗口。评审在此叶子上胜出。处置：开 issue，不要合并。',
+      },
+    ],
+    footer: [
+      '8 条攻击 · 1 场子辩论 · 6 条已化解 · 1 条存争议 · 1 条被押注',
+      '裁决：需人工复核',
+    ],
+  },
+
+  why: {
+    eyebrow: '为何成立',
+    title: '四个替代方案<em>无法复制</em>的性质。',
+    pillars: [
+      {
+        k: 'i',
+        t: '一位诚实参与者即足够',
+        d: '拜占庭式的提议方必须在每一轮交叉质询中维持一致的谎言。诚实的评审只需找出一处不一致。失败因此变成按维度局部发生，而非整个工具失效。',
+      },
+      {
+        k: 'ii',
+        t: '构造上厂商中立',
+        d: '默认配对为跨家族 —— 一个模型提议，一个无关模型评审。两侧同模型即模型自我辩论，被拒绝。没有厂商会去做这一中立层。',
+      },
+      {
+        k: 'iii',
+        t: '通道纯净',
+        d: '评审的输出以逐字的用户消息抵达提议方，而非技能或模板。提议方会像面对他人粘贴的评审那样去辩护。包装它会扭曲辩护。',
+      },
+      {
+        k: 'iv',
+        t: '设计上可审计',
+        d: '稳定的攻击 id、仅追加的账本、由一条纯规则给出的争议度排序标题 —— 呈现层没有任何 LLM 参与裁决。安全团队读一次会话就像读一份庭审记录。',
+      },
+    ],
+  },
+
+  compare: {
+    eyebrow: '对比替代方案',
+    title: '别再轻信 AI 产出。<em>交叉质询它。</em>',
+    headers: ['性质', 'Agon', '原始 LLM', 'PR 评审'],
+    rows: [
+      { p: '按维度而非整工具地发现缺陷', cols: ['agon', 'no', 'partial'] },
+      { p: '一位诚实参与者即具可靠性', cols: ['agon', 'no', 'no'] },
+      { p: '拒绝同模型自我辩论', cols: ['agon', 'no', 'no'] },
+      { p: '仅追加、可审计的账本', cols: ['agon', 'no', 'partial'] },
+      { p: '争议度作为决策关卡', cols: ['agon', 'no', 'no'] },
+      { p: '呈现层无 LLM 裁判', cols: ['agon', 'no', 'no'] },
+    ],
+  },
+
+  usecases: {
+    eyebrow: '适用场景',
+    title: '被审对象<em>不限于代码。</em>',
+    lead: '只要 AI 产出需要某个权威采信，Agon 就能坐镇其间。协议保持不变；改变的只是叶子的形态。',
+    items: [
+      { i: '§', t: '代码 diff', d: '合并前关卡。智能体化解攻击 → CI 继续。存争议 → 人工复核。' },
+      { i: '¶', t: '研究论述', d: '评审质疑论断与引用。有争议的证据交到复核者手中，而非空泛说辞。' },
+      { i: '⊞', t: '计划与决策', d: '高风险选择逐轮辩护。争议度作为执行关卡。' },
+      { i: '∮', t: '结果分析', d: '复盘与指标解读会被交叉质询，排查挑数据与未言明的假设。' },
+    ],
+  },
+
+  arch: {
+    eyebrow: '架构',
+    title: '三个角色。<em>一条可审计的轨迹。</em>',
+    lead: '提议方与评审以跨家族配对运作。裁判只审视辩论终结所在的那个叶子 —— 绝不看完整记录。',
+    cap: '提议方 ↔ 评审 ↔ 裁判。各角色不共享权重。每条存争议的攻击都可分叉出自己的子辩论；账本看到整棵树，裁判只看一个叶子。',
+  },
+
+  signal: {
+    eyebrow: '已化解 vs. 存争议',
+    title: '一个机器可读的信号，<em>不只是一句标题。</em>',
+    lead: '在智能体回路内，争议度就是一个决策关卡。低于阈值：继续。高于阈值：升级。',
+    cells: [
+      {
+        tag: '已化解',
+        kind: 'r',
+        num: '0.12',
+        label: '争议度',
+        route: '继续 →',
+        desc: '提议方已回应的攻击。调用方智能体继续推进；会话被归档，但不会打扰人。',
+      },
+      {
+        tag: '存争议',
+        kind: 'c',
+        num: '0.74',
+        label: '争议度',
+        route: '升级 ★',
+        desc: '高于阈值的攻击以一份聚焦简报抵达人手中 —— 被押注的叶子、提议方的反驳与复现脚本。不是完整记录。',
+      },
+    ],
+  },
+
+  found: {
+    eyebrow: '学术基础',
+    title: '扎根于辩论文献 —— <em>并对其局限保持诚实。</em>',
+    lead: 'Agon 建立在 Irving、Christiano 与 Amodei 的对抗式辩论架构之上。其复杂度理论上的直觉是启发性的，并非对 LLM 的断言。',
+    refs: [
+      {
+        yr: '2018',
+        cite: 'Irving, Christiano & Amodei',
+        em: 'AI Safety via Debate',
+        tail: ' —— 提出以辩论作为对齐机制。',
+        link: 'arXiv:1805.00899',
+        href: 'https://arxiv.org/abs/1805.00899',
+      },
+      {
+        yr: '2023',
+        cite: 'Brown-Cohen, Irving & Piliouras',
+        em: 'Scalable AI Safety via Doubly-Efficient Debate',
+        tail: ' —— 扩展到随机系统与有界辩论者。',
+        link: 'arXiv:2311.14125',
+        href: 'https://arxiv.org/abs/2311.14125',
+      },
+      {
+        yr: '2025',
+        cite: 'Brown-Cohen, Irving & Piliouras',
+        em: 'Avoiding Obfuscation with Prover-Estimator Debate',
+        tail: ' —— 应对混淆论证攻击。',
+        link: 'arXiv:2506.13609',
+        href: 'https://arxiv.org/abs/2506.13609',
+      },
+      {
+        yr: '仓库',
+        cite: 'changkun/agents-byzantine-tolerance',
+        em: '研究主页',
+        tail: ' —— 对抗式辩论，沿算力、深度、随机性、叶子形态、混淆与查询复杂度伸缩等维度扩展。',
+        link: 'github →',
+        href: 'https://github.com/changkun/agents-byzantine-tolerance',
+      },
+    ],
+    pullquote: {
+      q: '辩论是一种证明搜索博弈：两位对抗式证明者在一个多项式有界的裁判面前论辩。',
+      cite: 'Brown-Cohen, Irving & Piliouras · 2023',
+    },
+    honestStrong: '诚实的表述：',
+    honestRest:
+      '形式可靠性结论是关于协议在既定假设下的性质，而非对任何特定模型的保证。应用于真实 LLM 是经验驱动、处于假设阶段的 —— 关卡指标是按维度的“评审发现缺陷率”。如果评审并不真正发起攻击，辩论就退化为只剩提议方。Agon 不证明你的代码正确，也不声称免除信任的必要。',
+  },
+
+  hook: {
+    eyebrow: 'Stop hook 集成',
+    title: '把它作为一个二进制<em>放进智能体回路。</em>',
+    desc: 'Agon 在你的智能体运行时安装一个 Stop hook。当生产智能体完成任务时，Agon 启动评审、运行协议，并把一次会话写入磁盘。已化解 → 智能体继续。存争议 → 呼叫人。',
+    cta: '查看安装',
+    lines: [
+      { p: '$', cmd: 'latere agon install-hook --scope user' },
+      { p: '↳', l: 'registered  ~/.latere/hooks/stop/agon' },
+      { p: '↳', l: 'wrote       ~/.config/latere/agon/policy.toml' },
+      { p: '', l: '' },
+      { p: '#', l: '—— 数小时后 ——' },
+      { p: '↪', cmd: 'producer finishes diff at 14:02:11' },
+      { p: '↻', l: 'agon spawns critic ............... agent-β' },
+      { p: '↻', l: 'rounds R1..Rn .................... 42s' },
+      { p: '★', attn: 'STAKED   ATK-1  TestConcurrentInvalidate · COLD' },
+      { p: '⇣', l: 'wrote    sessions/9f4c-2026-05-16.json' },
+      { p: '⇡', l: 'paged    contention 0.74 · review required' },
+    ],
+  },
+
+  faq: {
+    eyebrow: '常见问题',
+    title: '关于交叉质询，<em>简要作答。</em>',
+    items: [
+      {
+        q: '辩论永远是一条线性的线索吗？',
+        a: '不是。协议是一棵树，而非一条记录。任何存争议的攻击都可分叉出自己的子辩论：提议方的反驳成为新的论断，评审再去攻击它。评审仍然在整棵树上恰好押注一个叶子，裁判仍然只审视那个叶子。分叉正是协议得以抵御混淆论证的原因 —— 一个误导性的反驳可以在它自己的子博弈中被交叉质询，而不是被照单全收。',
+      },
+      {
+        q: '两侧同模型 —— 为何被取消资格？',
+        a: '那是模型在和自己辩论。交叉质询需要相互独立的失效模式；相同权重共享相同的盲点与相同的谎言。Agon 的默认配对是跨家族（例如厂商 A 的某模型作提议方，厂商 B 的另一模型作评审）。同厂商配对会被接受，但在账本中加以标记。',
+      },
+      {
+        q: '是什么让评审不偷懒？',
+        a: '关卡指标是针对一套留出攻击集、按维度的“评审发现缺陷率”。如果评审并不真正发起攻击，辩论就退化为只剩提议方，Agon 会在会话行上如实标出。该指标就是“协议在正常工作”的可操作定义。',
+      },
+      {
+        q: '裁判也是 LLM 吗？',
+        a: '是，但它只审视被押注的叶子 —— 而非完整记录 —— 而呈现层（争议度、标题）是一条纯规则，其中没有任何 LLM。裁判的职责是对单一论断的局部可靠性；人读标题并决定接下来看什么。',
+      },
+      {
+        q: '这能证明我的代码正确吗？',
+        a: '不能。Agon 是一道验证关卡，不是证明系统。形式可靠性结论是关于协议在既定假设下的性质，而非对任何特定模型的保证。Agon 降低信任预算；它不消除信任。',
+      },
+      {
+        q: '这与让第二个 LLM 评审第一个有何不同？',
+        a: '一个朴素的第二评审者只会给出软性意见。Agon 强制具体攻击（输入 X 产生 Y 违反 Z），强制提议方对每一条辩护或让步，并把一条未解攻击押注为决定性叶子。裁判只审视那个叶子 —— 绝不看整份记录。结构本身就是关卡。',
+      },
+    ],
+  },
+
+  install: {
+    eyebrow: '安装',
+    title: '一个二进制。<em>一个可选的 Stop hook。</em>',
+    lead: '本地优先、厂商中立。自带你的一对模型；Agon 运行协议并把一次可审计的会话写入磁盘。',
+    a: { c: '一行命令 —— 检测 OS/架构，校验 checksum', cmd: 'curl -fsSL https://latere.ai/install.sh | sh' },
+    b: { c: '向你的智能体运行时注册 Stop hook', cmd: 'latere agon install-hook --scope user' },
+    ctaPrimary: '在 GitHub 查看',
+    ctaSecondary: '阅读文档',
+  },
+
+  footer: {
+    tagline:
+      '面向自主 AI 的对抗式验证。由一位独立评审对 AI 产出进行交叉质询；生产方辩护或让步；只有仍存争议的部分才会交到人手中。',
+    columns: [
+      {
+        head: '产品',
+        links: [
+          { label: '实时演示', href: '#transcript' },
+          { label: '性质', href: '#why' },
+          { label: '对比', href: '#compare' },
+          { label: '应用场景', href: '#usecases' },
+          { label: '安装', href: '#install' },
+        ],
+      },
+      {
+        head: '研究',
+        links: [
+          { label: '理论基础', href: '#foundations' },
+          { label: '架构', href: '#architecture' },
+          { label: '争议度信号', href: '#signal' },
+          { label: '常见问题', href: '#faq' },
+        ],
+      },
+      {
+        head: 'By Latere',
+        links: [
+          { label: 'latere.ai', href: 'https://latere.ai' },
+          { label: 'GitHub', href: 'https://github.com/latere-ai/agon' },
+          { label: '联系我们', href: 'mailto:hello@latere.ai' },
+        ],
+      },
+    ],
+    meta: '© {year} Latere AI · <a href="https://github.com/latere-ai/agon/blob/main/LICENSE">MIT</a> · v0.4.1',
+    thesis: '让人类价值始终回环于每一个自主 AI 系统之中。',
+  },
+};
