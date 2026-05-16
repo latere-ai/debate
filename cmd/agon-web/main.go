@@ -17,7 +17,7 @@ import (
 	"syscall"
 	"time"
 
-	"latere.ai/x/debate/internal/web"
+	"latere.ai/x/agon/internal/web"
 )
 
 var version = "dev" // set via -ldflags at build time

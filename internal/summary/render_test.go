@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"latere.ai/x/debate/internal/ledger"
-	"latere.ai/x/debate/internal/round"
+	"latere.ai/x/agon/internal/ledger"
+	"latere.ai/x/agon/internal/round"
 )
 
 func TestDecideClean(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"latere.ai/x/debate/internal/cli"
+	"latere.ai/x/agon/internal/cli"
 )
 
 func TestRun_InProcess_HappyPath(t *testing.T) {

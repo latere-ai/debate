@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"latere.ai/x/debate/internal/input"
+	"latere.ai/x/agon/internal/input"
 )
 
 // Plan summarizes what one debate run will do; produced by Preflight.

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"latere.ai/x/debate/internal/cli"
+	"latere.ai/x/agon/internal/cli"
 )
 
 func TestExitCodeFor(t *testing.T) {

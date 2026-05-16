@@ -4,7 +4,7 @@ package summary
 import (
 	"sort"
 
-	"latere.ai/x/debate/internal/ledger"
+	"latere.ai/x/agon/internal/ledger"
 )
 
 // Score is the contention score: rounds_survived + 1 if re_attacked.

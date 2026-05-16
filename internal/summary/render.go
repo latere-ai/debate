@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"latere.ai/x/debate/internal/ledger"
-	"latere.ai/x/debate/internal/round"
-	"latere.ai/x/debate/internal/state"
+	"latere.ai/x/agon/internal/ledger"
+	"latere.ai/x/agon/internal/round"
+	"latere.ai/x/agon/internal/state"
 )
 
 // Render renders summary.md for one finished run.

@@ -8,7 +8,7 @@ import (
 	"path"
 	"strings"
 
-	spaembed "latere.ai/x/debate/internal/web/spa"
+	spaembed "latere.ai/x/agon/internal/web/spa"
 )
 
 // MountSPA registers static-asset handlers (immutable cache for

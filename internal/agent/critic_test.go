@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"latere.ai/x/debate/internal/critic"
+	"latere.ai/x/agon/internal/critic"
 )
 
 func TestNewCriticPanicsOnUnknown(t *testing.T) {

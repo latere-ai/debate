@@ -1,4 +1,4 @@
-module latere.ai/x/debate
+module latere.ai/x/agon
 
 go 1.26
 

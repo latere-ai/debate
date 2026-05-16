@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"latere.ai/x/debate/internal/agent"
-	"latere.ai/x/debate/internal/critic"
+	"latere.ai/x/agon/internal/agent"
+	"latere.ai/x/agon/internal/critic"
 )
 
 func buildMock(t *testing.T, name string) string {

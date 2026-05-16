@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"latere.ai/x/debate/internal/agent"
-	"latere.ai/x/debate/internal/critic"
-	"latere.ai/x/debate/internal/ledger"
-	"latere.ai/x/debate/internal/state"
+	"latere.ai/x/agon/internal/agent"
+	"latere.ai/x/agon/internal/critic"
+	"latere.ai/x/agon/internal/ledger"
+	"latere.ai/x/agon/internal/state"
 )
 
 // Proposer is the orchestrator's view of the proposer driver.

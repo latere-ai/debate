@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"latere.ai/x/debate/internal/ledger"
-	"latere.ai/x/debate/internal/round"
-	"latere.ai/x/debate/internal/state"
+	"latere.ai/x/agon/internal/ledger"
+	"latere.ai/x/agon/internal/round"
+	"latere.ai/x/agon/internal/state"
 )
 
 func TestPersistWritesSummaryAndEnd(t *testing.T) {
