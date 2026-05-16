@@ -152,8 +152,8 @@ func Exec(ctx context.Context, r Run) (Result, error) {
 	return res, nil
 }
 
-// CleanEnv returns a copy of os.Environ() with the named keys removed
-// and AGON_IN_PROGRESS=1 set, plus the LC_ALL=C stability override.
+// CleanEnv returns a copy of os.Environ() with the named keys removed,
+// plus the LC_ALL=C stability override.
 func CleanEnv(remove ...string) []string {
 	excl := map[string]struct{}{
 		"ANTHROPIC_API_KEY": {},
@@ -161,7 +161,7 @@ func CleanEnv(remove ...string) []string {
 	for _, k := range remove {
 		excl[k] = struct{}{}
 	}
-	out := make([]string, 0, len(os.Environ())+2)
+	out := make([]string, 0, len(os.Environ())+1)
 	for _, kv := range os.Environ() {
 		eq := strings.IndexByte(kv, '=')
 		if eq < 0 {
@@ -173,7 +173,7 @@ func CleanEnv(remove ...string) []string {
 		}
 		out = append(out, kv)
 	}
-	out = append(out, "AGON_IN_PROGRESS=1", "LC_ALL=C")
+	out = append(out, "LC_ALL=C")
 	return out
 }
 

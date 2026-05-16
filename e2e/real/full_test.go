@@ -179,19 +179,10 @@ func fixtureRepoWith47LineDiff(t *testing.T) string {
 	return dir
 }
 
-// scrubbedEnv returns os.Environ() with AGON_IN_PROGRESS removed (so
-// the recursion guard does not fire) and ANTHROPIC_API_KEY preserved
-// (real-e2e needs it).
+// scrubbedEnv returns os.Environ() (ANTHROPIC_API_KEY preserved;
+// real-e2e needs it).
 func scrubbedEnv() []string {
-	env := os.Environ()
-	out := make([]string, 0, len(env))
-	for _, kv := range env {
-		if strings.HasPrefix(kv, "AGON_IN_PROGRESS=") {
-			continue
-		}
-		out = append(out, kv)
-	}
-	return out
+	return os.Environ()
 }
 
 func splitLines(b []byte) []string {

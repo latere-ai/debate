@@ -159,9 +159,6 @@ func patchedPATH(t *testing.T, mockBinDir string) []string {
 		if strings.HasPrefix(kv, "ANTHROPIC_API_KEY=") {
 			continue
 		}
-		if strings.HasPrefix(kv, "AGON_IN_PROGRESS=") {
-			continue
-		}
 		out = append(out, kv)
 	}
 	out = append(out, fmt.Sprintf("PATH=%s:%s", mockBinDir, os.Getenv("PATH")))
@@ -405,30 +402,6 @@ func TestFullE2E_BareInvocationShowsHelp(t *testing.T) {
 	// And NOT the preflight error.
 	if strings.Contains(res.Stderr, "cannot determine task context") {
 		t.Errorf("bare invocation should not trigger preflight error; stderr:\n%s", res.Stderr)
-	}
-}
-
-func TestFullE2E_RecursionGuard(t *testing.T) {
-	root := repoRoot(t)
-	binDir := t.TempDir()
-	agon := build(t, root, "./cmd/agon", binDir)
-
-	repo := fixtureRepo(t)
-	env := patchedPATH(t, binDir)
-	env = append(env, "AGON_IN_PROGRESS=1")
-
-	res := runAgon(
-		t, agon, env, repo,
-		"--task-context", "anything",
-		"--side-count", "1",
-		"--state-dir", filepath.Join(repo, ".agon"),
-	)
-	if res.ExitCode != 0 {
-		t.Fatalf("recursion guard should exit 0, got %d\nstderr: %s", res.ExitCode, res.Stderr)
-	}
-	// Should have produced no session.
-	if _, err := os.Stat(filepath.Join(repo, ".agon", "sessions")); !os.IsNotExist(err) {
-		t.Error("recursion-guard short-circuit should not create sessions/")
 	}
 }
 

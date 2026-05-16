@@ -68,10 +68,6 @@ func TestRun_InProcess_HappyPath(t *testing.T) {
 	t.Setenv("MOCK_CLAUDE_SCRIPT", scriptPath)
 	t.Setenv("MOCK_CODEX_CONTENT", criticContent)
 	t.Setenv("MOCK_CODEX_THREAD_ID", "mock-thread")
-	t.Setenv("AGON_IN_PROGRESS", "")
-	if err := os.Unsetenv("AGON_IN_PROGRESS"); err != nil {
-		t.Fatal(err)
-	}
 	t.Chdir(repo)
 
 	flags := &cli.Flags{
@@ -119,70 +115,6 @@ func TestRun_InProcess_HappyPath(t *testing.T) {
 	}
 }
 
-func TestRun_InProcess_HookMode(t *testing.T) {
-	root := repoRootHere(t)
-	binDir := t.TempDir()
-	buildMock(t, root, "./e2e/mock/claudemock", filepath.Join(binDir, "claude"))
-	buildMock(t, root, "./e2e/mock/codexmock", filepath.Join(binDir, "codex"))
-
-	// Mock claude: always responds.
-	scriptPath := filepath.Join(binDir, "claude-script.json")
-	rules := []map[string]any{
-		{"stdout": map[string]any{
-			"type": "result", "subtype": "success",
-			"session_id": "fork-1",
-			"result":     "ok",
-			"is_error":   false,
-			"usage":      map[string]any{"input_tokens": 10, "output_tokens": 5},
-		}},
-	}
-	b, _ := json.Marshal(rules)
-	_ = os.WriteFile(scriptPath, b, 0o644)
-
-	criticContent := "# Critic 1 - round 1 attacks\n\naspect: security\n"
-	repo := makeFixtureRepo(t)
-	stateDir := filepath.Join(repo, ".agon")
-
-	t.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
-	t.Setenv("HOME", t.TempDir())
-	t.Setenv("MOCK_CLAUDE_SCRIPT", scriptPath)
-	t.Setenv("MOCK_CODEX_CONTENT", criticContent)
-	if err := os.Unsetenv("AGON_IN_PROGRESS"); err != nil {
-		t.Fatal(err)
-	}
-	t.Chdir(repo)
-
-	flags := &cli.Flags{
-		Main:            "claude",
-		Side:            "codex",
-		MaxTurn:         2,
-		SideCount:       1,
-		ChangedLinesMin: 5,
-		CostCap:         50000,
-		StateDir:        stateDir,
-		TaskContext:     "hook-mode",
-		DiffFrom:        "HEAD",
-		DiffTo:          ".",
-		Format:          "markdown",
-		Judge:           "none",
-		LogMode:         "silent",
-		HookMode:        true,
-	}
-	plan := &cli.Plan{
-		Cwd:         repo,
-		Forks:       []cli.ForkPlan{{Index: 1}},
-		StateDirAbs: stateDir,
-		HookMode:    true,
-	}
-	code, err := Run(context.Background(), flags, plan)
-	if err != nil {
-		t.Fatalf("Run: %v", err)
-	}
-	if code != 0 {
-		t.Errorf("hook-mode should exit 0 always; got %d", code)
-	}
-}
-
 func TestRun_InProcess_VerboseMode(t *testing.T) {
 	root := repoRootHere(t)
 	binDir := t.TempDir()
@@ -209,9 +141,6 @@ func TestRun_InProcess_VerboseMode(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("MOCK_CLAUDE_SCRIPT", scriptPath)
 	t.Setenv("MOCK_CODEX_CONTENT", "# Critic 1 - round 1 attacks\n\naspect: security\n")
-	if err := os.Unsetenv("AGON_IN_PROGRESS"); err != nil {
-		t.Fatal(err)
-	}
 	t.Chdir(repo)
 
 	flags := &cli.Flags{
@@ -298,9 +227,6 @@ func TestRun_InProcess_WorkingTreeCleanFallback(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("MOCK_CLAUDE_SCRIPT", scriptPath)
 	t.Setenv("MOCK_CODEX_CONTENT", "# Critic 1 - round 1 attacks\n\naspect: security\n")
-	if err := os.Unsetenv("AGON_IN_PROGRESS"); err != nil {
-		t.Fatal(err)
-	}
 	t.Chdir(dir)
 
 	flags := &cli.Flags{

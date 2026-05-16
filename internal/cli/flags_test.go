@@ -26,7 +26,7 @@ func TestDefaults(t *testing.T) {
 
 func TestFlagParsing(t *testing.T) {
 	cmd, f := newCmd()
-	if err := cmd.ParseFlags([]string{"--main-model", "claude-opus", "--side-count", "2", "--hook-mode"}); err != nil {
+	if err := cmd.ParseFlags([]string{"--main-model", "claude-opus", "--side-count", "2"}); err != nil {
 		t.Fatal(err)
 	}
 	if f.MainModel != "claude-opus" {
@@ -35,14 +35,10 @@ func TestFlagParsing(t *testing.T) {
 	if f.SideCount != 2 {
 		t.Errorf("side-count: got %d", f.SideCount)
 	}
-	if !f.HookMode {
-		t.Error("hook-mode not set")
-	}
 }
 
 func TestEnvOverride(t *testing.T) {
 	t.Setenv("AGON_SIDE_COUNT", "7")
-	t.Setenv("AGON_HOOK_MODE", "true")
 	cmd, f := newCmd()
 	if err := cmd.ParseFlags(nil); err != nil {
 		t.Fatal(err)
@@ -50,9 +46,6 @@ func TestEnvOverride(t *testing.T) {
 	ApplyEnv(cmd, f)
 	if f.SideCount != 7 {
 		t.Errorf("env side-count: got %d", f.SideCount)
-	}
-	if !f.HookMode {
-		t.Error("env hook-mode not applied")
 	}
 }
 
@@ -85,7 +78,6 @@ func TestEnvBindings_AllKeysApplied(t *testing.T) {
 	t.Setenv("AGON_CHANGED_LINES_MIN", "20")
 	t.Setenv("AGON_STATE_DIR", "/tmp/x")
 	t.Setenv("AGON_FORMAT", "markdown")
-	t.Setenv("AGON_HOOK_MODE", "1")
 	t.Setenv("AGON_CONFIG", "/c.toml")
 	t.Setenv("AGON_VERBOSE", "2")
 
@@ -116,7 +108,6 @@ func TestEnvBindings_AllKeysApplied(t *testing.T) {
 		{"ChangedLinesMin", f.ChangedLinesMin, 20},
 		{"StateDir", f.StateDir, "/tmp/x"},
 		{"Format", f.Format, "markdown"},
-		{"HookMode", f.HookMode, true},
 		{"Config", f.Config, "/c.toml"},
 		{"Verbose", f.Verbose, 2},
 	}
@@ -124,30 +115,6 @@ func TestEnvBindings_AllKeysApplied(t *testing.T) {
 		if c.got != c.want {
 			t.Errorf("%s: got %v, want %v", c.name, c.got, c.want)
 		}
-	}
-}
-
-func TestEnvBindings_HookModeFalsey(t *testing.T) {
-	t.Setenv("AGON_HOOK_MODE", "0")
-	cmd, f := newCmd()
-	if err := cmd.ParseFlags(nil); err != nil {
-		t.Fatal(err)
-	}
-	ApplyEnv(cmd, f)
-	if f.HookMode {
-		t.Errorf("HOOK_MODE=0 should not enable HookMode")
-	}
-}
-
-func TestEnvBindings_HookModeTrue(t *testing.T) {
-	t.Setenv("AGON_HOOK_MODE", "TRUE")
-	cmd, f := newCmd()
-	if err := cmd.ParseFlags(nil); err != nil {
-		t.Fatal(err)
-	}
-	ApplyEnv(cmd, f)
-	if !f.HookMode {
-		t.Errorf("HOOK_MODE=TRUE (case-insensitive) should enable HookMode")
 	}
 }
 

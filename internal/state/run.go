@@ -45,7 +45,6 @@ type ConfigSnap struct {
 	SideCount       int    `json:"side_count"`
 	CostCap         int    `json:"cost_cap"`
 	ChangedLinesMin int    `json:"changed_lines_min"`
-	HookMode        bool   `json:"hook_mode"`
 	Format          string `json:"format"`
 	MainModel       string `json:"main_model"`
 	SideModel       string `json:"side_model"`

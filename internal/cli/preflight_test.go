@@ -13,7 +13,6 @@ func validFlags() *Flags {
 }
 
 func TestPreflightOK(t *testing.T) {
-	t.Setenv("AGON_IN_PROGRESS", "")
 	plan, err := Preflight(context.Background(), validFlags())
 	if err != nil {
 		t.Fatal(err)
@@ -23,14 +22,6 @@ func TestPreflightOK(t *testing.T) {
 	}
 	if plan.Forks[0].Index != 1 || plan.Forks[3].Index != 4 {
 		t.Errorf("fork indexing 1-based: got %v", plan.Forks)
-	}
-}
-
-func TestPreflightRecursionGuard(t *testing.T) {
-	t.Setenv("AGON_IN_PROGRESS", "1")
-	_, err := Preflight(context.Background(), validFlags())
-	if !errors.Is(err, ErrRecursionGuard) {
-		t.Errorf("got %v, want ErrRecursionGuard", err)
 	}
 }
 

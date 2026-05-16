@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,7 +14,6 @@ import (
 type Plan struct {
 	Cwd            string
 	Forks          []ForkPlan
-	HookMode       bool
 	StateDirAbs    string
 	SessionID      string
 	TranscriptPath string
@@ -44,19 +42,10 @@ func (e *PreflightError) Error() string {
 
 func (e *PreflightError) Unwrap() error { return e.Wrap }
 
-// ErrRecursionGuard signals "exit 0 immediately"; the orchestrator
-// detected AGON_IN_PROGRESS in env.
-var ErrRecursionGuard = errors.New("recursion guard triggered")
-
 // Preflight runs every pre-flight check against f. On success it
-// returns *Plan; on failure a *PreflightError or ErrRecursionGuard.
+// returns *Plan; on failure a *PreflightError.
 func Preflight(_ context.Context, f *Flags) (*Plan, error) {
-	// 1. Recursion guard - exit 0 fast path.
-	if os.Getenv("AGON_IN_PROGRESS") != "" {
-		return nil, ErrRecursionGuard
-	}
-
-	// 2. cwd resolution.
+	// cwd resolution.
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, &PreflightError{Code: 101, Msg: "cannot resolve cwd", Wrap: err}
@@ -203,7 +192,6 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 	return &Plan{
 		Cwd:            cwd,
 		Forks:          forks,
-		HookMode:       f.HookMode,
 		StateDirAbs:    stateDir,
 		SessionID:      f.SessionID,
 		TranscriptPath: f.Transcript,

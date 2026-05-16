@@ -45,7 +45,6 @@ type Engine struct {
 	NewCritic         CriticFactory
 	MaxRounds         int
 	CostCap           int
-	HookMode          bool
 	TaskContext       string
 	DiffPatch         string
 	HeartbeatInterval time.Duration

@@ -4,14 +4,12 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"runtime"
 	"runtime/debug"
-	"strings"
 	"syscall"
 	"time"
 
@@ -19,7 +17,6 @@ import (
 
 	"latere.ai/x/agon/internal/agent"
 	"latere.ai/x/agon/internal/cli"
-	"latere.ai/x/agon/internal/hook"
 	"latere.ai/x/agon/internal/input"
 	"latere.ai/x/agon/internal/ledger"
 	"latere.ai/x/agon/internal/round"
@@ -99,17 +96,12 @@ func realMain(args []string, stdout, stderr io.Writer) int {
 		}
 		plan, err := cli.Preflight(root.Context(), flags)
 		if err != nil {
-			if errors.Is(err, cli.ErrRecursionGuard) {
-				return nil
-			}
 			return err
 		}
 		code, runErr := Run(root.Context(), flags, plan)
 		exitCode = code
 		return runErr
 	}
-
-	root.AddCommand(installHookCmd(), uninstallHookCmd(), hookCmd(), statusCmd())
 
 	// Install the signal-aware context so SIGINT / SIGTERM cancel the
 	// root context and propagate down through agent.Exec's process-group
@@ -196,7 +188,7 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) (int, error) {
 		Config: state.ConfigSnap{
 			MaxTurn: flags.MaxTurn, SideCount: flags.SideCount,
 			CostCap: flags.CostCap, ChangedLinesMin: flags.ChangedLinesMin,
-			HookMode: flags.HookMode, Format: flags.Format,
+			Format:    flags.Format,
 			MainModel: flags.MainModel, SideModel: flags.SideModel,
 		},
 		RootSession: state.RootSession{
@@ -217,7 +209,7 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) (int, error) {
 	// only "still running".
 	verbose := flags.LogMode == cli.LogModeVerbose
 	var eventOut io.Writer
-	if verbose && !flags.HookMode {
+	if verbose {
 		eventOut = os.Stderr
 	}
 	proposer := &agent.ClaudeProposer{
@@ -238,11 +230,10 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) (int, error) {
 			return agent.NewCritic(flags.Side)
 		}
 	}
-	// Progress lines: Stop-hook path swallows stderr so leave it nil
-	// there; manual invocation gets per-fork/per-round status on stderr
-	// unless --log-mode silent was passed.
+	// Progress lines: per-fork/per-round status goes to stderr unless
+	// --log-mode silent was passed.
 	var progress io.Writer
-	if !flags.HookMode && flags.LogMode != cli.LogModeSilent {
+	if flags.LogMode != cli.LogModeSilent {
 		progress = os.Stderr
 	}
 	heartbeat := round.DefaultHeartbeatInterval
@@ -253,7 +244,7 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) (int, error) {
 		Sess: sess, Cwd: plan.Cwd, ForkCount: len(plan.Forks),
 		Proposer:  proposer,
 		NewCritic: criticFactory,
-		MaxRounds: cli.MaxRoundsFor(flags.MaxTurn), CostCap: flags.CostCap, HookMode: flags.HookMode,
+		MaxRounds: cli.MaxRoundsFor(flags.MaxTurn), CostCap: flags.CostCap,
 		TaskContext: taskCtx, DiffPatch: diff.Patch,
 		Progress:          progress,
 		HeartbeatInterval: heartbeat,
@@ -277,22 +268,15 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) (int, error) {
 		Summary: sess.Path("summary.md"),
 	})
 	// Print the rendered summary to stdout (TTY-styled when
-	// interactive, plain markdown when piped). The hook-mode path
-	// stays silent: claude swallows stdout there.
-	if !flags.HookMode {
-		if body, readErr := os.ReadFile(sess.Path("summary.md")); readErr == nil {
-			_, _ = summary.PrintRendered(os.Stdout, body, summary.IsTerminal(os.Stdout))
-			fmt.Println()
-		}
+	// interactive, plain markdown when piped).
+	if body, readErr := os.ReadFile(sess.Path("summary.md")); readErr == nil {
+		_, _ = summary.PrintRendered(os.Stdout, body, summary.IsTerminal(os.Stdout))
+		fmt.Println()
 	}
 	if decide.StdoutLine != "" {
 		fmt.Println(decide.StdoutLine)
 	}
 
-	// Translate exit code, applying --hook-mode.
-	if flags.HookMode {
-		return 0, nil
-	}
 	return decide.ExitCode, nil
 }
 
@@ -315,183 +299,4 @@ func exitCodeFor(err error) int {
 		return pe.Code
 	}
 	return 1
-}
-
-func installHookCmd() *cobra.Command {
-	var scope, command, withStatusLine string
-	cmd := &cobra.Command{
-		Use:   "install-hook",
-		Short: "Install the Stop hook into ~/.claude/settings.json (or project)",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			s := hook.ScopeUser
-			if scope == "project" {
-				s = hook.ScopeProject
-			}
-			// Default: `<absolute-path-to-this-binary> hook`. Self-
-			// contained: no shell script on PATH, no `jq` dependency,
-			// works after a bare `go install`.
-			exe, err := os.Executable()
-			if err != nil {
-				return fmt.Errorf("locate self for hook command: %w", err)
-			}
-			if command == "" {
-				command = exe + " hook"
-			}
-			if err := hook.Install(s, command); err != nil {
-				return err
-			}
-			// Map back-compat boolean values from the rc5 BoolVar flag
-			// onto the rc6 tri-state. pflag's BoolVar uses
-			// strconv.ParseBool, which accepts every spelling in
-			// {1, t, T, TRUE, true, True} for true and the equivalent
-			// false set, so the alias table matches strconv.ParseBool
-			// case-insensitively, plus the user-friendly yes/no.
-			// Without this, any wrapper script that emitted
-			// --with-statusline=TRUE / =T / =F against rc5 fails hard
-			// against rc6.
-			normalized := withStatusLine
-			switch strings.ToLower(withStatusLine) {
-			case "true", "t", "1", "yes":
-				normalized = "auto"
-			case "false", "f", "0", "no":
-				normalized = ""
-			}
-			switch normalized {
-			case "":
-				// flag not passed (or explicitly disabled); do nothing
-			case "auto", "force":
-				force := normalized == "force"
-				err := hook.InstallStatusLine(s, exe+" status", force)
-				switch {
-				case err == nil:
-					_, _ = fmt.Fprintln(os.Stderr,
-						"agon: statusLine installed; live progress will render at the bottom of the claude TUI during a hook-triggered run")
-				case errors.Is(err, hook.ErrStatusLineConflict):
-					existing := hook.ReadStatusLineCommand(s)
-					_, _ = fmt.Fprintf(os.Stderr,
-						"agon: statusLine already set to:\n  %s\nleft it alone. Re-run with --with-statusline=force to overwrite,\n"+
-							"or compose manually by writing a wrapper that runs both commands and prints both output lines.\n",
-						existing)
-				default:
-					return err
-				}
-			default:
-				return fmt.Errorf(
-					"--with-statusline: unknown value %q (allowed: auto, force, true, false)",
-					withStatusLine)
-			}
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&scope, "scope", "user", "user | project")
-	cmd.Flags().StringVar(&command, "command", "",
-		"explicit hook command string (default: \"<this binary> hook\")")
-	cmd.Flags().StringVar(&withStatusLine, "with-statusline", "",
-		"also install a statusLine entry pointing at \"<this binary> status\" "+
-			"(values: auto = skip if a non-agon statusLine is already set; "+
-			"force = overwrite it). Default empty = do not install.")
-	// `--with-statusline` with no value -> "auto" (preserves the
-	// natural "boolean-ish" UX of the original flag).
-	if f := cmd.Flags().Lookup("with-statusline"); f != nil {
-		f.NoOptDefVal = "auto"
-	}
-	// Back-compat: old name. Same effect.
-	cmd.Flags().StringVar(&command, "script-path", command,
-		"deprecated alias for --command; pass a script path or any shell command")
-	_ = cmd.Flags().MarkDeprecated("script-path", "use --command instead")
-	return cmd
-}
-
-// hookCmd is the Stop-hook entry point. claude invokes it with the
-// hook payload on stdin; we parse session_id / transcript_path / cwd
-// out of it and run the orchestrator in --hook-mode. This replaces
-// the v0 shell-script trampoline (scripts/agon-stop-hook.sh) so a
-// bare `go install` is enough to make the hook work; no separate
-// script on PATH, no `jq` dependency.
-func hookCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:    "hook",
-		Short:  "Stop-hook entry point. Reads claude's payload from stdin.",
-		Hidden: true,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runHook(cmd.Context())
-		},
-	}
-}
-
-func runHook(ctx context.Context) error {
-	// Recursion guard. The orchestrator spawns claude / codex
-	// subprocesses; those also fire the Stop hook. Without this guard
-	// the hook would re-enter the orchestrator on every round.
-	if os.Getenv("AGON_IN_PROGRESS") != "" {
-		return nil
-	}
-
-	// Parse claude's hook payload from stdin. Best-effort: an empty
-	// payload still falls through to the orchestrator's preflight.
-	payload, _ := io.ReadAll(os.Stdin)
-	var p struct {
-		SessionID      string `json:"session_id"`
-		TranscriptPath string `json:"transcript_path"`
-		Cwd            string `json:"cwd"`
-	}
-	_ = json.Unmarshal(payload, &p)
-
-	// Stale ANTHROPIC_API_KEY in env causes 401 in claude --print
-	// subprocesses on OAuth-only accounts. Strip it; the orchestrator
-	// also strips it from agent subprocess envs via CleanEnv (spec 16).
-	_ = os.Unsetenv("ANTHROPIC_API_KEY")
-
-	// claude --resume is cwd-scoped; cd to where the user's session
-	// lives so the resume call hits the right project dir.
-	if p.Cwd != "" {
-		if err := os.Chdir(p.Cwd); err != nil {
-			return fmt.Errorf("cd to hook cwd %q: %w", p.Cwd, err)
-		}
-	}
-
-	// Build flags as if `--hook-mode --session-id <id> --transcript
-	// <path> --max-turn 6` were passed, then drive the same Effective
-	// → Preflight → Run pipeline as the root command.
-	sub := &cobra.Command{Use: "agon"}
-	flags := cli.Bind(sub)
-	flags.HookMode = true
-	flags.MaxTurn = 6
-	flags.SessionID = p.SessionID
-	flags.Transcript = p.TranscriptPath
-	if _, err := cli.Effective(sub, flags); err != nil {
-		return err
-	}
-	plan, err := cli.Preflight(ctx, flags)
-	if err != nil {
-		if errors.Is(err, cli.ErrRecursionGuard) {
-			return nil
-		}
-		return err
-	}
-	code, runErr := Run(ctx, flags, plan)
-	if runErr == nil && code != 0 {
-		// hook-mode forces exit 0 inside Run on the happy path; a
-		// non-zero code here means a preflight-style failure that
-		// should propagate so claude marks the hook as failed.
-		os.Exit(code)
-	}
-	return runErr
-}
-
-func uninstallHookCmd() *cobra.Command {
-	var scope string
-	cmd := &cobra.Command{
-		Use:   "uninstall-hook",
-		Short: "Remove the Stop hook from ~/.claude/settings.json (or project)",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			s := hook.ScopeUser
-			if scope == "project" {
-				s = hook.ScopeProject
-			}
-			return hook.Uninstall(s)
-		},
-	}
-	cmd.Flags().StringVar(&scope, "scope", "user", "user | project")
-	return cmd
 }

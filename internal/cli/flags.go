@@ -5,7 +5,6 @@ import (
 	"os"
 	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -29,7 +28,6 @@ type Flags struct {
 	ChangedLinesMin int
 	StateDir        string
 	Format          string
-	HookMode        bool
 	Config          string
 	Verbose         int
 	LogMode         string
@@ -39,8 +37,7 @@ type Flags struct {
 // exact contract behind each value.
 const (
 	// LogModeSilent suppresses all per-round progress and the heartbeat.
-	// Useful for CI runs where stderr should stay clean. Hook-mode
-	// gets this implicitly.
+	// Useful for CI runs where stderr should stay clean.
 	LogModeSilent = "silent"
 	// LogModeConcise is the default: one progress line per round +
 	// a 10s heartbeat while an agent call is in flight.
@@ -124,7 +121,6 @@ func Bind(cmd *cobra.Command) *Flags {
 	cmd.Flags().IntVar(&f.ChangedLinesMin, "changed-lines-min", f.ChangedLinesMin, "trivial-diff gate threshold")
 	cmd.Flags().StringVar(&f.StateDir, "state-dir", f.StateDir, "where session folders live")
 	cmd.Flags().StringVar(&f.Format, "format", f.Format, "summary format: markdown or json")
-	cmd.Flags().BoolVar(&f.HookMode, "hook-mode", f.HookMode, "force exit 0; used by the default Stop hook")
 	cmd.Flags().StringVar(&f.Config, "config", f.Config, "explicit .agon.toml path; empty = search")
 	cmd.Flags().CountVarP(&f.Verbose, "verbose", "v", "verbose: -v, -vv")
 	cmd.Flags().StringVar(&f.LogMode, "log-mode", f.LogMode, "progress detail: silent | concise | verbose")
@@ -188,11 +184,6 @@ func envBindings(f *Flags) []envBinding {
 		}},
 		{"state-dir", "AGON_STATE_DIR", func(v string) { f.StateDir = v }},
 		{"format", "AGON_FORMAT", func(v string) { f.Format = v }},
-		{"hook-mode", "AGON_HOOK_MODE", func(v string) {
-			if v == "1" || strings.EqualFold(v, "true") {
-				f.HookMode = true
-			}
-		}},
 		{"config", "AGON_CONFIG", func(v string) { f.Config = v }},
 		{"verbose", "AGON_VERBOSE", func(v string) {
 			if n, err := strconv.Atoi(v); err == nil {

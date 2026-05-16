@@ -9,7 +9,6 @@ import (
 
 func TestCleanEnvScrubsAPIKey(t *testing.T) {
 	t.Setenv("ANTHROPIC_API_KEY", "stale")
-	t.Setenv("AGON_IN_PROGRESS", "")
 	env := CleanEnv()
 	for _, kv := range env {
 		if strings.HasPrefix(kv, "ANTHROPIC_API_KEY=") {
@@ -18,13 +17,13 @@ func TestCleanEnvScrubsAPIKey(t *testing.T) {
 	}
 	found := false
 	for _, kv := range env {
-		if kv == "AGON_IN_PROGRESS=1" {
+		if kv == "LC_ALL=C" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("AGON_IN_PROGRESS=1 not set")
+		t.Error("LC_ALL=C not set")
 	}
 }
 
