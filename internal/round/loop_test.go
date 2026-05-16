@@ -302,9 +302,9 @@ func (s *usageCritic) Round(_ context.Context, _ agent.CriticInput) (*agent.Crit
 }
 
 // TestEngineStyledProgressEmitsANSI asserts that with Styled=true,
-// progress lines carry ANSI escapes around the [debate] prefix and
+// progress lines carry ANSI escapes around the [agon] prefix and
 // role words, while plain mode (Styled=false) leaves them alone.
-// The test pins this at the engine layer because cmd/debate gates
+// The test pins this at the engine layer because cmd/agon gates
 // Styled on stderr-TTY: a regression that ships ANSI to a piped log
 // would corrupt downstream tooling.
 func TestEngineStyledProgressEmitsANSI(t *testing.T) {
@@ -349,7 +349,7 @@ func TestEngineStyledProgressEmitsANSI(t *testing.T) {
 			if tc.styled {
 				// Specific decorations we want to see.
 				for _, want := range []string{
-					ansiBold + ansiCyan + "[debate]" + ansiReset,
+					ansiBold + ansiCyan + "[agon]" + ansiReset,
 					roleCriticColor + "critic" + ansiReset,
 					roleProposerCol + "proposer" + ansiReset,
 				} {

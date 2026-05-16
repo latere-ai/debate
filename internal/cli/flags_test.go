@@ -7,7 +7,7 @@ import (
 )
 
 func newCmd() (*cobra.Command, *Flags) {
-	cmd := &cobra.Command{Use: "debate"}
+	cmd := &cobra.Command{Use: "agon"}
 	return cmd, Bind(cmd)
 }
 
@@ -169,7 +169,7 @@ func TestEnvBindings_BadIntsIgnored(t *testing.T) {
 	}
 }
 
-// TestShouldShowHelp covers the bare-invocation UX: `debate` with no
+// TestShouldShowHelp covers the bare-invocation UX: `agon` with no
 // args and no env-supplied task source must redirect to help instead
 // of running preflight and failing on the cryptic "cannot determine
 // task context" error.
@@ -223,7 +223,7 @@ func TestDefaultLogMode(t *testing.T) {
 	}
 }
 
-// TestMaxRoundsFor pins the doubling rule cmd/debate/main.go relies
+// TestMaxRoundsFor pins the doubling rule cmd/agon/main.go relies
 // on: --max-turn N pairs translates to 2N internal rounds. A
 // regression here would silently halve or double how long the engine
 // runs.

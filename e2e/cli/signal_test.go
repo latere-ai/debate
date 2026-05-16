@@ -24,7 +24,7 @@ func TestSignalLatency_StuckChild(t *testing.T) {
 
 	root := repoRoot(t)
 	binDir := t.TempDir()
-	debate := build(t, root, "./cmd/agon", binDir)
+	agon := build(t, root, "./cmd/agon", binDir)
 
 	// Shell shims for claude/codex that sleep long enough to outlast
 	// any reasonable signal latency budget.
@@ -42,7 +42,7 @@ func TestSignalLatency_StuckChild(t *testing.T) {
 	env := patchedPATH(t, stubDir)
 	env = append(env, "HOME="+t.TempDir())
 
-	cmd := exec.Command(debate,
+	cmd := exec.Command(agon,
 		"--main", "claude",
 		"--side", "codex",
 		"--max-turn", "2",
@@ -63,7 +63,7 @@ func TestSignalLatency_StuckChild(t *testing.T) {
 	// 1s is generous; the probe runs fine at 0.5s on dev hardware.
 	time.Sleep(1 * time.Second)
 
-	// Send SIGINT to debate's process group, mirroring the behaviour
+	// Send SIGINT to agon's process group, mirroring the behaviour
 	// of an interactive Ctrl-C.
 	start := time.Now()
 	if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGINT); err != nil {
@@ -79,7 +79,7 @@ func TestSignalLatency_StuckChild(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 		<-done
-		t.Fatalf("debate did not exit within 5s of SIGINT (regression: signal handler not wired into main)")
+		t.Fatalf("agon did not exit within 5s of SIGINT (regression: signal handler not wired into main)")
 	}
 	elapsed := time.Since(start)
 

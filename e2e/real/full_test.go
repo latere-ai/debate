@@ -35,14 +35,14 @@ func TestRealEndToEnd_OneFork(t *testing.T) {
 
 	root := repoRoot(t)
 	binDir := t.TempDir()
-	debate := build(t, root, binDir)
+	agon := build(t, root, binDir)
 
 	repo := fixtureRepoWith47LineDiff(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, debate,
+	cmd := exec.CommandContext(ctx, agon,
 		"--main", "claude",
 		"--side", "codex",
 		"--max-turn", "4",
@@ -67,12 +67,12 @@ func TestRealEndToEnd_OneFork(t *testing.T) {
 	if err != nil {
 		var ee *exec.ExitError
 		if !errors.As(err, &ee) {
-			t.Fatalf("debate run failed (non-exit error): %v", err)
+			t.Fatalf("agon run failed (non-exit error): %v", err)
 		}
 		// Exit codes 0 (clean) and 1 (unresolved leaves) are both fine for
 		// a real-e2e shape check; anything else is failure.
 		if ee.ExitCode() != 1 {
-			t.Fatalf("debate exit code %d, expected 0 or 1", ee.ExitCode())
+			t.Fatalf("agon exit code %d, expected 0 or 1", ee.ExitCode())
 		}
 	}
 
@@ -146,11 +146,11 @@ func repoRoot(t *testing.T) string {
 
 func build(t *testing.T, root, binDir string) string {
 	t.Helper()
-	out := filepath.Join(binDir, "debate")
+	out := filepath.Join(binDir, "agon")
 	cmd := exec.Command("go", "build", "-o", out, "./cmd/agon")
 	cmd.Dir = root
 	if b, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("build debate: %v\n%s", err, b)
+		t.Fatalf("build agon: %v\n%s", err, b)
 	}
 	return out
 }

@@ -20,19 +20,19 @@ import (
 // directory advance the displayed round count.
 var roundFileRE = regexp.MustCompile(`^r\d+-(critic|proposer)\.md$`)
 
-// statusCmd renders a one-line status for the most recent debate run
+// statusCmd renders a one-line status for the most recent agon run
 // in the current cwd. Designed for Claude Code's `statusLine` setting:
 // the binary is invoked every few seconds, must exit fast, and prints
 // one line of stdout that the TUI renders at the bottom of the
 // session.
 //
-// Empty output means "nothing to show" (no debate state in cwd, or
+// Empty output means "nothing to show" (no agon state in cwd, or
 // the latest run is already finished). statusLine treats empty stdout
 // as "no status bar," so absence is a clean no-op.
 func statusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:    "status",
-		Short:  "One-line status for the most recent debate run (statusLine integration)",
+		Short:  "One-line status for the most recent agon run (statusLine integration)",
 		Hidden: false,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cwd, err := os.Getwd()
@@ -119,7 +119,7 @@ func computeStatusLine(cwd string, now time.Time) string {
 	forksDir := filepath.Join(sessDir, "forks")
 	activeIdx, activeName, newestMtime := findActiveFork(forksDir)
 	if activeName == "" {
-		return fmt.Sprintf("[debate] starting (1/%d)", max(totalForks, 1))
+		return fmt.Sprintf("[agon] starting (1/%d)", max(totalForks, 1))
 	}
 
 	roundsDir := filepath.Join(forksDir, activeName, "rounds")
@@ -154,7 +154,7 @@ func computeStatusLine(cwd string, now time.Time) string {
 
 	open, conceded, rebutted := countAttackStatuses(filepath.Join(sessDir, "attacks.jsonl"))
 
-	line := fmt.Sprintf("[debate] %d/%d %s | R%d %s %s",
+	line := fmt.Sprintf("[agon] %d/%d %s | R%d %s %s",
 		activeIdx, max(totalForks, activeIdx),
 		shortTopic(topic), nextRound, role, fmtElapsed(elapsed))
 	if open+conceded+rebutted > 0 {
@@ -165,11 +165,11 @@ func computeStatusLine(cwd string, now time.Time) string {
 
 // finishedStatusLine renders a one-line "the run just ended" summary
 // from end.json: termination reason + unresolved/total counts. Falls
-// back to a generic "[debate] done" if end.json is unparseable.
+// back to a generic "[agon] done" if end.json is unparseable.
 func finishedStatusLine(sessDir string) string {
 	b, err := os.ReadFile(filepath.Join(sessDir, "end.json"))
 	if err != nil {
-		return "[debate] done"
+		return "[agon] done"
 	}
 	var end struct {
 		Termination struct {
@@ -181,7 +181,7 @@ func finishedStatusLine(sessDir string) string {
 		} `json:"stats"`
 	}
 	if err := json.Unmarshal(b, &end); err != nil {
-		return "[debate] done"
+		return "[agon] done"
 	}
 	reason := end.Termination.Reason
 	if reason == "" {
@@ -189,10 +189,10 @@ func finishedStatusLine(sessDir string) string {
 	}
 	unresolved := end.Stats.ByStatus["unresolved"] + end.Stats.ByStatus["open"]
 	if end.Stats.Total > 0 {
-		return fmt.Sprintf("[debate] %s • %d/%d unresolved • see summary.md",
+		return fmt.Sprintf("[agon] %s • %d/%d unresolved • see summary.md",
 			reason, unresolved, end.Stats.Total)
 	}
-	return fmt.Sprintf("[debate] %s", reason)
+	return fmt.Sprintf("[agon] %s", reason)
 }
 
 func findActiveFork(forksDir string) (idx int, name string, newest time.Time) {

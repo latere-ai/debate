@@ -11,7 +11,7 @@ import (
 )
 
 // Flags is the post-parse, post-env, post-config effective configuration
-// for one debate run. See specs/04-cli-flags.md for field semantics.
+// for one agon run. See specs/04-cli-flags.md for field semantics.
 type Flags struct {
 	Main            string
 	Side            string
@@ -61,7 +61,7 @@ func IsValidLogMode(s string) bool {
 	return slices.Contains(ValidLogModes, s)
 }
 
-// ShouldShowHelp reports whether a bare `debate` invocation should
+// ShouldShowHelp reports whether a bare `agon` invocation should
 // short-circuit to the help text instead of running through preflight
 // and failing on a "cannot determine task context" message. The rule:
 // no command-line arguments AND no env-supplied task source. With

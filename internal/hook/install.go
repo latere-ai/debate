@@ -94,7 +94,7 @@ func InstallStatusLine(scope Scope, command string, force bool) error {
 	}
 	// Treat any pre-existing value as foreign unless we can recognise
 	// it as debate-owned. A non-object value (string, array, number,
-	// bool) is foreign by definition - debate only ever writes the
+	// bool) is foreign by definition - agon only ever writes the
 	// {type, command} object form.
 	if raw, present := settings["statusLine"]; present && !force {
 		obj, ok := raw.(map[string]any)
@@ -153,7 +153,7 @@ func removeStatusLine(settings map[string]any) map[string]any {
 }
 
 func statusLineIsDebate(cmd string) bool {
-	return strings.HasSuffix(cmd, "/debate status") || cmd == "debate status"
+	return strings.HasSuffix(cmd, "/debate status") || cmd == "agon status"
 }
 
 func readSettings(path string) (map[string]any, error) {
@@ -237,7 +237,7 @@ func entryReferencesDebate(entry map[string]any) bool {
 		if strings.HasSuffix(s, "debate-stop-hook.sh") {
 			return true
 		}
-		if strings.HasSuffix(s, "/debate hook") || s == "debate hook" {
+		if strings.HasSuffix(s, "/debate hook") || s == "agon hook" {
 			return true
 		}
 	}

@@ -87,7 +87,7 @@ func TestComputeStatusLine_InProgress(t *testing.T) {
 
 	got := computeStatusLine(dir, time.Now().Add(15*time.Second))
 	for _, want := range []string{
-		"[debate]", "1/4", "input-validation-securi", "R2 proposer", "1o 1c",
+		"[agon]", "1/4", "input-validation-securi", "R2 proposer", "1o 1c",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("want %q in status line, got %q", want, got)

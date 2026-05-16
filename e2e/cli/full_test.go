@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-// repoRoot returns the absolute path to the debate repo (where this
+// repoRoot returns the absolute path to the agon repo (where this
 // test file lives is e2e/cli/, two levels deep).
 func repoRoot(t *testing.T) string {
 	t.Helper()
@@ -42,8 +42,8 @@ func build(t *testing.T, root, mainPath, binDir string) string {
 		t.Fatal(err)
 	}
 	out := filepath.Join(binDir, filepath.Base(mainPath))
-	if filepath.Base(mainPath) == "debate" {
-		out = filepath.Join(binDir, "debate")
+	if filepath.Base(mainPath) == "agon" {
+		out = filepath.Join(binDir, "agon")
 	}
 	cmd := exec.Command("go", "build", "-o", out, mainPath)
 	cmd.Dir = root
@@ -106,11 +106,11 @@ type runResult struct {
 	ExitCode int
 }
 
-func runDebate(t *testing.T, debate string, env []string, cwd string, args ...string) runResult {
+func runDebate(t *testing.T, agon string, env []string, cwd string, args ...string) runResult {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, debate, args...)
+	cmd := exec.CommandContext(ctx, agon, args...)
 	cmd.Dir = cwd
 	cmd.Env = env
 	var stdout, stderr strings.Builder
@@ -172,8 +172,8 @@ func TestFullE2E_HappyPath(t *testing.T) {
 	root := repoRoot(t)
 	binDir := t.TempDir()
 
-	// Build debate + mocks.
-	debate := build(t, root, "./cmd/agon", binDir)
+	// Build agon + mocks.
+	agon := build(t, root, "./cmd/agon", binDir)
 	build(t, root, "./e2e/mock/claudemock", binDir)
 	build(t, root, "./e2e/mock/codexmock", binDir)
 	// PATH lookup expects the binaries to be named "claude" / "codex".
@@ -230,7 +230,7 @@ func TestFullE2E_HappyPath(t *testing.T) {
 	)
 
 	res := runDebate(
-		t, debate, env, repo,
+		t, agon, env, repo,
 		"--task-context", "search handler",
 		"--main", "claude",
 		"--side", "codex",
@@ -325,7 +325,7 @@ func TestFullE2E_HappyPath(t *testing.T) {
 func TestFullE2E_TrivialDiffSkip(t *testing.T) {
 	root := repoRoot(t)
 	binDir := t.TempDir()
-	debate := build(t, root, "./cmd/agon", binDir)
+	agon := build(t, root, "./cmd/agon", binDir)
 
 	// Empty repo (no diff).
 	repo := t.TempDir()
@@ -344,7 +344,7 @@ func TestFullE2E_TrivialDiffSkip(t *testing.T) {
 	env := patchedPATH(t, binDir)
 
 	res := runDebate(
-		t, debate, env, repo,
+		t, agon, env, repo,
 		"--task-context", "no changes",
 		"--side-count", "1",
 		"--max-turn", "4", "--changed-lines-min", "10",
@@ -354,7 +354,7 @@ func TestFullE2E_TrivialDiffSkip(t *testing.T) {
 	if res.ExitCode != 0 {
 		t.Fatalf("trivial diff should exit 0, got %d\nstderr: %s", res.ExitCode, res.Stderr)
 	}
-	if !strings.Contains(res.Stderr, "[debate] skipped") {
+	if !strings.Contains(res.Stderr, "[agon] skipped") {
 		t.Errorf("expected skip line on stderr; got: %s", res.Stderr)
 	}
 	// log.jsonl should have a kind=skipped record.
@@ -375,12 +375,12 @@ func TestFullE2E_TrivialDiffSkip(t *testing.T) {
 // binary with zero arguments and no env-supplied task source prints
 // the cobra help text and exits 0, instead of failing preflight with
 // a "cannot determine task context" error. The reported UX bug:
-// users typing just `debate` to discover what it does got an error
+// users typing just `agon` to discover what it does got an error
 // that didn't tell them how to fix it.
 func TestFullE2E_BareInvocationShowsHelp(t *testing.T) {
 	root := repoRoot(t)
 	binDir := t.TempDir()
-	debate := build(t, root, "./cmd/agon", binDir)
+	agon := build(t, root, "./cmd/agon", binDir)
 
 	// A scratch repo so cwd is somewhere sensible; we pass no args
 	// and rely on the help short-circuit firing before preflight.
@@ -389,7 +389,7 @@ func TestFullE2E_BareInvocationShowsHelp(t *testing.T) {
 	// short-circuit is gated on env-supplied task source being empty.
 	env := []string{"PATH=" + binDir + ":/usr/bin:/bin", "HOME=" + t.TempDir()}
 
-	res := runDebate(t, debate, env, repo)
+	res := runDebate(t, agon, env, repo)
 	if res.ExitCode != 0 {
 		t.Fatalf("bare invocation should exit 0 (help), got %d\nstderr: %s\nstdout: %s",
 			res.ExitCode, res.Stderr, res.Stdout)
@@ -411,14 +411,14 @@ func TestFullE2E_BareInvocationShowsHelp(t *testing.T) {
 func TestFullE2E_RecursionGuard(t *testing.T) {
 	root := repoRoot(t)
 	binDir := t.TempDir()
-	debate := build(t, root, "./cmd/agon", binDir)
+	agon := build(t, root, "./cmd/agon", binDir)
 
 	repo := fixtureRepo(t)
 	env := patchedPATH(t, binDir)
 	env = append(env, "DEBATE_IN_PROGRESS=1")
 
 	res := runDebate(
-		t, debate, env, repo,
+		t, agon, env, repo,
 		"--task-context", "anything",
 		"--side-count", "1",
 		"--state-dir", filepath.Join(repo, ".debate"),
@@ -435,14 +435,14 @@ func TestFullE2E_RecursionGuard(t *testing.T) {
 func TestFullE2E_PreflightExitCode(t *testing.T) {
 	root := repoRoot(t)
 	binDir := t.TempDir()
-	debate := build(t, root, "./cmd/agon", binDir)
+	agon := build(t, root, "./cmd/agon", binDir)
 
 	repo := fixtureRepo(t)
 	env := patchedPATH(t, binDir)
 
 	// --side-count = 0 → exit 121
 	res := runDebate(
-		t, debate, env, repo,
+		t, agon, env, repo,
 		"--task-context", "x",
 		"--side-count", "0",
 		"--state-dir", filepath.Join(repo, ".debate"),

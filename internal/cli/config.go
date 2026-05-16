@@ -65,10 +65,10 @@ func Effective(cmd *cobra.Command, f *Flags) (*Flags, error) {
 
 func userConfigPath() string {
 	if x := os.Getenv("XDG_CONFIG_HOME"); x != "" {
-		return filepath.Join(x, "debate", "config.toml")
+		return filepath.Join(x, "agon", "config.toml")
 	}
 	if home, err := os.UserHomeDir(); err == nil {
-		return filepath.Join(home, ".config", "debate", "config.toml")
+		return filepath.Join(home, ".config", "agon", "config.toml")
 	}
 	return ""
 }

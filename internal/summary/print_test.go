@@ -11,7 +11,7 @@ import (
 
 // TestPrintRenderedPlainPassThrough: when styled=false the bytes are
 // emitted unchanged. This is the contract piped output relies on:
-// `debate ... > out.md` must produce a valid markdown file, not one
+// `agon ... > out.md` must produce a valid markdown file, not one
 // peppered with escape codes.
 func TestPrintRenderedPlainPassThrough(t *testing.T) {
 	body := []byte("# Title\n\nbody\n")

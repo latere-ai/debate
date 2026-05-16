@@ -16,7 +16,7 @@ side_count = 2
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cmd := &cobra.Command{Use: "debate"}
+	cmd := &cobra.Command{Use: "agon"}
 	f := Bind(cmd)
 	f.Config = cfg
 	if err := cmd.ParseFlags(nil); err != nil {
@@ -39,7 +39,7 @@ func TestCLIFlagWinsOverConfig(t *testing.T) {
 	if err := os.WriteFile(cfg, []byte(`max_turn = 10`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cmd := &cobra.Command{Use: "debate"}
+	cmd := &cobra.Command{Use: "agon"}
 	f := Bind(cmd)
 	f.Config = cfg
 	if err := cmd.ParseFlags([]string{"--max-turn", "3"}); err != nil {
@@ -59,7 +59,7 @@ func TestUnknownKeyRejected(t *testing.T) {
 	if err := os.WriteFile(cfg, []byte(`bogus_key = 42`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cmd := &cobra.Command{Use: "debate"}
+	cmd := &cobra.Command{Use: "agon"}
 	f := Bind(cmd)
 	f.Config = cfg
 	if err := cmd.ParseFlags(nil); err != nil {
@@ -72,13 +72,13 @@ func TestUnknownKeyRejected(t *testing.T) {
 
 func TestUserConfigPath(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "/x")
-	if got := userConfigPath(); got != filepath.Join("/x", "debate", "config.toml") {
+	if got := userConfigPath(); got != filepath.Join("/x", "agon", "config.toml") {
 		t.Errorf("XDG branch: got %q", got)
 	}
 
 	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("HOME", "/h")
-	if got := userConfigPath(); got != filepath.Join("/h", ".config", "debate", "config.toml") {
+	if got := userConfigPath(); got != filepath.Join("/h", ".config", "agon", "config.toml") {
 		t.Errorf("HOME branch: got %q", got)
 	}
 }
@@ -130,7 +130,7 @@ allow_style_attacks = true
 	if err := os.WriteFile(cfg, []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cmd := &cobra.Command{Use: "debate"}
+	cmd := &cobra.Command{Use: "agon"}
 	f := Bind(cmd)
 	f.Config = cfg
 	if err := cmd.ParseFlags(nil); err != nil {
@@ -182,7 +182,7 @@ func TestEffective_NoConfigPaths(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Chdir(t.TempDir())
 
-	cmd := &cobra.Command{Use: "debate"}
+	cmd := &cobra.Command{Use: "agon"}
 	f := Bind(cmd)
 	if err := cmd.ParseFlags(nil); err != nil {
 		t.Fatal(err)

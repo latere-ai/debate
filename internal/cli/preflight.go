@@ -11,7 +11,7 @@ import (
 	"latere.ai/x/agon/internal/input"
 )
 
-// Plan summarizes what one debate run will do; produced by Preflight.
+// Plan summarizes what one agon run will do; produced by Preflight.
 type Plan struct {
 	Cwd            string
 	Forks          []ForkPlan
@@ -119,7 +119,7 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 	if os.Getenv("ANTHROPIC_API_KEY") != "" {
 		_ = os.Unsetenv("ANTHROPIC_API_KEY")
 		if f.Verbose >= 1 {
-			fmt.Fprintln(os.Stderr, "debate: unset stale ANTHROPIC_API_KEY for this run (claude OAuth keychain will be used)")
+			fmt.Fprintln(os.Stderr, "agon: unset stale ANTHROPIC_API_KEY for this run (claude OAuth keychain will be used)")
 		}
 	}
 
@@ -191,7 +191,7 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 
 	// 9. .gitignore advisory - never an error.
 	if missingFromGitignore(stateDir) {
-		fmt.Fprintln(os.Stderr, "debate: warning: .debate/ is not in .gitignore - consider adding it before committing")
+		fmt.Fprintln(os.Stderr, "agon: warning: .debate/ is not in .gitignore - consider adding it before committing")
 	}
 
 	// Build forks plan.
@@ -232,7 +232,7 @@ func agentFamily(name string) string {
 // consecutively, not just any directory named "projects". An
 // unrelated `projects` segment in a workspace path (e.g.
 // /tmp/work/projects/notes/session.jsonl) used to false-flag and
-// reject otherwise-valid transcripts (regression spotted by debate
+// reject otherwise-valid transcripts (regression spotted by agon
 // c1-1, 2026-05-07).
 //
 // Decoding the segment back to a path is intrinsically lossy (claude

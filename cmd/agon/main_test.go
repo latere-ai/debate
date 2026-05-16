@@ -163,8 +163,8 @@ func TestRealMain_Version(t *testing.T) {
 	if code != 0 {
 		t.Errorf("--version exit code: got %d, want 0", code)
 	}
-	if !strings.Contains(buf.String(), "debate") {
-		t.Errorf("--version output should mention debate; got %q", buf.String())
+	if !strings.Contains(buf.String(), "agon") {
+		t.Errorf("--version output should mention agon; got %q", buf.String())
 	}
 }
 
@@ -207,8 +207,8 @@ func TestRealMain_PreflightExitCode(t *testing.T) {
 	if code == 0 {
 		t.Errorf("expected non-zero exit for --judge llm; got %d", code)
 	}
-	if !strings.Contains(buf.String(), "debate:") {
-		t.Errorf("error line should be prefixed with 'debate:'; got %q", buf.String())
+	if !strings.Contains(buf.String(), "agon:") {
+		t.Errorf("error line should be prefixed with 'agon:'; got %q", buf.String())
 	}
 }
 
@@ -222,7 +222,7 @@ func TestRealMain_RecursionGuardSilent(t *testing.T) {
 	}
 }
 
-// Pins the concessions to debate critic c1-1 / c1-2 (session
+// Pins the concessions to agon critic c1-1 / c1-2 (session
 // 20260507T114552Z-mrye2a): --with-statusline rc5 was a BoolVar so
 // `=true` and `=false` were valid. rc6 changed the flag to a string
 // with values {auto, force}. These tests guard the back-compat
@@ -258,7 +258,7 @@ func TestInstallHookCmd_WithStatusLineFalseAlias(t *testing.T) {
 	}
 }
 
-// Pins the concession to debate critic c1-3: pflag.BoolVar uses
+// Pins the concession to agon critic c1-3: pflag.BoolVar uses
 // strconv.ParseBool, which accepts t / T / TRUE / True / f / F /
 // FALSE / False on top of the lowercase forms rc7 added. The
 // --with-statusline back-compat handler matches the same set

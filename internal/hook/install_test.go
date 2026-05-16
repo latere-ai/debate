@@ -72,7 +72,7 @@ func TestInstallPreservesUnrelatedHooks(t *testing.T) {
 		t.Error("lost the unrelated hook entry")
 	}
 	if !strings.Contains(string(out), "debate-stop-hook.sh") {
-		t.Error("missing the new debate entry")
+		t.Error("missing the new agon entry")
 	}
 }
 
@@ -305,7 +305,7 @@ func TestInstallStatusLine_ForceOverwritesForeign(t *testing.T) {
 	}
 	b, _ := os.ReadFile(settings)
 	if !strings.Contains(string(b), "/usr/local/bin/debate status") {
-		t.Errorf("debate status not written: %s", b)
+		t.Errorf("agon status not written: %s", b)
 	}
 	if strings.Contains(string(b), "foreign.cjs") {
 		t.Errorf("foreign value should be replaced under force: %s", b)

@@ -1,5 +1,5 @@
 // Package hook_test runs the bash Stop-hook script against a fake
-// debate binary so we can assert env scrubbing, recursion-guard
+// agon binary so we can assert env scrubbing, recursion-guard
 // behavior, cwd resolution, and the --hook-mode pass-through.
 package hook_test
 
@@ -25,7 +25,7 @@ exit 0
 
 func writeFakeDebate(t *testing.T, dir string) string {
 	t.Helper()
-	p := filepath.Join(dir, "debate")
+	p := filepath.Join(dir, "agon")
 	if err := os.WriteFile(p, []byte(fakeDebate), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestHookRecursionGuardShortCircuit(t *testing.T) {
 		t.Fatalf("hook should exit 0 under recursion guard: %v", err)
 	}
 	if _, err := os.Stat(recordFile); !os.IsNotExist(err) {
-		t.Errorf("recursion guard should NOT exec debate; record file exists: %v", err)
+		t.Errorf("recursion guard should NOT exec agon; record file exists: %v", err)
 	}
 }
 

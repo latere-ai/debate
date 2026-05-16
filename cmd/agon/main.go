@@ -1,4 +1,4 @@
-// Command debate is the adversarial review CLI for Claude Code coding
+// Command agon is the adversarial review CLI for Claude Code coding
 // sessions. The full design lives in specs/01-overview.md.
 package main
 
@@ -38,7 +38,7 @@ var (
 // -ldflags didn't set them. This is the `go install` path: the
 // toolchain stamps module version + vcs.revision into the binary
 // even though -ldflags is empty. Without this, `go install ...@v0.0.1`
-// would print "debate dev (none, unknown)".
+// would print "agon dev (none, unknown)".
 func init() {
 	if version != "dev" {
 		return // ldflags wins; goreleaser / Makefile path
@@ -72,13 +72,13 @@ func main() {
 // parameters so tests can drive it without process spawning.
 func realMain(args []string, stdout, stderr io.Writer) int {
 	root := &cobra.Command{
-		Use:           "debate",
+		Use:           "agon",
 		Short:         "Adversarial review for Claude Code coding sessions.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Version:       fmt.Sprintf("%s (%s, %s)", version, commit, date),
 	}
-	root.SetVersionTemplate("debate {{.Version}}\n")
+	root.SetVersionTemplate("agon {{.Version}}\n")
 	root.SetArgs(args)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
@@ -90,7 +90,7 @@ func realMain(args []string, stdout, stderr io.Writer) int {
 		if err != nil {
 			return err
 		}
-		// Bare `debate` with no args and no env-supplied task source:
+		// Bare `agon` with no args and no env-supplied task source:
 		// show help instead of failing preflight with "cannot
 		// determine task context". A user who types just the binary
 		// name expects orientation, not a cryptic error.
@@ -119,7 +119,7 @@ func realMain(args []string, stdout, stderr io.Writer) int {
 	defer cancel()
 
 	if err := root.ExecuteContext(ctx); err != nil {
-		_, _ = fmt.Fprintln(stderr, "debate:", err)
+		_, _ = fmt.Fprintln(stderr, "agon:", err)
 		return exitCodeFor(err)
 	}
 	return exitCode
@@ -140,13 +140,13 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) (int, error) {
 	}
 	// Auto-fallback: when the user didn't override the diff range and
 	// the working tree is clean (claude already committed its changes),
-	// debate the last commit instead of an empty diff. Manual invocation
+	// agon the last commit instead of an empty diff. Manual invocation
 	// after `git commit` is the common case where this matters.
 	if diff.ChangedLines == 0 && flags.DiffFrom == "HEAD" && flags.DiffTo == "." {
 		if fb, fbErr := input.Compute(ctx, input.DiffSpec{
 			From: "HEAD~1", To: "HEAD", Cwd: plan.Cwd,
 		}); fbErr == nil && fb.ChangedLines > 0 {
-			fmt.Fprintln(os.Stderr, "[debate] working tree clean; falling back to HEAD~1..HEAD")
+			fmt.Fprintln(os.Stderr, "[agon] working tree clean; falling back to HEAD~1..HEAD")
 			diff = fb
 			flags.DiffFrom, flags.DiffTo = "HEAD~1", "HEAD"
 		}
@@ -156,7 +156,7 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) (int, error) {
 			TS: time.Now().UTC(), Kind: "skipped", Reason: "trivial-diff",
 			ChangedLines: diff.ChangedLines, Threshold: flags.ChangedLinesMin,
 		})
-		fmt.Fprintf(os.Stderr, "[debate] skipped: trivial diff (%d changed lines < %d threshold)\n",
+		fmt.Fprintf(os.Stderr, "[agon] skipped: trivial diff (%d changed lines < %d threshold)\n",
 			diff.ChangedLines, flags.ChangedLinesMin)
 		return 0, nil
 	}
@@ -365,11 +365,11 @@ func installHookCmd() *cobra.Command {
 				switch {
 				case err == nil:
 					_, _ = fmt.Fprintln(os.Stderr,
-						"debate: statusLine installed; live progress will render at the bottom of the claude TUI during a hook-triggered run")
+						"agon: statusLine installed; live progress will render at the bottom of the claude TUI during a hook-triggered run")
 				case errors.Is(err, hook.ErrStatusLineConflict):
 					existing := hook.ReadStatusLineCommand(s)
 					_, _ = fmt.Fprintf(os.Stderr,
-						"debate: statusLine already set to:\n  %s\nleft it alone. Re-run with --with-statusline=force to overwrite,\n"+
+						"agon: statusLine already set to:\n  %s\nleft it alone. Re-run with --with-statusline=force to overwrite,\n"+
 							"or compose manually by writing a wrapper that runs both commands and prints both output lines.\n",
 						existing)
 				default:
@@ -453,7 +453,7 @@ func runHook(ctx context.Context) error {
 	// Build flags as if `--hook-mode --session-id <id> --transcript
 	// <path> --max-turn 6` were passed, then drive the same Effective
 	// → Preflight → Run pipeline as the root command.
-	sub := &cobra.Command{Use: "debate"}
+	sub := &cobra.Command{Use: "agon"}
 	flags := cli.Bind(sub)
 	flags.HookMode = true
 	flags.MaxTurn = 6

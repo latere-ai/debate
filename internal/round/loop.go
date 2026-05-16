@@ -31,7 +31,7 @@ type CriticFactory func(forkIdx int) agent.Critic
 // MaxRounds is the per-fork cap on internal rounds. Each fork
 // alternates critic (odd rounds) and proposer (even rounds), so a
 // user-facing "turn" (one critic message + one proposer message) is
-// two internal rounds. cmd/debate sets MaxRounds = 2 * --max-turn.
+// two internal rounds. cmd/agon sets MaxRounds = 2 * --max-turn.
 //
 // HeartbeatInterval throttles the "still running, Ns elapsed" line
 // the engine emits while an agent call is in flight. Zero means use
@@ -50,19 +50,19 @@ type Engine struct {
 	DiffPatch         string
 	HeartbeatInterval time.Duration
 	// Progress is the writer used for per-fork and per-round progress
-	// lines. nil means silent. cmd/debate sets this to os.Stderr in
+	// lines. nil means silent. cmd/agon sets this to os.Stderr in
 	// non-hook mode. The Stop-hook path leaves it nil since claude
 	// swallows the stderr anyway.
 	Progress io.Writer
 	// Styled controls whether progress lines carry ANSI color
-	// escapes. cmd/debate enables this when stderr is a TTY; piped
+	// escapes. cmd/agon enables this when stderr is a TTY; piped
 	// or redirected stderr stays plain so log files don't fill with
 	// raw escape codes.
 	Styled bool
 }
 
 // ANSI escapes used to decorate progress lines when Styled is true.
-// Kept tiny and self-contained: only the [debate] prefix and role
+// Kept tiny and self-contained: only the [agon] prefix and role
 // labels are colored. Anything richer drifts toward needing a real
 // status renderer.
 const (
@@ -85,7 +85,7 @@ func (e *Engine) decorate(line string) string {
 	if !e.Styled {
 		return line
 	}
-	line = strings.Replace(line, "[debate]", ansiBold+ansiCyan+"[debate]"+ansiReset, 1)
+	line = strings.Replace(line, "[agon]", ansiBold+ansiCyan+"[agon]"+ansiReset, 1)
 	line = colorRoleWord(line, " critic ", roleCriticColor)
 	line = colorRoleWord(line, " proposer ", roleProposerCol)
 	line = strings.Replace(line, "still running", ansiDim+"still running"+ansiReset, 1)
@@ -218,10 +218,10 @@ type Usage struct {
 
 // Typed errors ([20]).
 var (
-	ErrInterrupted    = errors.New("debate interrupted")
-	ErrCostCap        = errors.New("debate cost cap reached")
-	ErrMalformedTwice = errors.New("debate malformed output twice")
-	ErrAgentFatal     = errors.New("debate agent fatal error")
+	ErrInterrupted    = errors.New("agon interrupted")
+	ErrCostCap        = errors.New("agon cost cap reached")
+	ErrMalformedTwice = errors.New("agon malformed output twice")
+	ErrAgentFatal     = errors.New("agon agent fatal error")
 )
 
 var defenseLineRE = regexp.MustCompile(`(?m)^\s*(concede|rebut|push-back)\s+(c\d+-\d+)\b`)
@@ -290,7 +290,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 		priorIDs []string
 	)
 
-	e.progf("[debate] fork %d/%d: starting (topic to be declared in R1)", forkIdx, e.ForkCount)
+	e.progf("[agon] fork %d/%d: starting (topic to be declared in R1)", forkIdx, e.ForkCount)
 
 	for round := 1; round <= e.MaxRounds; round++ {
 		if ctx.Err() != nil {
@@ -305,7 +305,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 		roundStart := time.Now()
 		if round%2 == 1 {
 			// Critic round.
-			prefix := fmt.Sprintf("[debate] fork %d/%d %s: T%d critic", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
+			prefix := fmt.Sprintf("[agon] fork %d/%d %s: T%d critic", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
 			e.progf("%s running...", prefix)
 			stop := e.startHeartbeat(roundStart, prefix)
 			res, stats, err := e.criticRound(ctx, cri, a, forkIdx, round, priorIDs)
@@ -329,7 +329,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 				Round: round, Role: "critic", Usage: res.usage, USD: res.usd,
 				MS: int(time.Since(roundStart).Milliseconds()),
 			})
-			e.progf("[debate] fork %d/%d %s: T%d critic done in %s (new=%d, re-attack=%d, withdraw=%d, dropped=%d) %s",
+			e.progf("[agon] fork %d/%d %s: T%d critic done in %s (new=%d, re-attack=%d, withdraw=%d, dropped=%d) %s",
 				forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round), fmtDur(time.Since(roundStart)),
 				stats.KeptIntroduce, stats.KeptReAttack, stats.KeptWithdraw,
 				stats.DroppedNoReproduce+stats.DroppedStyle+stats.DroppedCrossAspect,
@@ -346,12 +346,12 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 			}
 			if det.SteadyState(hist) {
 				out.Termination = TermSteadyState
-				e.progf("[debate] fork %d/%d %s: steady state reached at T%d", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
+				e.progf("[agon] fork %d/%d %s: steady state reached at T%d", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
 				break
 			}
 		} else {
 			// Proposer round.
-			prefix := fmt.Sprintf("[debate] fork %d/%d %s: T%d proposer", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
+			prefix := fmt.Sprintf("[agon] fork %d/%d %s: T%d proposer", forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round))
 			e.progf("%s running...", prefix)
 			pointer := fmt.Sprintf("Some comments at @forks/critic-%d/rounds/r%d-critic.md. Please resolve or respond. If you disagree, please raise it.",
 				forkIdx, round-1)
@@ -395,7 +395,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 				MS:   int(pr.Duration.Milliseconds()),
 			})
 			conceded, rebutted := updateLedgerFromDefense(e.Sess, pr.Response, pr.ChangedFiles, round)
-			e.progf("[debate] fork %d/%d %s: T%d proposer done in %s (conceded=%d, rebutted=%d, files=%d) %s",
+			e.progf("[agon] fork %d/%d %s: T%d proposer done in %s (conceded=%d, rebutted=%d, files=%d) %s",
 				forkIdx, e.ForkCount, forkLabel(out.Topic), turnOf(round), fmtDur(time.Since(roundStart)),
 				conceded, rebutted, len(pr.ChangedFiles), fmtUsage(pr.Usage, pr.USD))
 		}
@@ -414,7 +414,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 		return out, "", err
 	}
 	u := out.Usage.Total
-	e.progf("[debate] fork %d/%d %s: terminated %s after R%d (in=%d out=%d cache_create=%d cache_read=%d total=%d cost=$%.4f)",
+	e.progf("[agon] fork %d/%d %s: terminated %s after R%d (in=%d out=%d cache_create=%d cache_read=%d total=%d cost=$%.4f)",
 		forkIdx, e.ForkCount, forkLabel(out.Topic), ifEmpty(string(runStop), string(out.Termination)),
 		out.Rounds, u.Input, u.Output, u.CacheCreate, u.CacheRead, u.Total(), out.Usage.TotalUSD)
 	return out, runStop, nil

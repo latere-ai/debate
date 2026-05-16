@@ -1,7 +1,7 @@
 // Command agon-web serves the embedded Agon landing site.
 //
-// It is a separate binary from the `debate` CLI; goreleaser only
-// builds cmd/debate. agon-web is built solely by Dockerfile.web for
+// It is a separate binary from the `agon` CLI; goreleaser only
+// builds cmd/agon. agon-web is built solely by Dockerfile.web for
 // the agon.latere.ai deployment. Stdlib only — no extra go.mod deps.
 package main
 

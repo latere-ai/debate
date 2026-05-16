@@ -131,7 +131,7 @@ func TestEncodedSegmentFromTranscript(t *testing.T) {
 		{"with-dotted-segment", "/Users/x/.claude/projects/-Users-y-foo-bar-baz/sess.jsonl", "-Users-y-foo-bar-baz"},
 		{"empty", "", ""},
 
-		// Regression for debate c1-1 (2026-05-07): an unrelated
+		// Regression for agon c1-1 (2026-05-07): an unrelated
 		// "projects" directory in a workspace path must NOT be
 		// treated as claude's projects/ marker. Only `.claude/projects/<x>`
 		// consecutively counts.

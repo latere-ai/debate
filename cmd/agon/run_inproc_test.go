@@ -1,6 +1,6 @@
 // In-process Run() integration test. Mirrors the shape of
 // e2e/cli/full_test.go but invokes Run() directly so coverage
-// instrumentation propagates to cmd/debate/main.go's Run + helpers.
+// instrumentation propagates to cmd/agon/main.go's Run + helpers.
 
 package main
 
@@ -372,7 +372,7 @@ func TestRun_InProcess_TrivialDiffShortCircuit(t *testing.T) {
 	}
 }
 
-// repoRootHere is the cmd/debate-relative helper.
+// repoRootHere is the cmd/agon-relative helper.
 func repoRootHere(t *testing.T) string {
 	t.Helper()
 	out, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
