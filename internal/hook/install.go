@@ -231,9 +231,9 @@ func entryReferencesAgon(entry map[string]any) bool {
 			continue
 		}
 		s, _ := m["command"].(string)
-		// Either the legacy shell-script trampoline or the modern
-		// `<path-to>/agon hook` subcommand form. The shell-script
-		// form is kept for back-compat with older release tarballs.
+		// Two equivalent install forms: the shell-script trampoline
+		// (scripts/agon-stop-hook.sh, shipped in release archives) or
+		// the `<path-to>/agon hook` subcommand form.
 		if strings.HasSuffix(s, "agon-stop-hook.sh") {
 			return true
 		}

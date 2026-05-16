@@ -25,9 +25,9 @@ exit 0
 
 func writeFakeAgon(t *testing.T, dir string) string {
 	t.Helper()
-	// Binary name is external contract, not prose: it must match the
-	// `exec agon` in scripts/agon-stop-hook.sh. Phase 2 flips both
-	// to `agon` together (+ a `agon` shim); change them in lockstep.
+	// Binary name is external contract: the fake must be named `agon`
+	// to match `exec agon` in scripts/agon-stop-hook.sh. Change both
+	// in lockstep if the binary is ever renamed again.
 	p := filepath.Join(dir, "agon")
 	if err := os.WriteFile(p, []byte(fakeAgon), 0o755); err != nil {
 		t.Fatal(err)
