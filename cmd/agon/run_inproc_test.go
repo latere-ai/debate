@@ -61,7 +61,7 @@ func TestRun_InProcess_HappyPath(t *testing.T) {
 		"reproduction:\n```\ncurl 'http://localhost/search?q=%25%27 OR 1=1--'\n```\n"
 
 	repo := makeFixtureRepo(t)
-	stateDir := filepath.Join(repo, ".debate")
+	stateDir := filepath.Join(repo, ".agon")
 
 	t.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
 	t.Setenv("HOME", t.TempDir())
@@ -141,7 +141,7 @@ func TestRun_InProcess_HookMode(t *testing.T) {
 
 	criticContent := "# Critic 1 - round 1 attacks\n\naspect: security\n"
 	repo := makeFixtureRepo(t)
-	stateDir := filepath.Join(repo, ".debate")
+	stateDir := filepath.Join(repo, ".agon")
 
 	t.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
 	t.Setenv("HOME", t.TempDir())
@@ -203,7 +203,7 @@ func TestRun_InProcess_VerboseMode(t *testing.T) {
 	_ = os.WriteFile(scriptPath, b, 0o644)
 
 	repo := makeFixtureRepo(t)
-	stateDir := filepath.Join(repo, ".debate")
+	stateDir := filepath.Join(repo, ".agon")
 
 	t.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
 	t.Setenv("HOME", t.TempDir())
@@ -293,7 +293,7 @@ func TestRun_InProcess_WorkingTreeCleanFallback(t *testing.T) {
 	}
 	// Now working tree is clean; HEAD~1..HEAD has 30 lines of new content.
 
-	stateDir := filepath.Join(dir, ".debate")
+	stateDir := filepath.Join(dir, ".agon")
 	t.Setenv("PATH", binDir+":"+os.Getenv("PATH"))
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("MOCK_CLAUDE_SCRIPT", scriptPath)
@@ -334,7 +334,7 @@ func TestRun_InProcess_WorkingTreeCleanFallback(t *testing.T) {
 
 func TestRun_InProcess_TrivialDiffShortCircuit(t *testing.T) {
 	repo := makeFixtureRepo(t)
-	stateDir := filepath.Join(repo, ".debate")
+	stateDir := filepath.Join(repo, ".agon")
 	t.Chdir(repo)
 
 	flags := &cli.Flags{

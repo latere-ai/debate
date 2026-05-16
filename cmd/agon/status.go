@@ -62,11 +62,11 @@ const recentlyDoneWindow = 2 * time.Minute
 // is non-empty so claude renders it and the stale frame goes away.
 const idleBar = " "
 
-// computeStatusLine inspects <cwd>/.debate/sessions/<latest>/ and
+// computeStatusLine inspects <cwd>/.agon/sessions/<latest>/ and
 // returns a concise progress line. now is injected for tests; pass
 // time.Now() in production.
 func computeStatusLine(cwd string, now time.Time) string {
-	sessionsDir := filepath.Join(cwd, ".debate", "sessions")
+	sessionsDir := filepath.Join(cwd, ".agon", "sessions")
 	entries, err := os.ReadDir(sessionsDir)
 	if err != nil || len(entries) == 0 {
 		return idleBar

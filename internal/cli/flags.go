@@ -97,7 +97,7 @@ func DefaultFlags() *Flags {
 		Judge:           "none",
 		CostCap:         50000,
 		ChangedLinesMin: 10,
-		StateDir:        ".debate",
+		StateDir:        ".agon",
 		Format:          "markdown",
 		LogMode:         LogModeConcise,
 	}
@@ -125,7 +125,7 @@ func Bind(cmd *cobra.Command) *Flags {
 	cmd.Flags().StringVar(&f.StateDir, "state-dir", f.StateDir, "where session folders live")
 	cmd.Flags().StringVar(&f.Format, "format", f.Format, "summary format: markdown or json")
 	cmd.Flags().BoolVar(&f.HookMode, "hook-mode", f.HookMode, "force exit 0; used by the default Stop hook")
-	cmd.Flags().StringVar(&f.Config, "config", f.Config, "explicit .debate.toml path; empty = search")
+	cmd.Flags().StringVar(&f.Config, "config", f.Config, "explicit .agon.toml path; empty = search")
 	cmd.Flags().CountVarP(&f.Verbose, "verbose", "v", "verbose: -v, -vv")
 	cmd.Flags().StringVar(&f.LogMode, "log-mode", f.LogMode, "progress detail: silent | concise | verbose")
 

@@ -1,5 +1,5 @@
 bin/
-.debate/
+.agon/
 *.test
 *.out
 coverage.txt

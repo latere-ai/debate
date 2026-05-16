@@ -16,7 +16,7 @@ import (
 // that does not exist.
 var ErrConfigNotFound = errors.New("config file not found")
 
-// configFile mirrors .debate.toml's schema.
+// configFile mirrors .agon.toml's schema.
 type configFile struct {
 	Main              string `toml:"main"`
 	Side              string `toml:"side"`
@@ -79,13 +79,13 @@ func projectConfigPath(explicit string) string {
 	}
 	cwd, err := os.Getwd()
 	if err == nil {
-		p := filepath.Join(cwd, ".debate.toml")
+		p := filepath.Join(cwd, ".agon.toml")
 		if _, err := os.Stat(p); err == nil {
 			return p
 		}
 	}
 	if root, err := gitRoot(); err == nil {
-		p := filepath.Join(root, ".debate.toml")
+		p := filepath.Join(root, ".agon.toml")
 		if _, err := os.Stat(p); err == nil {
 			return p
 		}

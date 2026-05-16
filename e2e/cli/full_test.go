@@ -219,7 +219,7 @@ func TestFullE2E_HappyPath(t *testing.T) {
 		"expected violation: panic-free injection of boolean logic.\n\n" +
 		"reproduction:\n```\ncurl 'http://localhost/search?q=%25%27 OR 1=1--'\n```\n"
 
-	stateDir := filepath.Join(repo, ".debate")
+	stateDir := filepath.Join(repo, ".agon")
 	env := patchedPATH(t, binDir)
 	env = append(
 		env,
@@ -340,7 +340,7 @@ func TestFullE2E_TrivialDiffSkip(t *testing.T) {
 		}
 	}
 
-	stateDir := filepath.Join(repo, ".debate")
+	stateDir := filepath.Join(repo, ".agon")
 	env := patchedPATH(t, binDir)
 
 	res := runDebate(
@@ -421,13 +421,13 @@ func TestFullE2E_RecursionGuard(t *testing.T) {
 		t, agon, env, repo,
 		"--task-context", "anything",
 		"--side-count", "1",
-		"--state-dir", filepath.Join(repo, ".debate"),
+		"--state-dir", filepath.Join(repo, ".agon"),
 	)
 	if res.ExitCode != 0 {
 		t.Fatalf("recursion guard should exit 0, got %d\nstderr: %s", res.ExitCode, res.Stderr)
 	}
 	// Should have produced no session.
-	if _, err := os.Stat(filepath.Join(repo, ".debate", "sessions")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(repo, ".agon", "sessions")); !os.IsNotExist(err) {
 		t.Error("recursion-guard short-circuit should not create sessions/")
 	}
 }
@@ -445,7 +445,7 @@ func TestFullE2E_PreflightExitCode(t *testing.T) {
 		t, agon, env, repo,
 		"--task-context", "x",
 		"--side-count", "0",
-		"--state-dir", filepath.Join(repo, ".debate"),
+		"--state-dir", filepath.Join(repo, ".agon"),
 	)
 	if res.ExitCode != 121 {
 		t.Errorf("expected exit 121, got %d\nstderr: %s", res.ExitCode, res.Stderr)

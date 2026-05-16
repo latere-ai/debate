@@ -191,7 +191,7 @@ func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 
 	// 9. .gitignore advisory - never an error.
 	if missingFromGitignore(stateDir) {
-		fmt.Fprintln(os.Stderr, "agon: warning: .debate/ is not in .gitignore - consider adding it before committing")
+		fmt.Fprintln(os.Stderr, "agon: warning: .agon/ is not in .gitignore - consider adding it before committing")
 	}
 
 	// Build forks plan.

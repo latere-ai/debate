@@ -77,7 +77,7 @@ func TestRealEndToEnd_OneFork(t *testing.T) {
 	}
 
 	// Find the latest session dir.
-	sessions := filepath.Join(repo, ".debate", "sessions")
+	sessions := filepath.Join(repo, ".agon", "sessions")
 	entries, err := os.ReadDir(sessions)
 	if err != nil {
 		t.Fatalf("read sessions dir: %v", err)

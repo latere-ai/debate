@@ -20,7 +20,7 @@ func TestComputeStatusLine_NoSessionPrintsIdleBar(t *testing.T) {
 
 func TestComputeStatusLine_RecentlyFinishedShowsTerminalState(t *testing.T) {
 	dir := t.TempDir()
-	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
+	sess := filepath.Join(dir, ".agon", "sessions", "20260507T120000Z-aaa")
 	mustMkdir(t, sess)
 	mustWrite(t, filepath.Join(sess, "end.json"),
 		`{"termination":{"reason":"steady-state"},`+
@@ -41,7 +41,7 @@ func TestComputeStatusLine_RecentlyFinishedShowsTerminalState(t *testing.T) {
 // requires age >= 0 too.
 func TestComputeStatusLine_FutureEndMTimeFallsThroughToIdle(t *testing.T) {
 	dir := t.TempDir()
-	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
+	sess := filepath.Join(dir, ".agon", "sessions", "20260507T120000Z-aaa")
 	mustMkdir(t, sess)
 	endPath := filepath.Join(sess, "end.json")
 	mustWrite(t, endPath, `{"termination":{"reason":"steady-state"}}`)
@@ -59,7 +59,7 @@ func TestComputeStatusLine_FutureEndMTimeFallsThroughToIdle(t *testing.T) {
 
 func TestComputeStatusLine_OldFinishedFallsThroughToIdle(t *testing.T) {
 	dir := t.TempDir()
-	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
+	sess := filepath.Join(dir, ".agon", "sessions", "20260507T120000Z-aaa")
 	mustMkdir(t, sess)
 	endPath := filepath.Join(sess, "end.json")
 	mustWrite(t, endPath, `{}`)
@@ -75,7 +75,7 @@ func TestComputeStatusLine_OldFinishedFallsThroughToIdle(t *testing.T) {
 
 func TestComputeStatusLine_InProgress(t *testing.T) {
 	dir := t.TempDir()
-	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
+	sess := filepath.Join(dir, ".agon", "sessions", "20260507T120000Z-aaa")
 	mustMkdir(t, filepath.Join(sess, "forks", "critic-1", "rounds"))
 	mustWrite(t, filepath.Join(sess, "start.json"),
 		`{"schema":"agon.start.v0","config":{"side_count":4}}`)
@@ -97,7 +97,7 @@ func TestComputeStatusLine_InProgress(t *testing.T) {
 
 func TestComputeStatusLine_StartingNoRoundsYet(t *testing.T) {
 	dir := t.TempDir()
-	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
+	sess := filepath.Join(dir, ".agon", "sessions", "20260507T120000Z-aaa")
 	mustMkdir(t, filepath.Join(sess, "forks", "critic-1", "rounds"))
 	mustWrite(t, filepath.Join(sess, "start.json"),
 		`{"config":{"side_count":2}}`)
@@ -113,7 +113,7 @@ func TestComputeStatusLine_StartingNoRoundsYet(t *testing.T) {
 // Tightened to only accept r<digits>-(critic|proposer).md.
 func TestComputeStatusLine_IgnoresNonRoundMarkdown(t *testing.T) {
 	dir := t.TempDir()
-	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
+	sess := filepath.Join(dir, ".agon", "sessions", "20260507T120000Z-aaa")
 	rounds := filepath.Join(sess, "forks", "critic-1", "rounds")
 	mustMkdir(t, rounds)
 	mustWrite(t, filepath.Join(sess, "start.json"), `{"config":{"side_count":1}}`)

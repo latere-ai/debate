@@ -49,7 +49,7 @@ func TestSignalLatency_StuckChild(t *testing.T) {
 		"--side-count", "1",
 		"--task-context", "signal latency probe",
 		"--changed-lines-min", "10",
-		"--state-dir", filepath.Join(repo, ".debate"),
+		"--state-dir", filepath.Join(repo, ".agon"),
 	)
 	cmd.Dir = repo
 	cmd.Env = env

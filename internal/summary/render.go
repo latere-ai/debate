@@ -90,7 +90,7 @@ func Decide(s *round.Summary) SurfacingDecision {
 	case round.TermSteadyState:
 		if s.Unresolved == 0 {
 			return SurfacingDecision{
-				StdoutLine: "[agon] clean run; see .debate/log.jsonl",
+				StdoutLine: "[agon] clean run; see .agon/log.jsonl",
 			}
 		}
 		return SurfacingDecision{

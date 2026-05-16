@@ -10,7 +10,7 @@ import (
 
 func TestProjectConfigOverridesDefaults(t *testing.T) {
 	dir := t.TempDir()
-	cfg := filepath.Join(dir, ".debate.toml")
+	cfg := filepath.Join(dir, ".agon.toml")
 	if err := os.WriteFile(cfg, []byte(`max_turn = 10
 side_count = 2
 `), 0o644); err != nil {
@@ -35,7 +35,7 @@ side_count = 2
 
 func TestCLIFlagWinsOverConfig(t *testing.T) {
 	dir := t.TempDir()
-	cfg := filepath.Join(dir, ".debate.toml")
+	cfg := filepath.Join(dir, ".agon.toml")
 	if err := os.WriteFile(cfg, []byte(`max_turn = 10`), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestCLIFlagWinsOverConfig(t *testing.T) {
 
 func TestUnknownKeyRejected(t *testing.T) {
 	dir := t.TempDir()
-	cfg := filepath.Join(dir, ".debate.toml")
+	cfg := filepath.Join(dir, ".agon.toml")
 	if err := os.WriteFile(cfg, []byte(`bogus_key = 42`), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestProjectConfigPath(t *testing.T) {
 	}
 
 	// File in cwd: returned.
-	cfg := filepath.Join(dir, ".debate.toml")
+	cfg := filepath.Join(dir, ".agon.toml")
 	if err := os.WriteFile(cfg, []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestProjectConfigPath(t *testing.T) {
 
 func TestApplyConfigToFlags_AllKeys(t *testing.T) {
 	dir := t.TempDir()
-	cfg := filepath.Join(dir, ".debate.toml")
+	cfg := filepath.Join(dir, ".agon.toml")
 	body := `main = "claude"
 side = "codex"
 side_count = 3
