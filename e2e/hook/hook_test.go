@@ -25,6 +25,9 @@ exit 0
 
 func writeFakeDebate(t *testing.T, dir string) string {
 	t.Helper()
+	// Binary name is external contract, not prose: it must match the
+	// `exec debate` in scripts/debate-stop-hook.sh. Phase 2 flips both
+	// to `agon` together (+ a `debate` shim); change them in lockstep.
 	p := filepath.Join(dir, "debate")
 	if err := os.WriteFile(p, []byte(fakeDebate), 0o755); err != nil {
 		t.Fatal(err)
