@@ -1,4 +1,4 @@
-# Debate review - terminated: steady-state
+# Agon review - terminated: steady-state
 
 ## Headline (most contested unresolved)
 - [security/x.go:1] leak
@@ -11,4 +11,4 @@
 
 ## Stats
 critic-found-bug rate: 1/2 attacks led to a fix
-debate cost: 5000 tokens, 4 rounds, 1 critics
+agon cost: 5000 tokens, 4 rounds, 1 critics

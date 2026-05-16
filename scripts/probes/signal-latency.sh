@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Probe: SIGINT -> exit latency on a debate run with a stuck child should
+# Probe: SIGINT -> exit latency on a agon run with a stuck child should
 # be < 5s, per specs/21-signals.md.
 #
-# This probe spawns bin/debate against shell-shim "claude" and "codex"
-# binaries that sleep forever, sends SIGINT to debate, and measures
+# This probe spawns bin/agon against shell-shim "claude" and "codex"
+# binaries that sleep forever, sends SIGINT to agon, and measures
 # wall-clock time to exit. The previous version of this probe used a
-# self-contained bash sleeper, which (a) did not exercise bin/debate at
+# self-contained bash sleeper, which (a) did not exercise bin/agon at
 # all and (b) had a trap-vs-sleep race that made it hang for the full
 # sleep duration. See specs/29-probe-signal-latency-outcome.md.
 
@@ -14,7 +14,7 @@ set -euo pipefail
 ensure_clean_env
 
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
-BIN="$REPO/bin/debate"
+BIN="$REPO/bin/agon"
 if [ ! -x "$BIN" ]; then
   echo "missing: $BIN (run 'make build' first)" >&2
   exit 2
@@ -37,7 +37,7 @@ EOF
 cp "$WORKDIR/bin/claude" "$WORKDIR/bin/codex"
 chmod +x "$WORKDIR/bin/claude" "$WORKDIR/bin/codex"
 
-# Tiny git repo with a non-trivial diff so debate doesn't short-circuit
+# Tiny git repo with a non-trivial diff so agon doesn't short-circuit
 # at the changed-lines-min gate.
 REPO_DIR="$WORKDIR/repo"
 mkdir -p "$REPO_DIR"
@@ -46,7 +46,7 @@ git init -q
 git -c user.email=t@e.com -c user.name=t commit --allow-empty -q -m init
 printf '// fixture line\n%.0s' {1..30} > search.go
 
-# Spawn debate in background; capture PID. Strip AGON_IN_PROGRESS so
+# Spawn agon in background; capture PID. Strip AGON_IN_PROGRESS so
 # the recursion guard does not short-circuit.
 unset AGON_IN_PROGRESS
 PATH="$WORKDIR/bin:$PATH" "$BIN" \
@@ -57,7 +57,7 @@ PATH="$WORKDIR/bin:$PATH" "$BIN" \
   >/dev/null 2>&1 &
 pid=$!
 
-# Wait for debate to actually start spawning subprocesses. 1s is enough
+# Wait for agon to actually start spawning subprocesses. 1s is enough
 # for the preflight phase on any reasonable host.
 sleep 1
 

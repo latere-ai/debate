@@ -388,7 +388,7 @@ func installHookCmd() *cobra.Command {
 		"explicit hook command string (default: \"<this binary> hook\")")
 	cmd.Flags().StringVar(&withStatusLine, "with-statusline", "",
 		"also install a statusLine entry pointing at \"<this binary> status\" "+
-			"(values: auto = skip if a non-debate statusLine is already set; "+
+			"(values: auto = skip if a non-agon statusLine is already set; "+
 			"force = overwrite it). Default empty = do not install.")
 	// `--with-statusline` with no value -> "auto" (preserves the
 	// natural "boolean-ish" UX of the original flag).
@@ -405,7 +405,7 @@ func installHookCmd() *cobra.Command {
 // hookCmd is the Stop-hook entry point. claude invokes it with the
 // hook payload on stdin; we parse session_id / transcript_path / cwd
 // out of it and run the orchestrator in --hook-mode. This replaces
-// the v0 shell-script trampoline (scripts/debate-stop-hook.sh) so a
+// the v0 shell-script trampoline (scripts/agon-stop-hook.sh) so a
 // bare `go install` is enough to make the hook work; no separate
 // script on PATH, no `jq` dependency.
 func hookCmd() *cobra.Command {

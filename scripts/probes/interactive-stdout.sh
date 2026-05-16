@@ -16,7 +16,7 @@ To run:
   1. mkdir tmp && cd tmp && git init && touch x && git add . && \
      git commit -m init
   2. mkdir .claude && write .claude/settings.json with:
-       {"hooks":{"Stop":[{"matcher":"","hooks":[{"type":"command","command":"/bin/sh -c 'echo [debate] hello'"}]}]}}
+       {"hooks":{"Stop":[{"matcher":"","hooks":[{"type":"command","command":"/bin/sh -c 'echo [agon] hello'"}]}]}}
   3. Open `claude` interactively; ask anything; observe whether the
      stdout from the Stop hook appears in your terminal.
   4. Record the outcome in release-notes-v0.0.1.md as PASS or FAIL.

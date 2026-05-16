@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-const fakeDebate = `#!/usr/bin/env bash
+const fakeAgon = `#!/usr/bin/env bash
 # Records args + selected env vars to $RECORD_FILE, then exits 0.
 {
   echo "ARGS:" "$@"
@@ -23,13 +23,13 @@ const fakeDebate = `#!/usr/bin/env bash
 exit 0
 `
 
-func writeFakeDebate(t *testing.T, dir string) string {
+func writeFakeAgon(t *testing.T, dir string) string {
 	t.Helper()
 	// Binary name is external contract, not prose: it must match the
-	// `exec debate` in scripts/debate-stop-hook.sh. Phase 2 flips both
-	// to `agon` together (+ a `debate` shim); change them in lockstep.
-	p := filepath.Join(dir, "debate")
-	if err := os.WriteFile(p, []byte(fakeDebate), 0o755); err != nil {
+	// `exec agon` in scripts/agon-stop-hook.sh. Phase 2 flips both
+	// to `agon` together (+ a `agon` shim); change them in lockstep.
+	p := filepath.Join(dir, "agon")
+	if err := os.WriteFile(p, []byte(fakeAgon), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	return p
@@ -47,10 +47,10 @@ func repoRoot(t *testing.T) string {
 
 func TestHookForwardsArgsAndEnv(t *testing.T) {
 	root := repoRoot(t)
-	hookScript := filepath.Join(root, "scripts", "debate-stop-hook.sh")
+	hookScript := filepath.Join(root, "scripts", "agon-stop-hook.sh")
 
 	binDir := t.TempDir()
-	writeFakeDebate(t, binDir)
+	writeFakeAgon(t, binDir)
 
 	recDir := t.TempDir()
 	recordFile := filepath.Join(recDir, "record.txt")
@@ -96,10 +96,10 @@ func TestHookForwardsArgsAndEnv(t *testing.T) {
 
 func TestHookRecursionGuardShortCircuit(t *testing.T) {
 	root := repoRoot(t)
-	hookScript := filepath.Join(root, "scripts", "debate-stop-hook.sh")
+	hookScript := filepath.Join(root, "scripts", "agon-stop-hook.sh")
 
 	binDir := t.TempDir()
-	writeFakeDebate(t, binDir)
+	writeFakeAgon(t, binDir)
 
 	recDir := t.TempDir()
 	recordFile := filepath.Join(recDir, "record.txt")
@@ -115,16 +115,16 @@ func TestHookRecursionGuardShortCircuit(t *testing.T) {
 		t.Fatalf("hook should exit 0 under recursion guard: %v", err)
 	}
 	if _, err := os.Stat(recordFile); !os.IsNotExist(err) {
-		t.Errorf("recursion guard should NOT exec debate; record file exists: %v", err)
+		t.Errorf("recursion guard should NOT exec agon; record file exists: %v", err)
 	}
 }
 
 func TestHookHandlesEmptyPayload(t *testing.T) {
 	root := repoRoot(t)
-	hookScript := filepath.Join(root, "scripts", "debate-stop-hook.sh")
+	hookScript := filepath.Join(root, "scripts", "agon-stop-hook.sh")
 
 	binDir := t.TempDir()
-	writeFakeDebate(t, binDir)
+	writeFakeAgon(t, binDir)
 
 	recDir := t.TempDir()
 	recordFile := filepath.Join(recDir, "record.txt")

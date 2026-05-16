@@ -2,7 +2,7 @@ name: Site
 
 # Agon landing site (agon.latere.ai). Deploys on push to main when
 # site files change. The `v*` tag path is owned by release.yml
-# (goreleaser, the `debate` CLI) and is deliberately NOT a trigger
+# (goreleaser, the `agon` CLI) and is deliberately NOT a trigger
 # here — tagging the repo must not deploy the website.
 on:
   push:

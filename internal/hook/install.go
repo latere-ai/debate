@@ -59,7 +59,7 @@ func Install(scope Scope, scriptPath string) error {
 }
 
 // Uninstall removes any Stop hook whose command ends in
-// debate-stop-hook.sh or `/debate hook`, plus any debate-owned
+// agon-stop-hook.sh or `/agon hook`, plus any agon-owned
 // statusLine entry.
 func Uninstall(scope Scope) error {
 	p, err := SettingsPath(scope)
@@ -76,7 +76,7 @@ func Uninstall(scope Scope) error {
 }
 
 // InstallStatusLine writes a statusLine entry pointing at command.
-// Idempotent: replaces an existing debate-owned statusLine; leaves a
+// Idempotent: replaces an existing agon-owned statusLine; leaves a
 // foreign statusLine alone unless force is true. When force is false
 // and a foreign statusLine is present, returns ErrStatusLineConflict
 // so the caller can report the existing command.
@@ -93,7 +93,7 @@ func InstallStatusLine(scope Scope, command string, force bool) error {
 		return err
 	}
 	// Treat any pre-existing value as foreign unless we can recognise
-	// it as debate-owned. A non-object value (string, array, number,
+	// it as agon-owned. A non-object value (string, array, number,
 	// bool) is foreign by definition - agon only ever writes the
 	// {type, command} object form.
 	if raw, present := settings["statusLine"]; present && !force {
@@ -102,7 +102,7 @@ func InstallStatusLine(scope Scope, command string, force bool) error {
 			return ErrStatusLineConflict
 		}
 		cmd, _ := obj["command"].(string)
-		if !statusLineIsDebate(cmd) {
+		if !statusLineIsAgon(cmd) {
 			return ErrStatusLineConflict
 		}
 	}
@@ -137,23 +137,23 @@ func ReadStatusLineCommand(scope Scope) string {
 	return ""
 }
 
-// ErrStatusLineConflict signals that a non-debate statusLine entry is
+// ErrStatusLineConflict signals that a non-agon statusLine entry is
 // already in settings.json; the caller should report the existing
 // command rather than overwrite silently.
-var ErrStatusLineConflict = fmt.Errorf("statusLine already set to a non-debate command")
+var ErrStatusLineConflict = fmt.Errorf("statusLine already set to a non-agon command")
 
 func removeStatusLine(settings map[string]any) map[string]any {
 	if existing, ok := settings["statusLine"].(map[string]any); ok {
 		cmd, _ := existing["command"].(string)
-		if statusLineIsDebate(cmd) {
+		if statusLineIsAgon(cmd) {
 			delete(settings, "statusLine")
 		}
 	}
 	return settings
 }
 
-func statusLineIsDebate(cmd string) bool {
-	return strings.HasSuffix(cmd, "/debate status") || cmd == "agon status"
+func statusLineIsAgon(cmd string) bool {
+	return strings.HasSuffix(cmd, "/agon status") || cmd == "agon status"
 }
 
 func readSettings(path string) (map[string]any, error) {
@@ -193,11 +193,11 @@ func mergeStopHook(settings map[string]any, scriptPath string) map[string]any {
 	}
 
 	// Filter out any existing entry whose nested command ends in
-	// debate-stop-hook.sh, then append our desired one.
+	// agon-stop-hook.sh, then append our desired one.
 	out := []any{}
 	for _, item := range stopRaw {
 		entry, _ := item.(map[string]any)
-		if entry == nil || !entryReferencesDebate(entry) {
+		if entry == nil || !entryReferencesAgon(entry) {
 			out = append(out, item)
 		}
 	}
@@ -215,7 +215,7 @@ func removeStopHook(settings map[string]any) map[string]any {
 	out := []any{}
 	for _, item := range stopRaw {
 		entry, _ := item.(map[string]any)
-		if entry == nil || !entryReferencesDebate(entry) {
+		if entry == nil || !entryReferencesAgon(entry) {
 			out = append(out, item)
 		}
 	}
@@ -223,7 +223,7 @@ func removeStopHook(settings map[string]any) map[string]any {
 	return settings
 }
 
-func entryReferencesDebate(entry map[string]any) bool {
+func entryReferencesAgon(entry map[string]any) bool {
 	cmds, _ := entry["hooks"].([]any)
 	for _, c := range cmds {
 		m, _ := c.(map[string]any)
@@ -232,12 +232,12 @@ func entryReferencesDebate(entry map[string]any) bool {
 		}
 		s, _ := m["command"].(string)
 		// Either the legacy shell-script trampoline or the modern
-		// `<path-to>/debate hook` subcommand form. The shell-script
+		// `<path-to>/agon hook` subcommand form. The shell-script
 		// form is kept for back-compat with older release tarballs.
-		if strings.HasSuffix(s, "debate-stop-hook.sh") {
+		if strings.HasSuffix(s, "agon-stop-hook.sh") {
 			return true
 		}
-		if strings.HasSuffix(s, "/debate hook") || s == "agon hook" {
+		if strings.HasSuffix(s, "/agon hook") || s == "agon hook" {
 			return true
 		}
 	}
@@ -259,22 +259,22 @@ func writeSettingsAtomic(path string, settings map[string]any) error {
 	return os.Rename(tmp, path)
 }
 
-// LocateScript returns the path to debate-stop-hook.sh, preferring a
+// LocateScript returns the path to agon-stop-hook.sh, preferring a
 // sibling of the running binary, falling back to one in scripts/ from
 // the current cwd.
 func LocateScript() string {
 	if exe, err := os.Executable(); err == nil {
-		candidate := filepath.Join(filepath.Dir(exe), "debate-stop-hook.sh")
+		candidate := filepath.Join(filepath.Dir(exe), "agon-stop-hook.sh")
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
 	}
 	cwd, err := os.Getwd()
 	if err == nil {
-		candidate := filepath.Join(cwd, "scripts", "debate-stop-hook.sh")
+		candidate := filepath.Join(cwd, "scripts", "agon-stop-hook.sh")
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
 	}
-	return "debate-stop-hook.sh"
+	return "agon-stop-hook.sh"
 }

@@ -1,4 +1,4 @@
-# Agon landing site (agon.latere.ai). Separate from the `debate`
+# Agon landing site (agon.latere.ai). Separate from the `agon`
 # CLI release (goreleaser): this image is built only by
 # .github/workflows/site.yml. Bun-built vite-ssg dist is embedded
 # into the cmd/agon-web Go binary, served from a distroless image.

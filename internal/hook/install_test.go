@@ -12,14 +12,14 @@ import (
 func TestInstallEmptyFile(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
-	if err := Install(ScopeUser, "/path/to/debate-stop-hook.sh"); err != nil {
+	if err := Install(ScopeUser, "/path/to/agon-stop-hook.sh"); err != nil {
 		t.Fatal(err)
 	}
 	b, err := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(b), "debate-stop-hook.sh") {
+	if !strings.Contains(string(b), "agon-stop-hook.sh") {
 		t.Errorf("missing entry: %s", b)
 	}
 }
@@ -27,10 +27,10 @@ func TestInstallEmptyFile(t *testing.T) {
 func TestInstallIdempotent(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
-	if err := Install(ScopeUser, "/p/debate-stop-hook.sh"); err != nil {
+	if err := Install(ScopeUser, "/p/agon-stop-hook.sh"); err != nil {
 		t.Fatal(err)
 	}
-	if err := Install(ScopeUser, "/p/debate-stop-hook.sh"); err != nil {
+	if err := Install(ScopeUser, "/p/agon-stop-hook.sh"); err != nil {
 		t.Fatal(err)
 	}
 	b, _ := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
@@ -64,14 +64,14 @@ func TestInstallPreservesUnrelatedHooks(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, ".claude", "settings.json"), b, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := Install(ScopeUser, "/p/debate-stop-hook.sh"); err != nil {
+	if err := Install(ScopeUser, "/p/agon-stop-hook.sh"); err != nil {
 		t.Fatal(err)
 	}
 	out, _ := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
 	if !strings.Contains(string(out), "/other/hook.sh") {
 		t.Error("lost the unrelated hook entry")
 	}
-	if !strings.Contains(string(out), "debate-stop-hook.sh") {
+	if !strings.Contains(string(out), "agon-stop-hook.sh") {
 		t.Error("missing the new agon entry")
 	}
 }
@@ -79,14 +79,14 @@ func TestInstallPreservesUnrelatedHooks(t *testing.T) {
 func TestUninstall(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
-	if err := Install(ScopeUser, "/p/debate-stop-hook.sh"); err != nil {
+	if err := Install(ScopeUser, "/p/agon-stop-hook.sh"); err != nil {
 		t.Fatal(err)
 	}
 	if err := Uninstall(ScopeUser); err != nil {
 		t.Fatal(err)
 	}
 	b, _ := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
-	if strings.Contains(string(b), "debate-stop-hook.sh") {
+	if strings.Contains(string(b), "agon-stop-hook.sh") {
 		t.Errorf("entry still present: %s", b)
 	}
 }
@@ -94,14 +94,14 @@ func TestUninstall(t *testing.T) {
 func TestInstallProjectScope(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
-	if err := Install(ScopeProject, "/p/debate-stop-hook.sh"); err != nil {
+	if err := Install(ScopeProject, "/p/agon-stop-hook.sh"); err != nil {
 		t.Fatal(err)
 	}
 	b, err := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(b), "debate-stop-hook.sh") {
+	if !strings.Contains(string(b), "agon-stop-hook.sh") {
 		t.Errorf("missing entry: %s", b)
 	}
 }
@@ -194,7 +194,7 @@ func TestLocateScript_FallsBackToBareName(t *testing.T) {
 	tmp := t.TempDir()
 	t.Chdir(tmp)
 	got := LocateScript()
-	if got != "debate-stop-hook.sh" {
+	if got != "agon-stop-hook.sh" {
 		// Could legitimately resolve to the binary's sibling if go test
 		// installed the test binary somewhere with one alongside; just
 		// require that what we got is non-empty.
@@ -209,7 +209,7 @@ func TestLocateScript_FindsSiblingNextToBinary(t *testing.T) {
 	if err != nil {
 		t.Skipf("os.Executable: %v", err)
 	}
-	sibling := filepath.Join(filepath.Dir(exe), "debate-stop-hook.sh")
+	sibling := filepath.Join(filepath.Dir(exe), "agon-stop-hook.sh")
 	if err := os.WriteFile(sibling, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		t.Skipf("cannot write sibling: %v", err)
 	}
@@ -224,7 +224,7 @@ func TestLocateScript_FindsSiblingNextToBinary(t *testing.T) {
 func TestUninstallProjectScope(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
-	if err := Install(ScopeProject, "/p/debate-stop-hook.sh"); err != nil {
+	if err := Install(ScopeProject, "/p/agon-stop-hook.sh"); err != nil {
 		t.Fatal(err)
 	}
 	if err := Uninstall(ScopeProject); err != nil {
@@ -244,8 +244,8 @@ func TestInstallNonexistentScopeError(t *testing.T) {
 	}
 }
 
-func TestEntryReferencesDebate_NoCommand(t *testing.T) {
-	if entryReferencesDebate(map[string]any{}) {
+func TestEntryReferencesAgon_NoCommand(t *testing.T) {
+	if entryReferencesAgon(map[string]any{}) {
 		t.Error("entry without hooks should not match")
 	}
 }
@@ -254,7 +254,7 @@ func TestEntryReferencesDebate_NoCommand(t *testing.T) {
 // statusLine value (string, array, etc.) was silently overwritten
 // because the type-assert to map[string]any failed and was treated
 // as "no existing entry". Now any pre-existing value that isn't a
-// debate-owned object is a conflict.
+// agon-owned object is a conflict.
 func TestInstallStatusLine_RejectsStringForeignValue(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
@@ -266,7 +266,7 @@ func TestInstallStatusLine_RejectsStringForeignValue(t *testing.T) {
 		[]byte(`{"statusLine":"foreign command"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	err := InstallStatusLine(ScopeUser, "/usr/local/bin/debate status", false)
+	err := InstallStatusLine(ScopeUser, "/usr/local/bin/agon status", false)
 	if !errors.Is(err, ErrStatusLineConflict) {
 		t.Fatalf("got %v, want ErrStatusLineConflict", err)
 	}
@@ -277,14 +277,14 @@ func TestInstallStatusLine_RejectsStringForeignValue(t *testing.T) {
 	}
 }
 
-func TestInstallStatusLine_OverwritesDebateOwned(t *testing.T) {
+func TestInstallStatusLine_OverwritesAgonOwned(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
-	if err := InstallStatusLine(ScopeUser, "/usr/local/bin/debate status", false); err != nil {
+	if err := InstallStatusLine(ScopeUser, "/usr/local/bin/agon status", false); err != nil {
 		t.Fatal(err)
 	}
-	if err := InstallStatusLine(ScopeUser, "/opt/debate status", false); err != nil {
-		t.Fatalf("re-install on debate-owned entry should succeed: %v", err)
+	if err := InstallStatusLine(ScopeUser, "/opt/agon status", false); err != nil {
+		t.Fatalf("re-install on agon-owned entry should succeed: %v", err)
 	}
 }
 
@@ -300,11 +300,11 @@ func TestInstallStatusLine_ForceOverwritesForeign(t *testing.T) {
 		0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := InstallStatusLine(ScopeUser, "/usr/local/bin/debate status", true); err != nil {
+	if err := InstallStatusLine(ScopeUser, "/usr/local/bin/agon status", true); err != nil {
 		t.Fatalf("force should overwrite foreign value: %v", err)
 	}
 	b, _ := os.ReadFile(settings)
-	if !strings.Contains(string(b), "/usr/local/bin/debate status") {
+	if !strings.Contains(string(b), "/usr/local/bin/agon status") {
 		t.Errorf("agon status not written: %s", b)
 	}
 	if strings.Contains(string(b), "foreign.cjs") {
@@ -353,7 +353,7 @@ func TestLocateScript_FindsScriptsUnderCwd(t *testing.T) {
 	if err != nil {
 		t.Skipf("os.Executable: %v", err)
 	}
-	sibling := filepath.Join(filepath.Dir(exe), "debate-stop-hook.sh")
+	sibling := filepath.Join(filepath.Dir(exe), "agon-stop-hook.sh")
 	_ = os.Remove(sibling)
 
 	tmp := t.TempDir()
@@ -361,7 +361,7 @@ func TestLocateScript_FindsScriptsUnderCwd(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(tmp, "scripts"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(tmp, "scripts", "debate-stop-hook.sh")
+	want := filepath.Join(tmp, "scripts", "agon-stop-hook.sh")
 	if err := os.WriteFile(want, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}

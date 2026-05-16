@@ -66,11 +66,11 @@ jobs:
           mkdir -p bin
           go build \
             -ldflags "-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
-            -o bin/debate ./cmd/debate
+            -o bin/agon ./cmd/agon
       - name: smoke test --version
-        run: ./bin/debate --version
+        run: ./bin/agon --version
       - uses: actions/upload-artifact@v4
         with:
-          name: debate-${{ matrix.os }}
-          path: bin/debate
+          name: agon-${{ matrix.os }}
+          path: bin/agon
           if-no-files-found: error

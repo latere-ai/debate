@@ -73,6 +73,6 @@ if [ -z "$HOOK_ATTACHMENTS" ]; then
   exit 0
 else
   echo "FAIL: Stop hook produced hook_* attachments in root JSONL even with no output"
-  echo "Implication: keep the 'no debate-content pollution' wording in spec 01."
+  echo "Implication: keep the 'no agon-content pollution' wording in spec 01."
   exit 1
 fi

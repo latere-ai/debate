@@ -1,4 +1,4 @@
-// Package cli_test runs end-to-end tests against the actual `bin/debate`
+// Package cli_test runs end-to-end tests against the actual `bin/agon`
 // binary, with claude and codex resolved via PATH to mock harnesses.
 //
 // Coverage: the full v0 happy path - preflight, transcript locate +
@@ -98,7 +98,7 @@ func fixtureRepo(t *testing.T) string {
 	return dir
 }
 
-// runDebate invokes the binary with the given args and captures
+// runAgon invokes the binary with the given args and captures
 // stdout/stderr/exit code.
 type runResult struct {
 	Stdout   string
@@ -106,7 +106,7 @@ type runResult struct {
 	ExitCode int
 }
 
-func runDebate(t *testing.T, agon string, env []string, cwd string, args ...string) runResult {
+func runAgon(t *testing.T, agon string, env []string, cwd string, args ...string) runResult {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -229,7 +229,7 @@ func TestFullE2E_HappyPath(t *testing.T) {
 		"HOME="+t.TempDir(),
 	)
 
-	res := runDebate(
+	res := runAgon(
 		t, agon, env, repo,
 		"--task-context", "search handler",
 		"--main", "claude",
@@ -343,7 +343,7 @@ func TestFullE2E_TrivialDiffSkip(t *testing.T) {
 	stateDir := filepath.Join(repo, ".agon")
 	env := patchedPATH(t, binDir)
 
-	res := runDebate(
+	res := runAgon(
 		t, agon, env, repo,
 		"--task-context", "no changes",
 		"--side-count", "1",
@@ -389,7 +389,7 @@ func TestFullE2E_BareInvocationShowsHelp(t *testing.T) {
 	// short-circuit is gated on env-supplied task source being empty.
 	env := []string{"PATH=" + binDir + ":/usr/bin:/bin", "HOME=" + t.TempDir()}
 
-	res := runDebate(t, agon, env, repo)
+	res := runAgon(t, agon, env, repo)
 	if res.ExitCode != 0 {
 		t.Fatalf("bare invocation should exit 0 (help), got %d\nstderr: %s\nstdout: %s",
 			res.ExitCode, res.Stderr, res.Stdout)
@@ -417,7 +417,7 @@ func TestFullE2E_RecursionGuard(t *testing.T) {
 	env := patchedPATH(t, binDir)
 	env = append(env, "AGON_IN_PROGRESS=1")
 
-	res := runDebate(
+	res := runAgon(
 		t, agon, env, repo,
 		"--task-context", "anything",
 		"--side-count", "1",
@@ -441,7 +441,7 @@ func TestFullE2E_PreflightExitCode(t *testing.T) {
 	env := patchedPATH(t, binDir)
 
 	// --side-count = 0 → exit 121
-	res := runDebate(
+	res := runAgon(
 		t, agon, env, repo,
 		"--task-context", "x",
 		"--side-count", "0",

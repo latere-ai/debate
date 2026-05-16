@@ -58,7 +58,7 @@ func TestInstallHookCmd_DefaultsToUserScope(t *testing.T) {
 	t.Setenv("HOME", dir)
 
 	cmd := installHookCmd()
-	cmd.SetArgs([]string{"--script-path", "/tmp/fake-debate-stop-hook.sh"})
+	cmd.SetArgs([]string{"--script-path", "/tmp/fake-agon-stop-hook.sh"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestInstallHookCmd_DefaultsToUserScope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !contains(string(b), "fake-debate-stop-hook.sh") {
+	if !contains(string(b), "fake-agon-stop-hook.sh") {
 		t.Errorf("missing entry: %s", b)
 	}
 }
@@ -104,7 +104,7 @@ func TestInstallHookCmd_DefaultsToBinaryHookSubcommand(t *testing.T) {
 	if !contains(string(b), " hook") {
 		t.Errorf("install-hook default did not record the hook subcommand: %s", b)
 	}
-	if contains(string(b), "debate-stop-hook.sh") {
+	if contains(string(b), "agon-stop-hook.sh") {
 		t.Errorf("install-hook default should no longer reference the .sh script: %s", b)
 	}
 }
@@ -115,7 +115,7 @@ func TestUninstallHookCmd_DefaultsToUserScope(t *testing.T) {
 
 	// Pre-install something to remove.
 	inst := installHookCmd()
-	inst.SetArgs([]string{"--script-path", "/tmp/fake-debate-stop-hook.sh"})
+	inst.SetArgs([]string{"--script-path", "/tmp/fake-agon-stop-hook.sh"})
 	if err := inst.Execute(); err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +126,7 @@ func TestUninstallHookCmd_DefaultsToUserScope(t *testing.T) {
 		t.Fatalf("uninstall: %v", err)
 	}
 	b, _ := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
-	if contains(string(b), "fake-debate-stop-hook.sh") {
+	if contains(string(b), "fake-agon-stop-hook.sh") {
 		t.Errorf("entry not removed: %s", b)
 	}
 }

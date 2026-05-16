@@ -2,7 +2,7 @@
 # Probe: trivial-diff exit-fast must take < 200 ms median wall (per
 # spec 30; reconciles the as-shipped 200ms threshold with spec 25's
 # stale 100ms claim, see specs/30-probe-trivial-diff-perf-outcome.md
-# for the rationale). Runs bin/debate against a 1-changed-line repo
+# for the rationale). Runs bin/agon against a 1-changed-line repo
 # with --changed-lines-min 100 so the trivial-diff gate fires
 # immediately.
 #
@@ -14,7 +14,7 @@ set -euo pipefail
 ensure_clean_env
 
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
-BIN="${AGON_BIN:-$REPO/bin/debate}"
+BIN="${AGON_BIN:-$REPO/bin/agon}"
 if [ ! -x "$BIN" ]; then
   echo "missing: $BIN (run 'make build' first or set AGON_BIN)" >&2
   exit 2

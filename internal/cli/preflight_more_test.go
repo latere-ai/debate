@@ -85,7 +85,7 @@ func TestPreflightErrorNoWrap(t *testing.T) {
 
 // TestPreflightTranscriptDottedCwdDoesNotFalseFlag pins the bug
 // reported on rc2: a repo path containing a dot (e.g.
-// /Users/x/dev/changkun.de/debate) was rejected by preflight because
+// /Users/x/dev/changkun.de/agon) was rejected by preflight because
 // the lossy decoder mapped both `/` and `.` to `-`, then decoded `-`
 // blindly to `/`. Now we compare in encoded space and the dotted
 // path matches itself.

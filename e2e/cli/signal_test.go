@@ -1,4 +1,4 @@
-// Signal handling regression test: SIGINT to bin/debate must propagate
+// Signal handling regression test: SIGINT to bin/agon must propagate
 // to its child agent processes and the orchestrator must exit in well
 // under 5 seconds. Catches the spec-21 bug where main() used cobra's
 // background context and the round.InstallHandler signal handler was

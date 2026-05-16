@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# debate-stop-hook.sh - Stop hook for the `debate` CLI.
+# agon-stop-hook.sh - Stop hook for the `agon` CLI.
 # See specs/24-stop-hook.md and specs/01-overview.md for design.
 
 set -e
@@ -32,7 +32,7 @@ fi
 # `--hook-mode` forces exit 0 even on unresolved leaves. Without it the
 # CLI's intrinsic exit 1 would propagate, and Claude would treat the
 # Stop hook as having failed for every interesting review.
-exec debate \
+exec agon \
   --hook-mode \
   --session-id "$SESSION_ID" \
   --transcript "$TRANSCRIPT" \

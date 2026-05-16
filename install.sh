@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# install.sh - one-liner installer for `debate`.
+# install.sh - one-liner installer for `agon`.
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/latere-ai/agon/main/install.sh | sh
@@ -53,14 +53,14 @@ if [ -z "$VERSION" ]; then
   [ -n "$VERSION" ] || err "could not resolve latest tag; set AGON_VERSION="
 fi
 
-# Asset filename: debate_<version-without-v>_<os>_<arch>.tar.gz
+# Asset filename: agon_<version-without-v>_<os>_<arch>.tar.gz
 VNUM=${VERSION#v}
-ASSET="debate_${VNUM}_${OS}_${ARCH}.tar.gz"
+ASSET="agon_${VNUM}_${OS}_${ARCH}.tar.gz"
 URL="https://github.com/$REPO/releases/download/$VERSION/$ASSET"
 
 printf 'install: %s -> %s\n' "$VERSION ($OS/$ARCH)" "$BINDIR"
 
-TMP=$(mktemp -d -t debate-install.XXXXXX)
+TMP=$(mktemp -d -t agon-install.XXXXXX)
 trap 'rm -rf "$TMP"' EXIT
 
 curl -fL --progress-bar "$URL" -o "$TMP/$ASSET" \
@@ -79,25 +79,25 @@ if curl -fsSL "https://github.com/$REPO/releases/download/$VERSION/checksums.txt
 fi
 
 tar -xzf "$TMP/$ASSET" -C "$TMP"
-[ -x "$TMP/debate" ] || err "extracted archive does not contain a 'debate' binary"
+[ -x "$TMP/agon" ] || err "extracted archive does not contain a 'agon' binary"
 
 # Install. Use sudo only if BINDIR is not writable by us.
 mkdir -p "$BINDIR" 2>/dev/null || true
 if [ -w "$BINDIR" ] || { [ ! -e "$BINDIR" ] && [ -w "$(dirname "$BINDIR")" ]; }; then
-  install "$TMP/debate" "$BINDIR/debate"
+  install "$TMP/agon" "$BINDIR/agon"
 else
   printf 'install: %s is not writable, using sudo\n' "$BINDIR"
-  sudo install "$TMP/debate" "$BINDIR/debate"
+  sudo install "$TMP/agon" "$BINDIR/agon"
 fi
 
 # Install Stop hook unless opted out.
 if [ "${AGON_NO_HOOK:-0}" != "1" ]; then
-  if "$BINDIR/debate" install-hook --scope user; then
+  if "$BINDIR/agon" install-hook --scope user; then
     printf 'install: hook installed\n'
   else
     printf 'install: hook install failed; rerun with: %s install-hook --scope user\n' \
-      "$BINDIR/debate"
+      "$BINDIR/agon"
   fi
 fi
 
-printf '\ninstalled %s at %s\n' "$("$BINDIR/debate" --version)" "$BINDIR/debate"
+printf '\ninstalled %s at %s\n' "$("$BINDIR/agon" --version)" "$BINDIR/agon"

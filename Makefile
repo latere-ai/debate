@@ -1,6 +1,6 @@
 SHELL := /bin/bash
-BIN   := bin/debate
-PKG   := ./cmd/debate
+BIN   := bin/agon
+PKG   := ./cmd/agon
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)

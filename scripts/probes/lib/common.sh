@@ -10,7 +10,7 @@ ensure_clean_env() {
 }
 
 mk_tmpdir() {
-  mktemp -d "${TMPDIR:-/tmp}/debate-probe-XXXXXX"
+  mktemp -d "${TMPDIR:-/tmp}/agon-probe-XXXXXX"
 }
 
 sha256() {
