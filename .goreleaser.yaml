@@ -81,7 +81,7 @@ release:
     ```sh
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     ARCH=$(uname -m); [[ "$ARCH" == "x86_64" ]] && ARCH=amd64
-    curl -L "https://github.com/latere-ai/debate/releases/download/{{.Tag}}/debate_{{.Version}}_${OS}_${ARCH}.tar.gz" | tar xz
+    curl -L "https://github.com/latere-ai/agon/releases/download/{{.Tag}}/debate_{{.Version}}_${OS}_${ARCH}.tar.gz" | tar xz
     ./debate install-hook --scope user
     ```
 

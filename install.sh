@@ -2,7 +2,7 @@
 # install.sh - one-liner installer for `debate`.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/latere-ai/debate/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/latere-ai/agon/main/install.sh | sh
 #
 # Optional env:
 #   DEBATE_VERSION=v0.0.1-rc2   # pin a specific tag (default: latest)
@@ -13,7 +13,7 @@
 
 set -eu
 
-REPO=latere-ai/debate
+REPO=latere-ai/agon
 PREFIX=${DEBATE_PREFIX:-/usr/local}
 BINDIR="$PREFIX/bin"
 VERSION=${DEBATE_VERSION:-}
