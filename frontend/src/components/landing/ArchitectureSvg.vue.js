@@ -1,11 +1,18 @@
-const ledger = [60, 82, 104, 126, 148, 170];
+const ledger = [
+    { y: 60, id: 'R1·01', stake: false },
+    { y: 86, id: 'R2·02', stake: false },
+    { y: 112, id: 'R2·03', stake: false },
+    { y: 138, id: 'R3·04', stake: false },
+    { y: 164, id: 'R3·05', stake: false },
+    { y: 190, id: 'R4·06', stake: true },
+];
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
 let __VLS_components;
 let __VLS_directives;
 __VLS_asFunctionalElement(__VLS_intrinsicElements.svg, __VLS_intrinsicElements.svg)({
     ...{ class: "arch-svg" },
-    viewBox: "0 0 800 360",
+    viewBox: "0 0 880 360",
     xmlns: "http://www.w3.org/2000/svg",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.defs, __VLS_intrinsicElements.defs)({});
@@ -49,11 +56,11 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
     fill: "#998a82",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.g, __VLS_intrinsicElements.g)({
-    transform: "translate(48,164)",
+    transform: "translate(40,154)",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.rect)({
-    width: "130",
-    height: "48",
+    width: "120",
+    height: "52",
     rx: "8",
     fill: "none",
     stroke: "#998a82",
@@ -61,27 +68,43 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.rect)({
     'stroke-dasharray': "4 4",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "65",
+    x: "60",
     y: "22",
     'text-anchor': "middle",
     'font-family': "ui-monospace, monospace",
     'font-size': "11",
     fill: "#998a82",
-    'letter-spacing': "0.14em",
+    'letter-spacing': "0.12em",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "65",
-    y: "38",
+    x: "60",
+    y: "39",
     'text-anchor': "middle",
     'font-family': "Inter, sans-serif",
-    'font-size': "11",
+    'font-size': "9.5",
     fill: "#564843",
 });
+__VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
+    d: "M 160 172 L 206 112",
+    fill: "none",
+    stroke: "#998a82",
+    'stroke-width': "1.4",
+    'stroke-dasharray': "4 4",
+    'marker-end': "url(#d-arr-m)",
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
+    d: "M 160 188 L 206 248",
+    fill: "none",
+    stroke: "#998a82",
+    'stroke-width': "1.4",
+    'stroke-dasharray': "4 4",
+    'marker-end': "url(#d-arr-m)",
+});
 __VLS_asFunctionalElement(__VLS_intrinsicElements.g, __VLS_intrinsicElements.g)({
-    transform: "translate(240,72)",
+    transform: "translate(212,66)",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.rect)({
-    width: "170",
+    width: "176",
     height: "72",
     rx: "10",
     fill: "#fbf8f3",
@@ -89,28 +112,28 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.rect)({
     'stroke-width': "1.6",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "85",
+    x: "88",
     y: "28",
     'text-anchor': "middle",
     'font-family': "ui-monospace, monospace",
     'font-size': "10",
     fill: "#1c130f",
-    'letter-spacing': "0.16em",
+    'letter-spacing': "0.14em",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "85",
-    y: "52",
+    x: "88",
+    y: "53",
     'text-anchor': "middle",
     'font-family': "Instrument Serif, serif",
     'font-style': "italic",
-    'font-size': "22",
+    'font-size': "21",
     fill: "#1c130f",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.g, __VLS_intrinsicElements.g)({
-    transform: "translate(240,216)",
+    transform: "translate(212,222)",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.rect)({
-    width: "170",
+    width: "176",
     height: "72",
     rx: "10",
     fill: "#1c130f",
@@ -118,138 +141,134 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.rect)({
     'stroke-width': "1.6",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "85",
+    x: "88",
     y: "28",
     'text-anchor': "middle",
     'font-family': "ui-monospace, monospace",
     'font-size': "10",
     fill: "#c25a5b",
-    'letter-spacing': "0.16em",
+    'letter-spacing': "0.14em",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "85",
-    y: "52",
+    x: "88",
+    y: "53",
     'text-anchor': "middle",
     'font-family': "Instrument Serif, serif",
     'font-style': "italic",
-    'font-size': "22",
+    'font-size': "21",
     fill: "#fbf8f3",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
-    d: "M 330 144 C 330 165, 330 195, 330 216",
+    d: "M 288 140 C 288 165, 288 197, 288 220",
     fill: "none",
     stroke: "#1c130f",
     'stroke-width': "1.6",
     'marker-end': "url(#d-arr-i)",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
-    d: "M 308 216 C 308 195, 308 165, 308 144",
+    d: "M 312 220 C 312 197, 312 165, 312 140",
     fill: "none",
     stroke: "#1c130f",
     'stroke-width': "1.6",
     'marker-end': "url(#d-arr-i)",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "362",
-    y: "186",
+    x: "338",
+    y: "172",
     'font-family': "ui-monospace, monospace",
     'font-size': "9",
     fill: "#998a82",
-    'letter-spacing': "0.12em",
+    'letter-spacing': "0.1em",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "262",
-    y: "186",
+    x: "338",
+    y: "196",
     'font-family': "ui-monospace, monospace",
     'font-size': "9",
     fill: "#998a82",
-    'letter-spacing': "0.12em",
-    'text-anchor': "end",
+    'letter-spacing': "0.1em",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
-    d: "M 180 178 L 238 122",
+    d: "M 388 112 L 448 124",
     fill: "none",
     stroke: "#998a82",
     'stroke-width': "1.4",
-    'stroke-dasharray': "4 4",
     'marker-end': "url(#d-arr-m)",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
-    d: "M 180 198 L 238 240",
+    d: "M 388 248 L 448 236",
     fill: "none",
     stroke: "#998a82",
     'stroke-width': "1.4",
-    'stroke-dasharray': "4 4",
     'marker-end': "url(#d-arr-m)",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.g, __VLS_intrinsicElements.g)({
-    transform: "translate(448,72)",
+    transform: "translate(452,60)",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.rect)({
-    width: "160",
-    height: "216",
+    width: "200",
+    height: "240",
     rx: "6",
     fill: "#fbf8f3",
     stroke: "#1c130f",
     'stroke-width': "1.4",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "80",
+    x: "100",
     y: "26",
     'text-anchor': "middle",
     'font-family': "ui-monospace, monospace",
     'font-size': "10",
     fill: "#1c130f",
-    'letter-spacing': "0.18em",
+    'letter-spacing': "0.08em",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.line)({
-    x1: "16",
-    y1: "42",
-    x2: "144",
-    y2: "42",
+    x1: "18",
+    y1: "40",
+    x2: "182",
+    y2: "40",
     stroke: "#d9cbb7",
 });
-for (const [y, i] of __VLS_getVForSourceType((__VLS_ctx.ledger))) {
+for (const [r, i] of __VLS_getVForSourceType((__VLS_ctx.ledger))) {
     __VLS_asFunctionalElement(__VLS_intrinsicElements.g, __VLS_intrinsicElements.g)({
         key: (i),
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
         x: "20",
-        y: (y),
+        y: (r.y),
         'font-family': "ui-monospace, monospace",
         'font-size': "9",
         fill: "#998a82",
     });
-    (Math.floor(i / 2) + 1);
-    (i + 1);
+    (r.id);
     __VLS_asFunctionalElement(__VLS_intrinsicElements.rect)({
-        x: "62",
-        y: (y - 7),
-        width: "36",
+        x: "78",
+        y: (r.y - 7),
+        width: "60",
         height: "3",
-        fill: (i === 5 ? '#8a2a2b' : '#564843'),
-        opacity: (i === 5 ? 1 : 0.5),
+        fill: (r.stake ? '#8a2a2b' : '#564843'),
+        opacity: (r.stake ? 1 : 0.5),
     });
     __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-        x: "106",
-        y: (y),
+        x: "150",
+        y: (r.y),
         'font-family': "ui-monospace, monospace",
         'font-size': "8",
-        fill: (i === 5 ? '#8a2a2b' : '#998a82'),
-        'font-weight': (i === 5 ? 700 : 400),
+        fill: (r.stake ? '#8a2a2b' : '#998a82'),
+        'font-weight': (r.stake ? 700 : 400),
     });
-    (i === 5 ? 'STAKE' : 'rsv');
+    (r.stake ? 'STAKE' : 'rsv');
 }
 __VLS_asFunctionalElement(__VLS_intrinsicElements.line)({
-    x1: "16",
-    y1: "184",
-    x2: "144",
-    y2: "184",
+    x1: "18",
+    y1: "208",
+    x2: "182",
+    y2: "208",
     stroke: "#d9cbb7",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "80",
-    y: "202",
+    x: "100",
+    y: "228",
     'text-anchor': "middle",
     'font-family': "Instrument Serif, serif",
     'font-style': "italic",
@@ -257,100 +276,86 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.
     fill: "#8a2a2b",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
-    d: "M 410 108 L 446 108",
-    fill: "none",
-    stroke: "#998a82",
-    'stroke-width': "1.4",
-    'marker-end': "url(#d-arr-m)",
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
-    d: "M 410 250 L 446 250",
-    fill: "none",
-    stroke: "#998a82",
-    'stroke-width': "1.4",
-    'marker-end': "url(#d-arr-m)",
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.g, __VLS_intrinsicElements.g)({
-    transform: "translate(642,150)",
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.rect)({
-    width: "110",
-    height: "56",
-    rx: "8",
-    fill: "#8a2a2b",
-    stroke: "#8a2a2b",
-    'stroke-width': "1.6",
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "55",
-    y: "24",
-    'text-anchor': "middle",
-    'font-family': "ui-monospace, monospace",
-    'font-size': "10",
-    fill: "#fbf8f3",
-    'letter-spacing': "0.16em",
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "55",
-    y: "42",
-    'text-anchor': "middle",
-    'font-family': "Inter, sans-serif",
-    'font-size': "10",
-    fill: "rgba(251,248,243,0.75)",
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
-    d: "M 610 178 L 640 178",
+    d: "M 652 150 L 716 150",
     fill: "none",
     stroke: "#8a2a2b",
     'stroke-width': "1.6",
     'marker-end': "url(#d-arr-a)",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "625",
-    y: "172",
+    x: "684",
+    y: "140",
     'text-anchor': "middle",
     'font-family': "ui-monospace, monospace",
-    'font-size': "9",
+    'font-size': "10",
     fill: "#8a2a2b",
-    'letter-spacing': "0.12em",
+    'letter-spacing': "0.1em",
     'font-weight': "700",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.g, __VLS_intrinsicElements.g)({
-    transform: "translate(642,238)",
+    transform: "translate(720,120)",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.rect)({
-    width: "110",
-    height: "56",
+    width: "120",
+    height: "60",
+    rx: "8",
+    fill: "#8a2a2b",
+    stroke: "#8a2a2b",
+    'stroke-width': "1.6",
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
+    x: "60",
+    y: "26",
+    'text-anchor': "middle",
+    'font-family': "ui-monospace, monospace",
+    'font-size': "10",
+    fill: "#fbf8f3",
+    'letter-spacing': "0.14em",
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
+    x: "60",
+    y: "44",
+    'text-anchor': "middle",
+    'font-family': "Inter, sans-serif",
+    'font-size': "9.5",
+    fill: "rgba(251,248,243,0.75)",
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
+    d: "M 780 182 L 780 228",
+    fill: "none",
+    stroke: "#564843",
+    'stroke-width': "1.4",
+    'stroke-dasharray': "4 4",
+    'marker-end': "url(#d-arr-i)",
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.g, __VLS_intrinsicElements.g)({
+    transform: "translate(720,232)",
+});
+__VLS_asFunctionalElement(__VLS_intrinsicElements.rect)({
+    width: "120",
+    height: "60",
     rx: "8",
     fill: "none",
     stroke: "#564843",
     'stroke-width': "1.4",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "55",
-    y: "24",
+    x: "60",
+    y: "26",
     'text-anchor': "middle",
     'font-family': "ui-monospace, monospace",
     'font-size': "10",
     fill: "#564843",
-    'letter-spacing': "0.16em",
+    'letter-spacing': "0.14em",
 });
 __VLS_asFunctionalElement(__VLS_intrinsicElements.text, __VLS_intrinsicElements.text)({
-    x: "55",
-    y: "42",
+    x: "60",
+    y: "44",
     'text-anchor': "middle",
     'font-family': "Instrument Serif, serif",
     'font-style': "italic",
     'font-size': "13",
     fill: "#1c130f",
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.path)({
-    d: "M 696 206 L 696 236",
-    fill: "none",
-    stroke: "#564843",
-    'stroke-width': "1.4",
-    'stroke-dasharray': "4 4",
-    'marker-end': "url(#d-arr-i)",
 });
 /** @type {__VLS_StyleScopedClasses['arch-svg']} */ ;
 var __VLS_dollars;
