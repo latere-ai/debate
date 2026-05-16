@@ -4,7 +4,7 @@ import SiteFooter from '../components/SiteFooter.vue';
 </script>
 
 <template>
-  <div class="page-shell agon-page">
+  <div class="page-shell agon-page v-dialectic">
     <SiteNav />
     <main class="page-content">
       <slot />

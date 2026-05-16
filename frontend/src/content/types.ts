@@ -161,6 +161,8 @@ export interface LandingContent {
     lead: string;
     a: { c: string; cmd: string };
     b: { c: string; cmd: string };
+    copy: string;
+    copied: string;
     ctaPrimary: string;
     ctaSecondary: string;
   };

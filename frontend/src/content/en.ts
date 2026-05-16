@@ -341,6 +341,8 @@ export const en: LandingContent = {
     lead: 'Local-first, vendor-neutral. Bring your own pair of models; Agon runs the protocol and writes an auditable session to disk.',
     a: { c: 'one-liner — detects OS/arch, verifies checksum', cmd: 'curl -fsSL https://latere.ai/install.sh | sh' },
     b: { c: 'register the Stop hook with your agent runtime', cmd: 'latere agon install-hook --scope user' },
+    copy: 'Copy',
+    copied: 'Copied',
     ctaPrimary: 'View on GitHub',
     ctaSecondary: 'Read the docs',
   },

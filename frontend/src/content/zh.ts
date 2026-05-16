@@ -341,6 +341,8 @@ export const zh: LandingContent = {
     lead: '本地优先、厂商中立。自带你的一对模型；Agon 运行协议并把一次可审计的会话写入磁盘。',
     a: { c: '一行命令 —— 检测 OS/架构，校验 checksum', cmd: 'curl -fsSL https://latere.ai/install.sh | sh' },
     b: { c: '向你的智能体运行时注册 Stop hook', cmd: 'latere agon install-hook --scope user' },
+    copy: '复制',
+    copied: '已复制',
     ctaPrimary: '在 GitHub 查看',
     ctaSecondary: '阅读文档',
   },
