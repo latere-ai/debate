@@ -1,5 +1,16 @@
 # Spec 01 - Design Overview
 
+> **⚠️ Partially retired (2026-05-16).** The Stop hook was removed
+> entirely: no auto-trigger, no `AGON_IN_PROGRESS` recursion guard,
+> no `--hook-mode`, no `install-hook`/`agon hook`/`agon status`.
+> agon is now a **deliberate CLI** — the on-demand trigger is running
+> the binary (or a shell alias) in a terminal; it forks via
+> `--fork-session` and writes to disk, root transcript untouched.
+> Every Stop-hook / Option B / recursion-guard / "v0 release
+> blockers" passage below is **historical**. The fork-isolation,
+> diff/gate, rounds, critic protocol, summary, and CLI design remain
+> current. Decision + evidence: [36](36-probe-userpromptsubmit-manual-trigger.md).
+
 The full design for `agon`. This document is the authoritative spec; the project README is a usage reference.
 
 ## What this is

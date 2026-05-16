@@ -1,7 +1,8 @@
 # Spec 33 - install-hook smoke verification
 
-> **Status: ✅ implemented** (G15 PASS verified once on v0.0.1 rc binary. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the smoke remains as a developer sanity check to be re-run when [24](24-stop-hook.md) changes.)
-> Implementation spec for `agon`. See [24-stop-hook.md](24-stop-hook.md) for the underlying behaviour.
+> **Status: ❌ RETIRED (2026-05-16).** `install-hook` was removed
+> with the Stop hook; this smoke no longer applies. Kept as
+> historical record. Rationale: [36](36-probe-userpromptsubmit-manual-trigger.md).
 
 **Depends on:** [24](24-stop-hook.md).
 **Consumed by:** [27](27-release.md).

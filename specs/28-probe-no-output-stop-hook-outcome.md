@@ -1,7 +1,8 @@
 # Spec 28 - Probe G4 outcome: no-output Stop hook
 
-> **Status: ✅ implemented** (G4 PASS against claude 2.1.131. Spec 01 wording tightened to drop the "probe owed" caveats. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the probe and its disposition stand as historical record.)
-> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"v0 release blockers" and [25-probes.md](25-probes.md) for design intent.
+> **Status: ❌ RETIRED (2026-05-16).** The Stop hook was removed
+> entirely; this probe outcome is moot. Kept as historical record
+> (G4 PASS against claude 2.1.131). Rationale: [36](36-probe-userpromptsubmit-manual-trigger.md).
 
 **Depends on:** [25](25-probes.md), [27](27-release.md).
 **Consumed by:** [27](27-release.md).

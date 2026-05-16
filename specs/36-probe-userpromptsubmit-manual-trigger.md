@@ -97,8 +97,14 @@ in-editor trigger ships. The manual on-demand path is running the
 `agon` CLI in a terminal (a shell alias for ergonomics) - already
 the documented out-of-band path, now elevated to *the* on-demand
 trigger in [01-overview.md](01-overview.md) §"Manual invocation".
-The Stop hook stays the auto path. No `UserPromptSubmit`/slash
-mechanism is implemented.
+No `UserPromptSubmit`/slash mechanism is implemented.
+
+**Follow-on (2026-05-16, same day):** the question "is the auto Stop
+hook even wanted?" was then answered **no** — the Stop hook was
+removed *entirely*. agon has no auto path at all now; the CLI/alias
+is the *only* trigger. Specs [24](24-stop-hook.md), [28](28-probe-no-output-stop-hook-outcome.md),
+[33](33-install-hook-smoke.md) retired; [01](01-overview.md) /
+[06](06-preflight.md) Stop-hook sections retracted.
 
 ## Acceptance criteria
 

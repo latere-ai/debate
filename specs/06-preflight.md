@@ -1,6 +1,10 @@
 # Spec 06 - Pre-flight checks
 
-> **Status: ✅ implemented.**
+> **Status: ✅ implemented**, with one retraction (2026-05-16):
+> **Check 1 "Recursion guard" is removed** — the Stop hook was
+> deleted, so `AGON_IN_PROGRESS` / `ErrRecursionGuard` no longer
+> exist. Check renumbering and the cwd/env/mode/family checks below
+> remain current. See [36](36-probe-userpromptsubmit-manual-trigger.md).
 > Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"CLI surface" notes for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [05](05-config-file.md).

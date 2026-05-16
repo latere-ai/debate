@@ -1,7 +1,9 @@
 # Spec 24 - Stop hook script and install
 
-> **Status: ✅ implemented.**
-> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Trigger via Stop hook" for design intent.
+> **Status: ❌ RETIRED (2026-05-16).** The Stop hook was removed
+> entirely — agon is now a deliberate CLI (terminal / alias), no
+> auto-trigger, no recursion guard, no `--hook-mode`. This spec is
+> kept as historical record only. Rationale: [36](36-probe-userpromptsubmit-manual-trigger.md).
 
 **Depends on:** [04](04-cli-flags.md), [16](16-subprocess-infra.md), [23](23-summary-render.md).
 **Consumed by:** [25](25-probes.md), [27](27-release.md).
