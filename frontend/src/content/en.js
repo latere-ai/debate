@@ -6,12 +6,10 @@ export const en = {
     nav: {
         by: 'by Latere',
         links: [
-            { label: 'Demo', href: '#transcript' },
             { label: 'Properties', href: '#why' },
             { label: 'Research', href: '#foundations' },
             { label: 'FAQ', href: '#faq' },
         ],
-        github: 'GitHub',
         install: 'Install',
     },
     hero: {
@@ -22,7 +20,6 @@ export const en = {
         ctaPrimary: 'Install Agon',
         ctaSecondary: 'How it works →',
         worksWith: 'Works with',
-        moreLabel: '+ any CLI',
     },
     stage: {
         head: 'case · 9f4c — refactor token cache <span style="color:var(--text-muted);margin-left:8px">· cross-family pairing</span>',
@@ -327,7 +324,7 @@ export const en = {
         ctaSecondary: 'Read the docs',
     },
     footer: {
-        tagline: 'Adversarial verification for autonomous AI. An independent critic cross-examines AI output; the producer defends or concedes; only contested disputes reach a human.',
+        tagline: 'Looping human values behind every autonomous AI system.',
         columns: [
             {
                 head: 'Product',
@@ -358,6 +355,5 @@ export const en = {
             },
         ],
         meta: '© {year} Latere AI · <a href="https://github.com/latere-ai/agon/blob/main/LICENSE">MIT</a> · v0.4.1',
-        thesis: 'Looping human values behind every autonomous AI system.',
     },
 };

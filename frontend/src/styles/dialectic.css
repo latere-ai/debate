@@ -187,10 +187,16 @@
     flex-shrink: 0;
     white-space: nowrap;
 }
+.v-dialectic .nav-brand .nav-glyph {
+    color: var(--accent);
+    flex-shrink: 0;
+}
 .v-dialectic .nav-brand .agon-mark {
     font-size: 28px;
     color: var(--accent);
+    margin-left: -2px;
 }
+.v-dialectic .nav-install svg { flex-shrink: 0; }
 .v-dialectic .nav-brand small {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -1420,85 +1426,79 @@
 .v-dialectic .install-cta .btn-primary:hover { background: #000; }
 
 /* ============================================================
-   Latere-aligned footer (from shared.css, scoped to .v-dialectic)
+   Footer — aligned to the latere-ai site footer (scoped to
+   .v-dialectic; reads the dialectic palette so light/dark work).
    ============================================================ */
-.v-dialectic .agon-footer {
+.v-dialectic .site-footer {
     border-top: 1px solid var(--border);
-    padding: 64px 0 40px;
+    padding: 48px 0 0;
     background: var(--bg);
-    color: var(--text-secondary);
 }
-.v-dialectic .footer-grid {
+.v-dialectic .footer-container {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 32px;
     display: grid;
-    grid-template-columns: 1.3fr 1fr 1fr 1fr;
-    gap: 48px;
-    padding-bottom: 56px;
-    border-bottom: 1px solid var(--border);
+    grid-template-columns: minmax(200px, 1fr) minmax(0, 2.4fr) auto;
+    align-items: start;
+    gap: 32px;
 }
-.v-dialectic .footer-brand-row {
+.v-dialectic .footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.v-dialectic .footer-brand .logo-link {
     display: flex;
     align-items: center;
     gap: 10px;
     color: var(--text);
 }
-.v-dialectic .footer-brand-row svg { width: 22px; height: 22px; }
-.v-dialectic .footer-brand-text {
+.v-dialectic .footer-brand .logo-icon { flex-shrink: 0; color: var(--accent); }
+.v-dialectic .footer-brand .logo-text {
     font-family: var(--font-serif);
     font-style: italic;
-    font-size: 22px;
+    font-size: 18px;
+    font-weight: 400;
     color: var(--text);
 }
 .v-dialectic .footer-tagline {
-    margin-top: 16px;
-    color: var(--text-secondary);
-    font-size: var(--fs-body);
-    line-height: 1.6;
-    max-width: 320px;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+    max-width: 220px;
+    line-height: 1.5;
 }
-.v-dialectic .footer-col-head {
-    font-family: var(--font-mono);
+.v-dialectic .footer-cols {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+}
+.v-dialectic .footer-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.v-dialectic .footer-col-title {
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: var(--tracking-label);
+    letter-spacing: 0.08em;
     color: var(--text-muted);
-    margin-bottom: 16px;
+    margin: 0 0 4px;
 }
-.v-dialectic .footer-col { display: flex; flex-direction: column; gap: 10px; }
 .v-dialectic .footer-col a {
+    font-size: 13px;
     color: var(--text-secondary);
-    font-size: var(--fs-body);
-    transition: color 0.2s;
+    transition: color 0.15s;
 }
-.v-dialectic .footer-col a:hover { color: var(--c-color); }
-.v-dialectic .footer-base {
+.v-dialectic .footer-col a:hover { color: var(--text); }
+.v-dialectic .footer-extra {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 24px;
-    flex-wrap: wrap;
-    gap: 16px;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
 }
-.v-dialectic .footer-meta {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-muted);
-    letter-spacing: 0.04em;
-}
-.v-dialectic .footer-meta a:hover { color: var(--c-color); }
-.v-dialectic .footer-base-right {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-.v-dialectic .footer-thesis {
-    font-family: var(--font-serif);
-    font-style: italic;
-    color: var(--text-secondary);
-    font-size: 15px;
-}
-/* Theme / language segmented controls inside the footer base row */
 .v-dialectic .footer-prefs {
     display: flex;
     align-items: center;
@@ -1506,8 +1506,8 @@
 }
 .v-dialectic .footer-seg {
     display: inline-flex;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    border-radius: 6px;
     overflow: hidden;
     background: var(--bg-surface);
 }
@@ -1515,21 +1515,49 @@
     appearance: none;
     background: transparent;
     border: 0;
-    padding: 5px 10px;
-    font-family: var(--font-mono);
-    font-size: 11px;
+    padding: 4px 8px;
+    font: inherit;
+    font-size: 12px;
     color: var(--text-muted);
     cursor: pointer;
     line-height: 1;
-    min-width: 30px;
+    min-width: 28px;
     transition: color 0.15s, background 0.15s;
 }
 .v-dialectic .footer-seg-btn + .footer-seg-btn { border-left: 1px solid var(--border); }
 .v-dialectic .footer-seg-btn:hover { color: var(--text); }
-.v-dialectic .footer-seg-btn.is-active { background: var(--accent); color: var(--bg-surface); }
+.v-dialectic .footer-seg-btn.is-active { background: var(--bg-raised); color: var(--text); }
+.v-dialectic .footer-social {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.v-dialectic .footer-social a {
+    color: var(--text-muted);
+    transition: color 0.15s;
+    display: flex;
+    align-items: center;
+}
+.v-dialectic .footer-social a:hover { color: var(--text); }
+.v-dialectic .footer-social svg { display: inline-block; }
+.v-dialectic .footer-bottom {
+    max-width: 1080px;
+    margin: 24px auto 0;
+    padding: 16px 32px;
+    border-top: 1px solid var(--border);
+}
+.v-dialectic .footer-bottom p { font-size: 12px; color: var(--text-muted); margin: 0; }
+.v-dialectic .footer-bottom a { color: inherit; }
+.v-dialectic .footer-bottom a:hover { color: var(--text); }
 @media (max-width: 768px) {
-    .v-dialectic .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
-    .v-dialectic .footer-brand-row { grid-column: 1 / -1; }
+    .v-dialectic .footer-container {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding: 0 20px;
+    }
+    .v-dialectic .footer-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; }
+    .v-dialectic .footer-extra { align-items: flex-start; }
+    .v-dialectic .footer-bottom { padding: 16px 20px; }
 }
 
 /* ============================================================

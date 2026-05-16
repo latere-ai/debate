@@ -10,12 +10,10 @@ export const zh: LandingContent = {
   nav: {
     by: 'by Latere',
     links: [
-      { label: '演示', href: '#transcript' },
       { label: '性质', href: '#why' },
       { label: '研究', href: '#foundations' },
       { label: '常见问题', href: '#faq' },
     ],
-    github: 'GitHub',
     install: '安装',
   },
 
@@ -29,7 +27,6 @@ export const zh: LandingContent = {
     ctaPrimary: '安装 Agon',
     ctaSecondary: '工作原理 →',
     worksWith: '兼容',
-    moreLabel: '+ 任意 CLI',
   },
 
   stage: {
@@ -348,8 +345,7 @@ export const zh: LandingContent = {
   },
 
   footer: {
-    tagline:
-      '面向自主 AI 的对抗式验证。由一位独立评审对 AI 产出进行交叉质询；生产方辩护或让步；只有仍存争议的部分才会交到人手中。',
+    tagline: '让人类价值始终回环于每一个自主 AI 系统之中。',
     columns: [
       {
         head: '产品',
@@ -380,6 +376,5 @@ export const zh: LandingContent = {
       },
     ],
     meta: '© {year} Latere AI · <a href="https://github.com/latere-ai/agon/blob/main/LICENSE">MIT</a> · v0.4.1',
-    thesis: '让人类价值始终回环于每一个自主 AI 系统之中。',
   },
 };
