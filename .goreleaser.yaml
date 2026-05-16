@@ -25,7 +25,6 @@ archives:
     files:
       - LICENSE*
       - README.md
-      - scripts/agon-stop-hook.sh
 
 checksum:
   name_template: "checksums.txt"
@@ -44,8 +43,8 @@ changelog:
     - title: "Critic protocol"
       regexp: '^critic(\([^)]+\))?:'
       order: 2
-    - title: "Subprocess drivers & hook"
-      regexp: '^(agent|hook)(\([^)]+\))?:'
+    - title: "Subprocess drivers"
+      regexp: '^agent(\([^)]+\))?:'
       order: 3
     - title: "Spec / documentation"
       regexp: '^(spec|docs)(\([^)]+\))?:'
@@ -82,7 +81,6 @@ release:
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     ARCH=$(uname -m); [[ "$ARCH" == "x86_64" ]] && ARCH=amd64
     curl -L "https://github.com/latere-ai/agon/releases/download/{{.Tag}}/agon_{{.Version}}_${OS}_${ARCH}.tar.gz" | tar xz
-    ./agon install-hook --scope user
     ```
 
     ## Verify

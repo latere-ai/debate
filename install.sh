@@ -7,7 +7,6 @@
 # Optional env:
 #   AGON_VERSION=v0.0.1-rc2   # pin a specific tag (default: latest)
 #   AGON_PREFIX=/usr/local    # install dir parent (binary lands at $AGON_PREFIX/bin)
-#   AGON_NO_HOOK=1            # skip the `install-hook --scope user` step
 #
 # Requires: curl, tar. Uses sudo only if the install dir is not writable.
 
@@ -88,16 +87,6 @@ if [ -w "$BINDIR" ] || { [ ! -e "$BINDIR" ] && [ -w "$(dirname "$BINDIR")" ]; };
 else
   printf 'install: %s is not writable, using sudo\n' "$BINDIR"
   sudo install "$TMP/agon" "$BINDIR/agon"
-fi
-
-# Install Stop hook unless opted out.
-if [ "${AGON_NO_HOOK:-0}" != "1" ]; then
-  if "$BINDIR/agon" install-hook --scope user; then
-    printf 'install: hook installed\n'
-  else
-    printf 'install: hook install failed; rerun with: %s install-hook --scope user\n' \
-      "$BINDIR/agon"
-  fi
 fi
 
 printf '\ninstalled %s at %s\n' "$("$BINDIR/agon" --version)" "$BINDIR/agon"

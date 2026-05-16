@@ -26,34 +26,25 @@ curl -fsSL https://raw.githubusercontent.com/latere-ai/agon/main/install.sh | sh
 The script detects your OS / arch, fetches the latest release tarball
 from
 [github.com/latere-ai/agon/releases](https://github.com/latere-ai/agon/releases),
-verifies the sha256 checksum, installs `agon` to `/usr/local/bin`
-(via `sudo` if needed), and runs `agon install-hook --scope user`.
-Knobs:
+verifies the sha256 checksum, and installs `agon` to `/usr/local/bin`
+(via `sudo` if needed). Knobs:
 
 ```sh
 AGON_VERSION=v0.0.1-rc2  # pin a specific tag; default: latest
 AGON_PREFIX=$HOME/.local # binary lands at $AGON_PREFIX/bin
-AGON_NO_HOOK=1           # skip the install-hook step
 ```
 
 From source (requires Go 1.26+):
 
 ```sh
 go install latere.ai/x/agon/cmd/agon@latest
-agon install-hook --scope user
 ```
-
-`install-hook` merges the verbose-format Stop hook entry into
-`~/.claude/settings.json` (or `./.claude/settings.json` with `--scope
-project`). The entry is `<path-to>/agon hook` — a built-in
-subcommand of the binary, so no separate shell script needs to be on
-PATH. `uninstall-hook` removes it.
 
 ## Example usage
 
-With the Stop hook installed, agon runs automatically when claude
-finishes responding. You see one stdout line; the summary lives on
-disk:
+agon is a deliberate CLI: run it yourself after a coding session (see
+"Run it on demand" below). You see one stdout line; the summary lives
+on disk:
 
 ```text
 $ # ...claude does its thing...
@@ -138,11 +129,10 @@ Five load-bearing pieces (full design in
 [spec 01](specs/01-overview.md)):
 
 - **Forked agon, no agon content in root.** Each critic gets its
-  own claude fork via `--fork-session`. The user's root transcript
-  never sees a agon turn. Probe-confirmed against claude 2.1.131:
-  a no-output Stop hook produces zero `hook_*` attachments, so the
-  invariant holds across modes including the Stop-hook path. See
-  [specs/28](specs/28-probe-no-output-stop-hook-outcome.md).
+  own claude fork via `--fork-session`. agon runs as a separate
+  process and only ever touches the live session through that fork,
+  writing results to disk — the user's root transcript never sees an
+  agon turn.
 - **Verbatim channel.** Critic output reaches the proposer-clone as a
   plain user turn pointing at a file: `Some comments at @<path>.
   Please resolve or respond.` No skill, slash-command, or
