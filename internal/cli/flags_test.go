@@ -181,9 +181,8 @@ func TestIsValidLogMode(t *testing.T) {
 	}
 }
 
-// TestDefaultLogMode locks the default in. Hook-mode and CI users
-// should never have to pass --log-mode just to keep current
-// behaviour.
+// TestDefaultLogMode locks the default in. CI users should never
+// have to pass --log-mode just to keep current behaviour.
 func TestDefaultLogMode(t *testing.T) {
 	if got := DefaultFlags().LogMode; got != LogModeConcise {
 		t.Errorf("default LogMode: got %q, want %q", got, LogModeConcise)

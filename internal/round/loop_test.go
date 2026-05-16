@@ -428,8 +428,8 @@ func TestEngineHeartbeatDuringSlowAgent(t *testing.T) {
 }
 
 // TestEngineHeartbeatDisabledWhenNegativeInterval pins the escape
-// hatch: tests or hook-mode callers that want to silence the
-// heartbeat (without nilling Progress) can pass a negative interval.
+// hatch: callers that want to silence the heartbeat (without nilling
+// Progress) can pass a negative interval.
 func TestEngineHeartbeatDisabledWhenNegativeInterval(t *testing.T) {
 	sess, err := state.NewSession(t.TempDir(), 1, time.Now())
 	if err != nil {
