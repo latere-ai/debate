@@ -19,7 +19,7 @@ code, pre {
     font-family: 'SFMono-Regular', 'JetBrains Mono', ui-monospace, 'Menlo', monospace;
     font-size: 0.875em;
 }
-::selection { background: var(--accent-glow-strong); }
+::selection { background: var(--accent); color: var(--bg-surface); }
 
 /* ===== Brand wordmarks ===== */
 .agon-brand, .latere-wordmark {
