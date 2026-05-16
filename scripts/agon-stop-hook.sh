@@ -8,10 +8,10 @@ set -e
 # (and `claude -p` for claude-as-critic) subprocesses; those subprocesses
 # also fire the Stop hook when they finish. Without this guard the hook
 # would re-enter the orchestrator on every round and fork infinitely.
-if [ -n "$DEBATE_IN_PROGRESS" ]; then
+if [ -n "$AGON_IN_PROGRESS" ]; then
   exit 0
 fi
-export DEBATE_IN_PROGRESS=1
+export AGON_IN_PROGRESS=1
 
 PAYLOAD=$(cat)
 SESSION_ID=$(printf '%s' "$PAYLOAD" | jq -r '.session_id // empty')

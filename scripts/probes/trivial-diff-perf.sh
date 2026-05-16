@@ -14,9 +14,9 @@ set -euo pipefail
 ensure_clean_env
 
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
-BIN="${DEBATE_BIN:-$REPO/bin/debate}"
+BIN="${AGON_BIN:-$REPO/bin/debate}"
 if [ ! -x "$BIN" ]; then
-  echo "missing: $BIN (run 'make build' first or set DEBATE_BIN)" >&2
+  echo "missing: $BIN (run 'make build' first or set AGON_BIN)" >&2
   exit 2
 fi
 

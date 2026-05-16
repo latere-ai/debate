@@ -41,8 +41,8 @@ func TestFlagParsing(t *testing.T) {
 }
 
 func TestEnvOverride(t *testing.T) {
-	t.Setenv("DEBATE_SIDE_COUNT", "7")
-	t.Setenv("DEBATE_HOOK_MODE", "true")
+	t.Setenv("AGON_SIDE_COUNT", "7")
+	t.Setenv("AGON_HOOK_MODE", "true")
 	cmd, f := newCmd()
 	if err := cmd.ParseFlags(nil); err != nil {
 		t.Fatal(err)
@@ -57,7 +57,7 @@ func TestEnvOverride(t *testing.T) {
 }
 
 func TestEnvDoesNotOverrideExplicitFlag(t *testing.T) {
-	t.Setenv("DEBATE_SIDE_COUNT", "7")
+	t.Setenv("AGON_SIDE_COUNT", "7")
 	cmd, f := newCmd()
 	if err := cmd.ParseFlags([]string{"--side-count", "2"}); err != nil {
 		t.Fatal(err)
@@ -69,25 +69,25 @@ func TestEnvDoesNotOverrideExplicitFlag(t *testing.T) {
 }
 
 func TestEnvBindings_AllKeysApplied(t *testing.T) {
-	t.Setenv("DEBATE_MAIN", "claude")
-	t.Setenv("DEBATE_SIDE", "codex")
-	t.Setenv("DEBATE_SIDE_COUNT", "9")
-	t.Setenv("DEBATE_MAIN_MODEL", "m1")
-	t.Setenv("DEBATE_SIDE_MODEL", "m2")
-	t.Setenv("DEBATE_MAX_TURN", "12")
-	t.Setenv("DEBATE_SESSION_ID", "sid-1")
-	t.Setenv("DEBATE_TRANSCRIPT", "/t/p")
-	t.Setenv("DEBATE_DIFF_FROM", "HEAD~3")
-	t.Setenv("DEBATE_DIFF_TO", "HEAD")
-	t.Setenv("DEBATE_TASK_CONTEXT", "build a thing")
-	t.Setenv("DEBATE_JUDGE", "none")
-	t.Setenv("DEBATE_COST_CAP", "12345")
-	t.Setenv("DEBATE_CHANGED_LINES_MIN", "20")
-	t.Setenv("DEBATE_STATE_DIR", "/tmp/x")
-	t.Setenv("DEBATE_FORMAT", "markdown")
-	t.Setenv("DEBATE_HOOK_MODE", "1")
-	t.Setenv("DEBATE_CONFIG", "/c.toml")
-	t.Setenv("DEBATE_VERBOSE", "2")
+	t.Setenv("AGON_MAIN", "claude")
+	t.Setenv("AGON_SIDE", "codex")
+	t.Setenv("AGON_SIDE_COUNT", "9")
+	t.Setenv("AGON_MAIN_MODEL", "m1")
+	t.Setenv("AGON_SIDE_MODEL", "m2")
+	t.Setenv("AGON_MAX_TURN", "12")
+	t.Setenv("AGON_SESSION_ID", "sid-1")
+	t.Setenv("AGON_TRANSCRIPT", "/t/p")
+	t.Setenv("AGON_DIFF_FROM", "HEAD~3")
+	t.Setenv("AGON_DIFF_TO", "HEAD")
+	t.Setenv("AGON_TASK_CONTEXT", "build a thing")
+	t.Setenv("AGON_JUDGE", "none")
+	t.Setenv("AGON_COST_CAP", "12345")
+	t.Setenv("AGON_CHANGED_LINES_MIN", "20")
+	t.Setenv("AGON_STATE_DIR", "/tmp/x")
+	t.Setenv("AGON_FORMAT", "markdown")
+	t.Setenv("AGON_HOOK_MODE", "1")
+	t.Setenv("AGON_CONFIG", "/c.toml")
+	t.Setenv("AGON_VERBOSE", "2")
 
 	cmd, f := newCmd()
 	if err := cmd.ParseFlags(nil); err != nil {
@@ -128,7 +128,7 @@ func TestEnvBindings_AllKeysApplied(t *testing.T) {
 }
 
 func TestEnvBindings_HookModeFalsey(t *testing.T) {
-	t.Setenv("DEBATE_HOOK_MODE", "0")
+	t.Setenv("AGON_HOOK_MODE", "0")
 	cmd, f := newCmd()
 	if err := cmd.ParseFlags(nil); err != nil {
 		t.Fatal(err)
@@ -140,7 +140,7 @@ func TestEnvBindings_HookModeFalsey(t *testing.T) {
 }
 
 func TestEnvBindings_HookModeTrue(t *testing.T) {
-	t.Setenv("DEBATE_HOOK_MODE", "TRUE")
+	t.Setenv("AGON_HOOK_MODE", "TRUE")
 	cmd, f := newCmd()
 	if err := cmd.ParseFlags(nil); err != nil {
 		t.Fatal(err)
@@ -152,11 +152,11 @@ func TestEnvBindings_HookModeTrue(t *testing.T) {
 }
 
 func TestEnvBindings_BadIntsIgnored(t *testing.T) {
-	t.Setenv("DEBATE_SIDE_COUNT", "not-a-number")
-	t.Setenv("DEBATE_MAX_TURN", "")
-	t.Setenv("DEBATE_COST_CAP", "weird")
-	t.Setenv("DEBATE_CHANGED_LINES_MIN", "x")
-	t.Setenv("DEBATE_VERBOSE", "x")
+	t.Setenv("AGON_SIDE_COUNT", "not-a-number")
+	t.Setenv("AGON_MAX_TURN", "")
+	t.Setenv("AGON_COST_CAP", "weird")
+	t.Setenv("AGON_CHANGED_LINES_MIN", "x")
+	t.Setenv("AGON_VERBOSE", "x")
 	cmd, f := newCmd()
 	if err := cmd.ParseFlags(nil); err != nil {
 		t.Fatal(err)

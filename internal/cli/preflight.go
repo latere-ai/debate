@@ -45,14 +45,14 @@ func (e *PreflightError) Error() string {
 func (e *PreflightError) Unwrap() error { return e.Wrap }
 
 // ErrRecursionGuard signals "exit 0 immediately"; the orchestrator
-// detected DEBATE_IN_PROGRESS in env.
+// detected AGON_IN_PROGRESS in env.
 var ErrRecursionGuard = errors.New("recursion guard triggered")
 
 // Preflight runs every pre-flight check against f. On success it
 // returns *Plan; on failure a *PreflightError or ErrRecursionGuard.
 func Preflight(_ context.Context, f *Flags) (*Plan, error) {
 	// 1. Recursion guard - exit 0 fast path.
-	if os.Getenv("DEBATE_IN_PROGRESS") != "" {
+	if os.Getenv("AGON_IN_PROGRESS") != "" {
 		return nil, ErrRecursionGuard
 	}
 

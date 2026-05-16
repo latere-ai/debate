@@ -46,9 +46,9 @@ git init -q
 git -c user.email=t@e.com -c user.name=t commit --allow-empty -q -m init
 printf '// fixture line\n%.0s' {1..30} > search.go
 
-# Spawn debate in background; capture PID. Strip DEBATE_IN_PROGRESS so
+# Spawn debate in background; capture PID. Strip AGON_IN_PROGRESS so
 # the recursion guard does not short-circuit.
-unset DEBATE_IN_PROGRESS
+unset AGON_IN_PROGRESS
 PATH="$WORKDIR/bin:$PATH" "$BIN" \
   --main claude --side codex \
   --max-turn 2 --side-count 1 \

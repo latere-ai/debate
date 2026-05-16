@@ -68,8 +68,8 @@ func TestRun_InProcess_HappyPath(t *testing.T) {
 	t.Setenv("MOCK_CLAUDE_SCRIPT", scriptPath)
 	t.Setenv("MOCK_CODEX_CONTENT", criticContent)
 	t.Setenv("MOCK_CODEX_THREAD_ID", "mock-thread")
-	t.Setenv("DEBATE_IN_PROGRESS", "")
-	if err := os.Unsetenv("DEBATE_IN_PROGRESS"); err != nil {
+	t.Setenv("AGON_IN_PROGRESS", "")
+	if err := os.Unsetenv("AGON_IN_PROGRESS"); err != nil {
 		t.Fatal(err)
 	}
 	t.Chdir(repo)
@@ -147,7 +147,7 @@ func TestRun_InProcess_HookMode(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("MOCK_CLAUDE_SCRIPT", scriptPath)
 	t.Setenv("MOCK_CODEX_CONTENT", criticContent)
-	if err := os.Unsetenv("DEBATE_IN_PROGRESS"); err != nil {
+	if err := os.Unsetenv("AGON_IN_PROGRESS"); err != nil {
 		t.Fatal(err)
 	}
 	t.Chdir(repo)
@@ -209,7 +209,7 @@ func TestRun_InProcess_VerboseMode(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("MOCK_CLAUDE_SCRIPT", scriptPath)
 	t.Setenv("MOCK_CODEX_CONTENT", "# Critic 1 - round 1 attacks\n\naspect: security\n")
-	if err := os.Unsetenv("DEBATE_IN_PROGRESS"); err != nil {
+	if err := os.Unsetenv("AGON_IN_PROGRESS"); err != nil {
 		t.Fatal(err)
 	}
 	t.Chdir(repo)
@@ -298,7 +298,7 @@ func TestRun_InProcess_WorkingTreeCleanFallback(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("MOCK_CLAUDE_SCRIPT", scriptPath)
 	t.Setenv("MOCK_CODEX_CONTENT", "# Critic 1 - round 1 attacks\n\naspect: security\n")
-	if err := os.Unsetenv("DEBATE_IN_PROGRESS"); err != nil {
+	if err := os.Unsetenv("AGON_IN_PROGRESS"); err != nil {
 		t.Fatal(err)
 	}
 	t.Chdir(dir)

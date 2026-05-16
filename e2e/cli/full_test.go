@@ -159,7 +159,7 @@ func patchedPATH(t *testing.T, mockBinDir string) []string {
 		if strings.HasPrefix(kv, "ANTHROPIC_API_KEY=") {
 			continue
 		}
-		if strings.HasPrefix(kv, "DEBATE_IN_PROGRESS=") {
+		if strings.HasPrefix(kv, "AGON_IN_PROGRESS=") {
 			continue
 		}
 		out = append(out, kv)
@@ -385,7 +385,7 @@ func TestFullE2E_BareInvocationShowsHelp(t *testing.T) {
 	// A scratch repo so cwd is somewhere sensible; we pass no args
 	// and rely on the help short-circuit firing before preflight.
 	repo := t.TempDir()
-	// Strip any DEBATE_* env vars the host might have set; the help
+	// Strip any AGON_* env vars the host might have set; the help
 	// short-circuit is gated on env-supplied task source being empty.
 	env := []string{"PATH=" + binDir + ":/usr/bin:/bin", "HOME=" + t.TempDir()}
 
@@ -415,7 +415,7 @@ func TestFullE2E_RecursionGuard(t *testing.T) {
 
 	repo := fixtureRepo(t)
 	env := patchedPATH(t, binDir)
-	env = append(env, "DEBATE_IN_PROGRESS=1")
+	env = append(env, "AGON_IN_PROGRESS=1")
 
 	res := runDebate(
 		t, agon, env, repo,

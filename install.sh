@@ -5,18 +5,18 @@
 #   curl -fsSL https://raw.githubusercontent.com/latere-ai/agon/main/install.sh | sh
 #
 # Optional env:
-#   DEBATE_VERSION=v0.0.1-rc2   # pin a specific tag (default: latest)
-#   DEBATE_PREFIX=/usr/local    # install dir parent (binary lands at $DEBATE_PREFIX/bin)
-#   DEBATE_NO_HOOK=1            # skip the `install-hook --scope user` step
+#   AGON_VERSION=v0.0.1-rc2   # pin a specific tag (default: latest)
+#   AGON_PREFIX=/usr/local    # install dir parent (binary lands at $AGON_PREFIX/bin)
+#   AGON_NO_HOOK=1            # skip the `install-hook --scope user` step
 #
 # Requires: curl, tar. Uses sudo only if the install dir is not writable.
 
 set -eu
 
 REPO=latere-ai/agon
-PREFIX=${DEBATE_PREFIX:-/usr/local}
+PREFIX=${AGON_PREFIX:-/usr/local}
 BINDIR="$PREFIX/bin"
-VERSION=${DEBATE_VERSION:-}
+VERSION=${AGON_VERSION:-}
 
 err() { printf 'install: %s\n' "$*" >&2; exit 1; }
 
@@ -50,7 +50,7 @@ if [ -z "$VERSION" ]; then
       | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' \
       | head -1)
   fi
-  [ -n "$VERSION" ] || err "could not resolve latest tag; set DEBATE_VERSION="
+  [ -n "$VERSION" ] || err "could not resolve latest tag; set AGON_VERSION="
 fi
 
 # Asset filename: debate_<version-without-v>_<os>_<arch>.tar.gz
@@ -91,7 +91,7 @@ else
 fi
 
 # Install Stop hook unless opted out.
-if [ "${DEBATE_NO_HOOK:-0}" != "1" ]; then
+if [ "${AGON_NO_HOOK:-0}" != "1" ]; then
   if "$BINDIR/debate" install-hook --scope user; then
     printf 'install: hook installed\n'
   else

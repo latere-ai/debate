@@ -13,7 +13,7 @@ func validFlags() *Flags {
 }
 
 func TestPreflightOK(t *testing.T) {
-	t.Setenv("DEBATE_IN_PROGRESS", "")
+	t.Setenv("AGON_IN_PROGRESS", "")
 	plan, err := Preflight(context.Background(), validFlags())
 	if err != nil {
 		t.Fatal(err)
@@ -27,7 +27,7 @@ func TestPreflightOK(t *testing.T) {
 }
 
 func TestPreflightRecursionGuard(t *testing.T) {
-	t.Setenv("DEBATE_IN_PROGRESS", "1")
+	t.Setenv("AGON_IN_PROGRESS", "1")
 	_, err := Preflight(context.Background(), validFlags())
 	if !errors.Is(err, ErrRecursionGuard) {
 		t.Errorf("got %v, want ErrRecursionGuard", err)

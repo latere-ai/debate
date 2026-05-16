@@ -133,7 +133,7 @@ func Bind(cmd *cobra.Command) *Flags {
 }
 
 // ApplyEnv overrides any flag not explicitly set on cmd from the
-// matching DEBATE_* env var. Only invoked for flags whose Changed bit
+// matching AGON_* env var. Only invoked for flags whose Changed bit
 // is false.
 func ApplyEnv(cmd *cobra.Command, f *Flags) {
 	for _, b := range envBindings(f) {
@@ -156,45 +156,45 @@ type envBinding struct {
 
 func envBindings(f *Flags) []envBinding {
 	return []envBinding{
-		{"main", "DEBATE_MAIN", func(v string) { f.Main = v }},
-		{"side", "DEBATE_SIDE", func(v string) { f.Side = v }},
-		{"side-count", "DEBATE_SIDE_COUNT", func(v string) {
+		{"main", "AGON_MAIN", func(v string) { f.Main = v }},
+		{"side", "AGON_SIDE", func(v string) { f.Side = v }},
+		{"side-count", "AGON_SIDE_COUNT", func(v string) {
 			if n, err := strconv.Atoi(v); err == nil {
 				f.SideCount = n
 			}
 		}},
-		{"main-model", "DEBATE_MAIN_MODEL", func(v string) { f.MainModel = v }},
-		{"side-model", "DEBATE_SIDE_MODEL", func(v string) { f.SideModel = v }},
-		{"max-turn", "DEBATE_MAX_TURN", func(v string) {
+		{"main-model", "AGON_MAIN_MODEL", func(v string) { f.MainModel = v }},
+		{"side-model", "AGON_SIDE_MODEL", func(v string) { f.SideModel = v }},
+		{"max-turn", "AGON_MAX_TURN", func(v string) {
 			if n, err := strconv.Atoi(v); err == nil {
 				f.MaxTurn = n
 			}
 		}},
-		{"session-id", "DEBATE_SESSION_ID", func(v string) { f.SessionID = v }},
-		{"transcript", "DEBATE_TRANSCRIPT", func(v string) { f.Transcript = v }},
-		{"diff-from", "DEBATE_DIFF_FROM", func(v string) { f.DiffFrom = v }},
-		{"diff-to", "DEBATE_DIFF_TO", func(v string) { f.DiffTo = v }},
-		{"task-context", "DEBATE_TASK_CONTEXT", func(v string) { f.TaskContext = v }},
-		{"judge", "DEBATE_JUDGE", func(v string) { f.Judge = v }},
-		{"cost-cap", "DEBATE_COST_CAP", func(v string) {
+		{"session-id", "AGON_SESSION_ID", func(v string) { f.SessionID = v }},
+		{"transcript", "AGON_TRANSCRIPT", func(v string) { f.Transcript = v }},
+		{"diff-from", "AGON_DIFF_FROM", func(v string) { f.DiffFrom = v }},
+		{"diff-to", "AGON_DIFF_TO", func(v string) { f.DiffTo = v }},
+		{"task-context", "AGON_TASK_CONTEXT", func(v string) { f.TaskContext = v }},
+		{"judge", "AGON_JUDGE", func(v string) { f.Judge = v }},
+		{"cost-cap", "AGON_COST_CAP", func(v string) {
 			if n, err := strconv.Atoi(v); err == nil {
 				f.CostCap = n
 			}
 		}},
-		{"changed-lines-min", "DEBATE_CHANGED_LINES_MIN", func(v string) {
+		{"changed-lines-min", "AGON_CHANGED_LINES_MIN", func(v string) {
 			if n, err := strconv.Atoi(v); err == nil {
 				f.ChangedLinesMin = n
 			}
 		}},
-		{"state-dir", "DEBATE_STATE_DIR", func(v string) { f.StateDir = v }},
-		{"format", "DEBATE_FORMAT", func(v string) { f.Format = v }},
-		{"hook-mode", "DEBATE_HOOK_MODE", func(v string) {
+		{"state-dir", "AGON_STATE_DIR", func(v string) { f.StateDir = v }},
+		{"format", "AGON_FORMAT", func(v string) { f.Format = v }},
+		{"hook-mode", "AGON_HOOK_MODE", func(v string) {
 			if v == "1" || strings.EqualFold(v, "true") {
 				f.HookMode = true
 			}
 		}},
-		{"config", "DEBATE_CONFIG", func(v string) { f.Config = v }},
-		{"verbose", "DEBATE_VERBOSE", func(v string) {
+		{"config", "AGON_CONFIG", func(v string) { f.Config = v }},
+		{"verbose", "AGON_VERBOSE", func(v string) {
 			if n, err := strconv.Atoi(v); err == nil {
 				f.Verbose = n
 			}

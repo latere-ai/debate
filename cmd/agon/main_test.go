@@ -178,9 +178,9 @@ func TestRealMain_Help(t *testing.T) {
 
 func TestRealMain_BareShowsHelp(t *testing.T) {
 	// Bare invocation with no env triggers the help fast-path.
-	t.Setenv("DEBATE_TASK_CONTEXT", "")
-	t.Setenv("DEBATE_SESSION_ID", "")
-	t.Setenv("DEBATE_TRANSCRIPT", "")
+	t.Setenv("AGON_TASK_CONTEXT", "")
+	t.Setenv("AGON_SESSION_ID", "")
+	t.Setenv("AGON_TRANSCRIPT", "")
 
 	var buf strings.Builder
 	code := realMain(nil, &buf, &buf)
@@ -191,11 +191,11 @@ func TestRealMain_BareShowsHelp(t *testing.T) {
 
 func TestRealMain_PreflightExitCode(t *testing.T) {
 	// --judge llm is rejected by preflight (v0 only supports 'none').
-	// Explicitly unset DEBATE_IN_PROGRESS so an outer shell that's been
+	// Explicitly unset AGON_IN_PROGRESS so an outer shell that's been
 	// running hook smokes (and exported it) does not silently trigger
 	// the recursion guard and mask the failure we're testing.
-	t.Setenv("DEBATE_IN_PROGRESS", "")
-	if err := os.Unsetenv("DEBATE_IN_PROGRESS"); err != nil {
+	t.Setenv("AGON_IN_PROGRESS", "")
+	if err := os.Unsetenv("AGON_IN_PROGRESS"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -213,7 +213,7 @@ func TestRealMain_PreflightExitCode(t *testing.T) {
 }
 
 func TestRealMain_RecursionGuardSilent(t *testing.T) {
-	t.Setenv("DEBATE_IN_PROGRESS", "1")
+	t.Setenv("AGON_IN_PROGRESS", "1")
 	var buf strings.Builder
 	code := realMain([]string{"--task-context", "x"}, &buf, &buf)
 	if code != 0 {

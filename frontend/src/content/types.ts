@@ -41,7 +41,6 @@ export interface LandingContent {
   nav: {
     by: string;
     links: NavLink[];
-    github: string;
     install: string;
   };
 
@@ -55,7 +54,6 @@ export interface LandingContent {
     ctaPrimary: string;
     ctaSecondary: string;
     worksWith: string;
-    moreLabel: string;
   };
 
   stage: {
@@ -168,10 +166,10 @@ export interface LandingContent {
   };
 
   footer: {
+    /** Short brand line (the Latere thesis) */
     tagline: string;
     columns: { head: string; links: NavLink[] }[];
     /** HTML — {year} is substituted at render time */
     meta: string;
-    thesis: string;
   };
 }

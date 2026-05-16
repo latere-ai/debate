@@ -423,7 +423,7 @@ func runHook(ctx context.Context) error {
 	// Recursion guard. The orchestrator spawns claude / codex
 	// subprocesses; those also fire the Stop hook. Without this guard
 	// the hook would re-enter the orchestrator on every round.
-	if os.Getenv("DEBATE_IN_PROGRESS") != "" {
+	if os.Getenv("AGON_IN_PROGRESS") != "" {
 		return nil
 	}
 

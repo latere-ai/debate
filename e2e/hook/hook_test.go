@@ -16,7 +16,7 @@ const fakeDebate = `#!/usr/bin/env bash
 # Records args + selected env vars to $RECORD_FILE, then exits 0.
 {
   echo "ARGS:" "$@"
-  echo "DEBATE_IN_PROGRESS=$DEBATE_IN_PROGRESS"
+  echo "AGON_IN_PROGRESS=$AGON_IN_PROGRESS"
   echo "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY-<unset>}"
   echo "PWD=$(pwd)"
 } > "$RECORD_FILE"
@@ -64,7 +64,7 @@ func TestHookForwardsArgsAndEnv(t *testing.T) {
 		"PATH=" + binDir + ":" + os.Getenv("PATH"),
 		"RECORD_FILE=" + recordFile,
 		"ANTHROPIC_API_KEY=stale", // hook script must scrub this
-		// no DEBATE_IN_PROGRESS - should be set by the hook before exec
+		// no AGON_IN_PROGRESS - should be set by the hook before exec
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -82,7 +82,7 @@ func TestHookForwardsArgsAndEnv(t *testing.T) {
 		"--session-id abc-123",
 		"--transcript /tmp/t.jsonl",
 		"--max-turn 6",
-		"DEBATE_IN_PROGRESS=1",
+		"AGON_IN_PROGRESS=1",
 		"ANTHROPIC_API_KEY=<unset>",
 	} {
 		if !strings.Contains(got, want) {
@@ -109,7 +109,7 @@ func TestHookRecursionGuardShortCircuit(t *testing.T) {
 	cmd.Env = []string{
 		"PATH=" + binDir + ":" + os.Getenv("PATH"),
 		"RECORD_FILE=" + recordFile,
-		"DEBATE_IN_PROGRESS=1", // guard already set
+		"AGON_IN_PROGRESS=1", // guard already set
 	}
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("hook should exit 0 under recursion guard: %v", err)
