@@ -2,7 +2,7 @@
 
 > **Status: ❌ retracted (2026-05-08)** - The premise of this spec (a separate "release-notes channel" carrying probe/gate evidence) was abandoned in favour of the standard goreleaser flow used by sibling repos (e.g. `latere-cli`): tag → CI → goreleaser publishes binaries + auto-generated changelog from the commit log. No separate release-notes file or release-evidence asset is shipped. Probes under `scripts/probes/` remain as developer tooling; their outcomes are not artifacts. Spec [27](27-release.md) was simplified in the same pass to drop the G1-G18 release-blocker checklist down to a short pre-tag sanity list.
 >
-> Original content (Option 1 vs Option 2 debate, the 2026-05-08 amendment introducing Option 3, and the file-structure / spec 27 amendments / acceptance criteria sections) is preserved below as historical record. Nothing below this banner is active.
+> Original content (Option 1 vs Option 2 agon, the 2026-05-08 amendment introducing Option 3, and the file-structure / spec 27 amendments / acceptance criteria sections) is preserved below as historical record. Nothing below this banner is active.
 
 ---
 
@@ -132,7 +132,7 @@ release:
 Original Option 1 design - kept here so prior commits citing `release-notes-v0.0.1.md` remain readable:
 
 ```markdown
-# debate v0.0.1
+# agon v0.0.1
 
 Release-cut evidence. See specs/27-release.md for the gate process.
 

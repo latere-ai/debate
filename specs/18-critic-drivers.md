@@ -1,7 +1,7 @@
 # Spec 18 - Critic drivers (codex + claude)
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Mechanism" → "Driving the critic" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Mechanism" → "Driving the critic" for design intent.
 
 **Depends on:** [13](13-critic-output-format.md), [15](15-aspect-prompts.md), [16](16-subprocess-infra.md).
 **Consumed by:** [19](19-round-loop.md).
@@ -133,7 +133,7 @@ Output: same JSON shape as [17](17-claude-proposer.md):
 
 ## Hook-recursion contract (claude critic only)
 
-`ClaudeCritic` invocations also fire the user's Stop hook. The hook script ([24](24-stop-hook.md)) checks `DEBATE_IN_PROGRESS=1` and exits 0; that env is set by [16](16-subprocess-infra.md)'s `CleanEnv`.
+`ClaudeCritic` invocations also fire the user's Stop hook. The hook script ([24](24-stop-hook.md)) checks `AGON_IN_PROGRESS=1` and exits 0; that env is set by [16](16-subprocess-infra.md)'s `CleanEnv`.
 
 Test: an integration test runs `ClaudeCritic` with the user's hook script wired up and asserts the hook exits 0 fast (recursion-guard test). Lives in [25](25-probes.md) but the contract is owned here.
 
@@ -165,7 +165,7 @@ Hook for v1: when [01-overview.md](01-overview.md)'s strict-isolation v1 lands, 
 - Unit (mock claude): JSON `result` extracted into `Markdown`.
 - Unit: empty `agent_message` returns `ErrEmptyResult`.
 - Unit: rate-limit substring in codex stderr returns `ErrRateLimit`.
-- Recursion-guard: `ClaudeCritic` fixture run with `DEBATE_IN_PROGRESS=1` in env doesn't recurse.
+- Recursion-guard: `ClaudeCritic` fixture run with `AGON_IN_PROGRESS=1` in env doesn't recurse.
 - Integration (gated `RUN_AGENT_TESTS=1`): real codex against a 5-line diff produces non-empty markdown.
 
 ## Acceptance criteria

@@ -1,7 +1,7 @@
 # Spec 27 - v0 release process
 
 > **Status: ✅ implemented (simplified 2026-05-08)** - the original G1-G18 release-blocker checklist with on-disk evidence is retracted in favour of the standard goreleaser flow used by sibling repos (e.g. `latere-cli`). Tag → CI → goreleaser publishes binaries + auto-generated changelog. Probes under `scripts/probes/` and the smoke gates remain as developer tooling, but their outcomes are not artifacts and not blockers in this spec. Spec [35](35-release-notes-channel.md) (the release-notes channel) is retracted in the same pass.
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"v0 release blockers" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"v0 release blockers" for design intent.
 
 **Depends on:** [02](02-go-module.md), [03](03-ci-lint-release.md), [21](21-signals.md), [23](23-summary-render.md), [24](24-stop-hook.md), [25](25-probes.md), [26](26-tests.md).
 **Consumed by:** users.
@@ -19,7 +19,7 @@ Two tiers. The **must** tier is enforced automatically on every `main` push (see
 ### Must (CI-enforced)
 
 - [x] CI green on `main` at the tagged commit (`go vet`, `go test -race`, `golangci-lint`, `goreleaser check`).
-- [x] `debate --version` and `debate --help` print sane output from the release tarball binary on every shipped target (Linux + Darwin × amd64 + arm64).
+- [x] `agon --version` and `agon --help` print sane output from the release tarball binary on every shipped target (Linux + Darwin × amd64 + arm64).
 - [x] README install + usage section reflects the current binary layout and `install-hook` subcommand.
 
 ### Should (maintainer judgment)
@@ -28,11 +28,11 @@ Run the items that touch areas changed since the last tag.
 
 - `scripts/probes/no-output-stop-hook.sh` - environment-dependent claim about claude's session JSONL not being polluted by Stop hooks. PASS-state confirmed for v0.0.1 (claude 2.1.131); only re-run if the upstream claude Stop-hook contract changes.
 - `scripts/probes/signal-latency.sh` - SIGINT-to-exit < 5s. Regression-pinned by `e2e/cli/signal_test.go`; only re-run if signal handling code changes.
-- `scripts/probes/trivial-diff-perf.sh` - trivial-diff fast path < 200 ms median. Run if `cmd/debate`, `internal/preflight`, or `internal/diff` changed.
+- `scripts/probes/trivial-diff-perf.sh` - trivial-diff fast path < 200 ms median. Run if `cmd/agon`, `internal/preflight`, or `internal/diff` changed.
 - `scripts/probes/interactive-stdout.sh` - manual; non-blocking; re-run only if README's stdout wording is being changed.
 - Real-claude end-to-end smoke per [34](34-real-claude-end-to-end-smoke.md) - run once per release-cut machine if claude/codex versions changed materially.
 - `RUN_REAL=1 go test -tags real_e2e ./e2e/real/...` per [32](32-real-e2e-suite.md) - run if subprocess infra ([16-18](16-subprocess-infra.md)) changed.
-- `debate install-hook` smoke per [33](33-install-hook-smoke.md) - run if [24](24-stop-hook.md) changed.
+- `agon install-hook` smoke per [33](33-install-hook-smoke.md) - run if [24](24-stop-hook.md) changed.
 - Upstream byzantine-tolerance hit rate per [01](01-overview.md) §"Relationship to upstream research" - run only if default aspects in [05](05-config-file.md) changed.
 
 None of the **should** items are tag-blockers. Failures are logged in the maintainer's notes and either fixed before the tag (if regressing) or filed as a follow-up patch issue.
@@ -68,10 +68,10 @@ Per [03](03-ci-lint-release.md):
 Each archive contains:
 
 ```
-debate                       # the binary
+agon                       # the binary
 LICENSE
 README.md
-debate-stop-hook.sh
+agon-stop-hook.sh
 ```
 
 `README.md` in the archive is the same as the repo README; install instructions reference the `install-hook` subcommand.
@@ -94,9 +94,9 @@ If post-release a critical bug surfaces:
 
 1. Mark the GitHub release as `Pre-release` with a deprecation note.
 2. Push a `v0.0.1.x` patch tag with the fix.
-3. The verbose-hook format means rolling back the Stop hook is `debate uninstall-hook --scope user` (or manual edit of `settings.json`); no claude restart needed.
+3. The verbose-hook format means rolling back the Stop hook is `agon uninstall-hook --scope user` (or manual edit of `settings.json`); no claude restart needed.
 
-`debate` writes nothing to claude's session files in normal operation, so a rollback does not corrupt prior `.debate/sessions/` data.
+`agon` writes nothing to claude's session files in normal operation, so a rollback does not corrupt prior `.agon/sessions/` data.
 
 ## Test contract
 
@@ -106,6 +106,6 @@ If post-release a critical bug surfaces:
 ## Acceptance criteria
 
 - [x] §"Pre-tag sanity" §Must tier passes on the tagged commit.
-- [x] Release archives ship with `debate-stop-hook.sh`.
+- [x] Release archives ship with `agon-stop-hook.sh`.
 - [x] Goreleaser-generated release body is non-empty and groups commits by prefix per `.goreleaser.yaml` `changelog.groups`.
 - [x] Rollback path documented and tested at least once on an `-rc` tag.

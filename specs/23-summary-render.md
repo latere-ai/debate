@@ -1,7 +1,7 @@
 # Spec 23 - `summary.md` rendering, surfacing rule, exit codes
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Output format" and §"Surfacing rule" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Output format" and §"Surfacing rule" for design intent.
 
 **Depends on:** [10](10-run-artifacts.md), [11](11-fork-artifacts.md), [12](12-attacks-ledger.md), [19](19-round-loop.md), [20](20-termination.md), [21](21-signals.md), [22](22-contention-headline.md).
 **Consumed by:** [24](24-stop-hook.md), [25](25-probes.md), [27](27-release.md).
@@ -15,7 +15,7 @@ Out: contention scoring ([22](22-contention-headline.md)), the `--format json` a
 ## summary.md template (v0)
 
 ```markdown
-# Debate review - terminated: <termination>
+# Agon review - terminated: <termination>
 
 ## Headline (most contested unresolved)
 - [<aspect>/<location>] <one-line restatement of claim>
@@ -37,7 +37,7 @@ Out: contention scoring ([22](22-contention-headline.md)), the `--format json` a
 
 ## Stats
 critic-found-bug rate: <conceded_count>/<total_attacks> attacks led to a fix
-debate cost: <tokens> tokens, <total_rounds> rounds, <fork_count> critics
+agon cost: <tokens> tokens, <total_rounds> rounds, <fork_count> critics
 session: <relative path to session folder>
 ```
 
@@ -89,20 +89,20 @@ Decide(s):
     case TermSteadyState:
         if unresolved == 0:
             return Surface=false,
-                   StdoutLine="[debate] clean run; see .debate/log.jsonl",
+                   StdoutLine="[agon] clean run; see .agon/log.jsonl",
                    ExitCode=0
         else:
             return Surface=true,
-                   StdoutLine=fmt("[debate] %d unresolved; see %s", unresolved, summaryPath),
+                   StdoutLine=fmt("[agon] %d unresolved; see %s", unresolved, summaryPath),
                    ExitCode=1
     case TermMaxTurn, TermCostCap, TermMalformedOutput:
         return Surface=true,
-               StdoutLine=fmt("[debate] terminated %s (%d unresolved); see %s",
+               StdoutLine=fmt("[agon] terminated %s (%d unresolved); see %s",
                               s.Termination, unresolved, summaryPath),
                ExitCode=1
     case TermInterrupted:
         return Surface=true,
-               StdoutLine=fmt("[debate] interrupted (%d known unresolved); partial review at %s",
+               StdoutLine=fmt("[agon] interrupted (%d known unresolved); partial review at %s",
                               unresolved, summaryPath),
                ExitCode=130
     }
@@ -121,7 +121,7 @@ The stdout line is *exactly one line*, no leading whitespace. It goes to the orc
 | true  | malformed-output | any | 1 | 0 |
 | true  | interrupted | any | 130 | 0 |
 
-`--hook-mode` collapses every non-pre-flight exit to 0 (so the Stop hook script's `exec debate ...` doesn't propagate failure semantics to claude). Pre-flight failures (codes 100+) always exit with their intrinsic code regardless of `--hook-mode` ([06](06-preflight.md)).
+`--hook-mode` collapses every non-pre-flight exit to 0 (so the Stop hook script's `exec agon ...` doesn't propagate failure semantics to claude). Pre-flight failures (codes 100+) always exit with their intrinsic code regardless of `--hook-mode` ([06](06-preflight.md)).
 
 ## --format json (v1)
 
@@ -129,7 +129,7 @@ When `--format json`, the renderer emits `summary.json` instead of `summary.md` 
 
 ```jsonc
 {
-  "schema": "debate.summary.v0",
+  "schema": "agon.summary.v0",
   "termination": "...",
   "headline": {...} | null,
   "unresolved": [...],
@@ -152,5 +152,5 @@ v0 does not implement this; the flag is accepted but stored alongside `Format = 
 - [x] Renderer is deterministic (no map-order leaks; sort-stable inputs).
 - [x] All sections optional except `## Stats` (audit test).
 - [x] Stdout lines match the `Decide` table exactly (golden-string test).
-- [x] `--hook-mode` exit-code override applied at `cmd/debate/main.go`, not in this package; renderer is hook-agnostic.
+- [x] `--hook-mode` exit-code override applied at `cmd/agon/main.go`, not in this package; renderer is hook-agnostic.
 - [x] `--format json` is rejected with a clear panic in v0; the placeholder is not silently ignored.

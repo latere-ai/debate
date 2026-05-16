@@ -1,7 +1,7 @@
 # Spec 14 - Attack parser, normalizer, filters
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Rounds" → R1 Attack for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Rounds" → R1 Attack for design intent.
 
 **Depends on:** [12](12-attacks-ledger.md), [13](13-critic-output-format.md).
 **Consumed by:** [11](11-fork-artifacts.md), [19](19-round-loop.md), [20](20-termination.md).

@@ -1,7 +1,7 @@
 # Spec 09 - State directory and atomic writes
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Session persistence" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Session persistence" for design intent.
 
 **Depends on:** [02](02-go-module.md), [04](04-cli-flags.md), [06](06-preflight.md).
 **Consumed by:** [10](10-run-artifacts.md), [11](11-fork-artifacts.md), [12](12-attacks-ledger.md), [19](19-round-loop.md), [21](21-signals.md), [23](23-summary-render.md).
@@ -15,7 +15,7 @@ Out: any specific file format (those live in [10](10-run-artifacts.md), [11](11-
 ## Layout (recap)
 
 ```
-<state-dir>/                                    # default ".debate"
+<state-dir>/                                    # default ".agon"
   log.jsonl                                     # cross-session, append-only
   sessions/
     <session-id>/                               # one per run
@@ -119,7 +119,7 @@ v0 does not auto-recover (resume is v1, see [01-overview.md](01-overview.md) §V
 
 ## Concurrency
 
-A single `debate` process owns its session folder. Two concurrent `debate` invocations under the same `--state-dir` get distinct session ids (different `rand6`) and never share a folder. The cross-session `log.jsonl` is the only shared file; it uses `O_APPEND` + a single `write()` per line, which POSIX guarantees atomic for `< PIPE_BUF` (4096 bytes), well above any record this spec emits.
+A single `agon` process owns its session folder. Two concurrent `agon` invocations under the same `--state-dir` get distinct session ids (different `rand6`) and never share a folder. The cross-session `log.jsonl` is the only shared file; it uses `O_APPEND` + a single `write()` per line, which POSIX guarantees atomic for `< PIPE_BUF` (4096 bytes), well above any record this spec emits.
 
 ## Test contract
 

@@ -1,7 +1,7 @@
 # Spec 12 - Attacks ledger (`attacks.jsonl`)
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"`attacks.jsonl` schema" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"`attacks.jsonl` schema" for design intent.
 
 **Depends on:** [09](09-state-dir.md).
 **Consumed by:** [14](14-attack-parser.md), [19](19-round-loop.md), [20](20-termination.md), [22](22-contention-headline.md), [23](23-summary-render.md).
@@ -18,7 +18,7 @@ Out: parsing the critic's raw markdown output (that's [14](14-attack-parser.md))
 
 ```jsonc
 {
-  "schema":             "debate.attack.v0",
+  "schema":             "agon.attack.v0",
   "ts":                 "2026-05-06T14:12:34Z",
   "attack_id":          "c1-3",                // critic-index + sequence; stable across rounds
   "critic_index":       1,

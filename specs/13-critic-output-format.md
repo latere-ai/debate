@@ -1,7 +1,7 @@
 # Spec 13 - Critic output format (the contract)
 
 > **Status: ✅ implemented** (validated by spec 14's parser tests).
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Rounds" → R1 Attack for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Rounds" → R1 Attack for design intent.
 
 **Depends on:** none (a pure protocol spec).
 **Consumed by:** [14](14-attack-parser.md), [15](15-aspect-prompts.md), [18](18-critic-drivers.md).

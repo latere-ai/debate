@@ -1,7 +1,7 @@
 # Spec 30 - Probe G6 outcome: trivial-diff fast path
 
 > **Status: ✅ implemented** (G6 PASS at 99 ms median, 200 ms budget. Spec 25 line 168 reconciled to match the as-shipped probe threshold. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the probe stays in `scripts/probes/` as developer tooling.)
-> Implementation spec for `debate`. See [08-diff.md](08-diff.md) for the perf claim and [25-probes.md](25-probes.md) for the probe.
+> Implementation spec for `agon`. See [08-diff.md](08-diff.md) for the perf claim and [25-probes.md](25-probes.md) for the probe.
 
 **Depends on:** [08](08-diff.md), [25](25-probes.md).
 **Consumed by:** [27](27-release.md).
@@ -20,7 +20,7 @@ Out: changes to the diff plumbing ([08](08-diff.md)) or to the probe itself ([25
 
 ## Execution
 
-1. `make build` to refresh `bin/debate`.
+1. `make build` to refresh `bin/agon`.
 2. Run `scripts/probes/trivial-diff-perf.sh`.
 3. Run three times back-to-back; record min, median, max wall time. The single-shot timing is too noisy at sub-100 ms scale.
 
@@ -30,7 +30,7 @@ Out: changes to the diff plumbing ([08](08-diff.md)) or to the probe itself ([25
 probe: trivial-diff-perf
 host_os: darwin|linux
 host_cpu: <`uname -m`>
-binary_sha256: <sha of bin/debate>
+binary_sha256: <sha of bin/agon>
 wall_ms: {min, median, max}    # over 3 runs
 verdict: PASS | FAIL           # PASS iff median < 100 ms
 ```

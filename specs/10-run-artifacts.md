@@ -1,7 +1,7 @@
 # Spec 10 - Run-level artifacts
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Session persistence" → Layout for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Session persistence" → Layout for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [06](06-preflight.md), [07](07-claude-transcript.md), [08](08-diff.md), [09](09-state-dir.md).
 **Consumed by:** [19](19-round-loop.md), [21](21-signals.md), [23](23-summary-render.md), [25](25-probes.md), [26](26-tests.md).
@@ -18,7 +18,7 @@ Written atomically before any agent process spawns. Once written, never modified
 
 ```jsonc
 {
-  "schema":          "debate.start.v0",
+  "schema":          "agon.start.v0",
   "session_id":      "20260506T141233Z-q3a9f1",
   "started_at":      "2026-05-06T14:12:33Z",      // RFC3339 UTC
 
@@ -60,7 +60,7 @@ Written atomically before any agent process spawns. Once written, never modified
     "cwd":             "<absolute cwd>"
   },
 
-  "debate_version":  "v0.0.1",
+  "agon_version":  "v0.0.1",
   "go_version":      "go1.26.0"
 }
 ```
@@ -70,7 +70,7 @@ Rules:
 - The `task_context` field is the verbatim string from [07](07-claude-transcript.md). Do not summarize, truncate, or pretty-print.
 - `diff.patch_path` always points at `<session>/diff.patch`, written by [11](11-fork-artifacts.md)'s `WriteRunDiff` (because the per-fork capture reuses the helper) - but the run-level snapshot here is the *initial* one before any fork runs.
 - `proposer` and `critic` use the same `agent` discriminator (`claude` | `codex`); v0 only writes `proposer.agent == "claude"` (see [06](06-preflight.md)).
-- Schema version is `debate.start.v0`; bumped on any breaking change.
+- Schema version is `agon.start.v0`; bumped on any breaking change.
 
 ## end.json
 
@@ -78,7 +78,7 @@ Written atomically at termination, success or failure.
 
 ```jsonc
 {
-  "schema":          "debate.end.v0",
+  "schema":          "agon.end.v0",
   "session_id":      "20260506T141233Z-q3a9f1",
   "ended_at":        "2026-05-06T14:18:02Z",
 
@@ -144,13 +144,13 @@ Order is time-of-write; under v0's serial fork execution this is also lex-by-for
 
 ## log.jsonl
 
-Cross-session, lives at `<state-dir>/log.jsonl`. Append-only. Exactly one line per `debate` invocation (or per skipped trivial diff).
+Cross-session, lives at `<state-dir>/log.jsonl`. Append-only. Exactly one line per `agon` invocation (or per skipped trivial diff).
 
 Two record shapes:
 
 ```jsonc
 // Completed run
-{"ts":"2026-05-06T14:18:02Z","kind":"run","session":"20260506T141233Z-q3a9f1","termination":"steady-state","unresolved":2,"tokens":38421,"wall_s":329,"summary":".debate/sessions/20260506T141233Z-q3a9f1/summary.md"}
+{"ts":"2026-05-06T14:18:02Z","kind":"run","session":"20260506T141233Z-q3a9f1","termination":"steady-state","unresolved":2,"tokens":38421,"wall_s":329,"summary":".agon/sessions/20260506T141233Z-q3a9f1/summary.md"}
 
 // Trivial-diff skip (see [08])
 {"ts":"2026-05-06T14:09:11Z","kind":"skipped","reason":"trivial-diff","changed_lines":3,"threshold":10}
@@ -192,6 +192,6 @@ Wraps [09](09-state-dir.md)'s `AtomicWrite` and `AppendLine`. No business logic 
 ## Acceptance criteria
 
 - [x] All four schemas decode/encode round-trip via `encoding/json`.
-- [x] Schema version strings appear at top level of each (`debate.start.v0`, etc.).
+- [x] Schema version strings appear at top level of each (`agon.start.v0`, etc.).
 - [x] `WriteEnd` is the last fsynced write before `AppendLog`; ordering enforced by an integration test.
 - [x] No path in this spec writes the contents of `start.json` more than once per session (immutability check).

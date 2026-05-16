@@ -1,7 +1,7 @@
 # Spec 06 - Pre-flight checks
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"CLI surface" notes for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"CLI surface" notes for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [05](05-config-file.md).
 **Consumed by:** every spec downstream of CLI parsing - pre-flight is the gate before any agent process spawns or any state-dir file is written.
@@ -52,16 +52,16 @@ Each check runs in this order; the first failure short-circuits with the listed 
 
 ### 1. Recursion guard
 
-If `os.Getenv("DEBATE_IN_PROGRESS") != ""`, the orchestrator was re-entered through the Stop hook firing on its own subprocesses. **Exit 0** with no message; this is the fast path that protects against infinite-fork recursion (see [01-overview.md](01-overview.md) §"Recursion guard contract" and [24](24-stop-hook.md)).
+If `os.Getenv("AGON_IN_PROGRESS") != ""`, the orchestrator was re-entered through the Stop hook firing on its own subprocesses. **Exit 0** with no message; this is the fast path that protects against infinite-fork recursion (see [01-overview.md](01-overview.md) §"Recursion guard contract" and [24](24-stop-hook.md)).
 
-The hook script itself also checks this env; the duplicate check inside the orchestrator covers the case where someone invokes `debate` manually inside a debate-spawned subshell.
+The hook script itself also checks this env; the duplicate check inside the orchestrator covers the case where someone invokes `agon` manually inside a agon-spawned subshell.
 
 ### 2. cwd resolution
 
-`Plan.Cwd = filepath.Abs(getwd)`. If the `Flags.Transcript` argument resolves to a path *not* under (or equal to) the cwd that owns the session (claude `--resume` is cwd-scoped, see [01-overview.md](01-overview.md)), `debate` exits **101** with:
+`Plan.Cwd = filepath.Abs(getwd)`. If the `Flags.Transcript` argument resolves to a path *not* under (or equal to) the cwd that owns the session (claude `--resume` is cwd-scoped, see [01-overview.md](01-overview.md)), `agon` exits **101** with:
 
 ```
-debate: --transcript points at a session whose cwd does not match the current directory; cd to <expected> and retry
+agon: --transcript points at a session whose cwd does not match the current directory; cd to <expected> and retry
 ```
 
 Determining the session cwd: walk up the transcript path against `~/.claude/projects/<encoded-cwd>/...`; the encoded segment between `projects/` and the next `/` decodes to the cwd ([07](07-claude-transcript.md) owns the encoding).
@@ -71,7 +71,7 @@ Determining the session cwd: walk up the transcript path against `~/.claude/proj
 If `os.Getenv("ANTHROPIC_API_KEY") != ""`, `os.Unsetenv` it and emit a single line on stderr at `--verbose >= 1`:
 
 ```
-debate: unset stale ANTHROPIC_API_KEY for this run (claude OAuth keychain will be used)
+agon: unset stale ANTHROPIC_API_KEY for this run (claude OAuth keychain will be used)
 ```
 
 Not an error. (See [01-overview.md](01-overview.md) §"Constraints uncovered by the probe".)
@@ -113,7 +113,7 @@ Cross-family: `MainModel`/`SideModel` are optional and ignored if blank (each ag
 If neither `SessionID` nor `Transcript` nor `TaskContext` is set, exit **130** with:
 
 ```
-debate: cannot determine task context: pass --session-id, --transcript, or --task-context
+agon: cannot determine task context: pass --session-id, --transcript, or --task-context
 ```
 
 When `SessionID` is set but `Transcript` is empty, [07](07-claude-transcript.md) computes the transcript path; pre-flight does not check file existence here (that's [07](07-claude-transcript.md)'s concern).
@@ -123,17 +123,17 @@ When `SessionID` is set but `Transcript` is empty, [07](07-claude-transcript.md)
 `Plan.StateDirAbs = filepath.Abs(StateDir)`. If the parent dir is not writable, exit **140**:
 
 ```
-debate: cannot write under <parent>: <os error>
+agon: cannot write under <parent>: <os error>
 ```
 
 Pre-flight does not create the dir (see [09](09-state-dir.md)); it only stat-checks the parent.
 
 ### 9. .gitignore advisory
 
-If cwd is inside a git repo and the repo's `.gitignore` does not list `.debate/` (or a parent thereof), emit a warning to stderr (always, regardless of `--verbose`):
+If cwd is inside a git repo and the repo's `.gitignore` does not list `.agon/` (or a parent thereof), emit a warning to stderr (always, regardless of `--verbose`):
 
 ```
-debate: warning: .debate/ is not in .gitignore - consider adding it before committing
+agon: warning: .agon/ is not in .gitignore - consider adding it before committing
 ```
 
 Not an error. Does not auto-edit ([01-overview.md](01-overview.md) §`.gitignore`).
@@ -163,7 +163,7 @@ Not an error. Does not auto-edit ([01-overview.md](01-overview.md) §`.gitignore
 
 - Table-driven test per check, asserting (effective Flags) → (exit code, error substring).
 - Fuzz-light test: every flag default plus a single field mutation per row, ensuring no spurious exit.
-- Recursion-guard test: with `DEBATE_IN_PROGRESS=1` set, `Preflight` returns nil error and the caller exits 0 without further work.
+- Recursion-guard test: with `AGON_IN_PROGRESS=1` set, `Preflight` returns nil error and the caller exits 0 without further work.
 
 ## Acceptance criteria
 

@@ -1,7 +1,7 @@
 # Spec 31 - Probe G7 outcome: interactive stdout rendering
 
 > **Status: ✅ implemented** (G7 SKIP — non-blocking; recorded reason. README and spec 01 wording stays at the conservative "stdout best-effort" form. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the probe is preserved in `scripts/probes/` for opt-in re-runs.)
-> Implementation spec for `debate`. See [25-probes.md](25-probes.md) for the probe and [24-stop-hook.md](24-stop-hook.md), [01-overview.md](01-overview.md) for the wording it informs.
+> Implementation spec for `agon`. See [25-probes.md](25-probes.md) for the probe and [24-stop-hook.md](24-stop-hook.md), [01-overview.md](01-overview.md) for the wording it informs.
 
 **Depends on:** [24](24-stop-hook.md), [25](25-probes.md).
 **Consumed by:** [27](27-release.md), [README.md](../README.md).
@@ -14,7 +14,7 @@ Out: changes to the probe script or to the Stop-hook script ([24](24-stop-hook.m
 
 ## What we're proving
 
-[01-overview.md](01-overview.md) and the README currently hedge with "stdout best-effort - may surface in interactive mode." This is the conservative wording chosen because the probe hadn't been run. The probe runs `claude` under `script` (or `expect`), fires a Stop hook that prints `[debate] hello` to stdout, and checks whether that line appears in the captured PTY output.
+[01-overview.md](01-overview.md) and the README currently hedge with "stdout best-effort - may surface in interactive mode." This is the conservative wording chosen because the probe hadn't been run. The probe runs `claude` under `script` (or `expect`), fires a Stop hook that prints `[agon] hello` to stdout, and checks whether that line appears in the captured PTY output.
 
 ## Execution
 

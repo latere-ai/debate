@@ -1,7 +1,7 @@
 # Spec 21 - Signal handling and graceful exit
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Cancellable" and §"Termination conditions" → User interrupt.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Cancellable" and §"Termination conditions" → User interrupt.
 
 **Depends on:** [09](09-state-dir.md), [10](10-run-artifacts.md), [16](16-subprocess-infra.md), [19](19-round-loop.md), [20](20-termination.md).
 **Consumed by:** [23](23-summary-render.md), [27](27-release.md).
@@ -50,7 +50,7 @@ T+~       buildSummary(...) runs; Termination = "interrupted"
 T+~       state.WriteEnd(sess, e) - atomic, fsynced
 T+~       Engine.Run returns
 T+~       finalize() restores default handlers
-T+~       cmd/debate/main.go exits with the right code (see [23])
+T+~       cmd/agon/main.go exits with the right code (see [23])
 ```
 
 Total latency on a "stuck" subprocess: 2s SIGINT grace + immediate kill = ~2s worst case. Verified by [25](25-probes.md).
@@ -71,7 +71,7 @@ Same path as SIGINT. CI runners and PID-1 init systems use SIGTERM for shutdown;
 
 ## Exit-code translation
 
-After `Engine.Run` returns, `cmd/debate/main.go` translates the result into a process exit code:
+After `Engine.Run` returns, `cmd/agon/main.go` translates the result into a process exit code:
 
 ```
 intrinsic := summaryExitCode(summary)   // 0, 1, or pre-flight code from [06]
@@ -98,7 +98,7 @@ Where `summaryExitCode`:
 
 ## Process-tree teardown
 
-Owned by [16](16-subprocess-infra.md) at the per-call level. This spec only requires that `Engine.Run` *not* swallow `ctx.Err()`; instead it returns it (or wraps as `ErrInterrupted`) so `cmd/debate/main.go` knows to exit non-zero.
+Owned by [16](16-subprocess-infra.md) at the per-call level. This spec only requires that `Engine.Run` *not* swallow `ctx.Err()`; instead it returns it (or wraps as `ErrInterrupted`) so `cmd/agon/main.go` knows to exit non-zero.
 
 ## Test contract
 

@@ -1,7 +1,7 @@
 # Spec 26 - Test strategy and mock harnesses
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) for design intent.
 
 **Depends on:** every implementation spec from [04](04-cli-flags.md) through [24](24-stop-hook.md).
 **Consumed by:** [27](27-release.md).
@@ -18,7 +18,7 @@ Out: the GA gate checklist ([27](27-release.md)), probes against real installs (
 |---|---|---|---|
 | Unit | `internal/<pkg>/*_test.go` | Pure functions, parsers, schemas, error mappings. | Every commit; CI required. |
 | Integration | `internal/<pkg>/*_integration_test.go` | Multi-package paths with real filesystem, `state.Session`, mock subprocesses. | Every commit; CI required. |
-| E2E (mock) | `e2e/mock/*_test.go` | Whole-binary runs with `bin/debate` against the mock harness as `claude`/`codex`. | Every commit; CI required. |
+| E2E (mock) | `e2e/mock/*_test.go` | Whole-binary runs with `bin/agon` against the mock harness as `claude`/`codex`. | Every commit; CI required. |
 | E2E (real) | `e2e/real/*_test.go` | Whole-binary runs against real `claude` and `codex`; gated `RUN_REAL=1`. | Local + nightly; not on PRs. |
 | Probes | `scripts/probes/` | See [25](25-probes.md). | Pre-release. |
 

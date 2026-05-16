@@ -1,15 +1,15 @@
-# debate
+# agon
 
 Adversarial review for Claude Code coding sessions.
 
-After Claude finishes a task, `debate` forks the session for one or
+After Claude finishes a task, `agon` forks the session for one or
 more critic agents (Codex by default), runs a multi-round
 cross-examination per critic, applies any concessions the proposer
 makes, and surfaces only the unresolved disputes for human attention.
 Each critic picks its own attack topic in round 1 (security, perf,
 internal-consistency, evidence-gap, ...); later critics are told
-which topics are taken and pick something else. No debate content
-ever lands in the root Claude session - debate happens in branched
+which topics are taken and pick something else. No agon content
+ever lands in the root Claude session - agon happens in branched
 forks off the root.
 
 Design and per-component contracts live under [specs/](specs/) -
@@ -20,47 +20,47 @@ to [release-notes-v0.0.1.md](release-notes-v0.0.1.md).
 ## Installation
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/latere-ai/debate/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/latere-ai/agon/main/install.sh | sh
 ```
 
 The script detects your OS / arch, fetches the latest release tarball
 from
-[github.com/latere-ai/debate/releases](https://github.com/latere-ai/debate/releases),
-verifies the sha256 checksum, installs `debate` to `/usr/local/bin`
-(via `sudo` if needed), and runs `debate install-hook --scope user`.
+[github.com/latere-ai/agon/releases](https://github.com/latere-ai/agon/releases),
+verifies the sha256 checksum, installs `agon` to `/usr/local/bin`
+(via `sudo` if needed), and runs `agon install-hook --scope user`.
 Knobs:
 
 ```sh
-DEBATE_VERSION=v0.0.1-rc2  # pin a specific tag; default: latest
-DEBATE_PREFIX=$HOME/.local # binary lands at $DEBATE_PREFIX/bin
-DEBATE_NO_HOOK=1           # skip the install-hook step
+AGON_VERSION=v0.0.1-rc2  # pin a specific tag; default: latest
+AGON_PREFIX=$HOME/.local # binary lands at $AGON_PREFIX/bin
+AGON_NO_HOOK=1           # skip the install-hook step
 ```
 
 From source (requires Go 1.26+):
 
 ```sh
-go install latere.ai/x/debate/cmd/debate@latest
-debate install-hook --scope user
+go install latere.ai/x/agon/cmd/agon@latest
+agon install-hook --scope user
 ```
 
 `install-hook` merges the verbose-format Stop hook entry into
 `~/.claude/settings.json` (or `./.claude/settings.json` with `--scope
-project`). The entry is `<path-to>/debate hook` — a built-in
+project`). The entry is `<path-to>/agon hook` — a built-in
 subcommand of the binary, so no separate shell script needs to be on
 PATH. `uninstall-hook` removes it.
 
 ## Example usage
 
-With the Stop hook installed, debate runs automatically when claude
+With the Stop hook installed, agon runs automatically when claude
 finishes responding. You see one stdout line; the summary lives on
 disk:
 
 ```text
 $ # ...claude does its thing...
-[debate] 2 unresolved; see /repo/.debate/sessions/20260506T140905Z-q3a9f1/summary.md
+[agon] 2 unresolved; see /repo/.agon/sessions/20260506T140905Z-q3a9f1/summary.md
 
-$ cat .debate/sessions/*/summary.md
-# Debate review - terminated: steady-state
+$ cat .agon/sessions/*/summary.md
+# Agon review - terminated: steady-state
 
 ## Headline (most contested unresolved)
 - [security/api.go:88] SQL injection via unparameterized LIKE
@@ -75,18 +75,18 @@ $ cat .debate/sessions/*/summary.md
 
 ## Stats
 critic-found-bug rate: 5/8 attacks led to a fix
-debate cost: 38k tokens, 6 rounds, 4 critics
+agon cost: 38k tokens, 6 rounds, 4 critics
 ```
 
 Trivial diffs (under `--changed-lines-min`, default 10) short-circuit
 in milliseconds. No session folder, just one `kind:"skipped"` line in
-`.debate/log.jsonl`.
+`.agon/log.jsonl`.
 
 For CI gating, scripted batch runs, or out-of-band review, invoke
 manually:
 
 ```sh
-debate \
+agon \
   --session-id <root-claude-session-id> \
   --side-count 4 \
   --max-turn 6
@@ -94,7 +94,7 @@ debate \
 
 Each of the four critics picks its own topic in R1; the orchestrator
 passes prior critics' topics to each later critic as anti-duplication
-signal. `debate --help` lists every flag. Exit codes: 0 clean,
+signal. `agon --help` lists every flag. Exit codes: 0 clean,
 1 unresolved leaves, 130 interrupted, 100s pre-flight failure.
 
 ## Design architecture
@@ -113,7 +113,7 @@ signal. `debate --help` lists every flag. Exit codes: 0 clean,
           └──┬───┘          └──────┘    └──────┘
              │
              ▼ writes round files to disk
-   .debate/sessions/<id>/forks/critic-i/rounds/r{1,2,3,…}-{critic,proposer}.md
+   .agon/sessions/<id>/forks/critic-i/rounds/r{1,2,3,…}-{critic,proposer}.md
                                             │
                                             ▼
                                     summary.md  (contention-scored headline + leaves)
@@ -122,9 +122,9 @@ signal. `debate --help` lists every flag. Exit codes: 0 clean,
 Five load-bearing pieces (full design in
 [spec 01](specs/01-overview.md)):
 
-- **Forked debate, no debate content in root.** Each critic gets its
+- **Forked agon, no agon content in root.** Each critic gets its
   own claude fork via `--fork-session`. The user's root transcript
-  never sees a debate turn. Probe-confirmed against claude 2.1.131:
+  never sees a agon turn. Probe-confirmed against claude 2.1.131:
   a no-output Stop hook produces zero `hook_*` attachments, so the
   invariant holds across modes including the Stop-hook path. See
   [specs/28](specs/28-probe-no-output-stop-hook-outcome.md).

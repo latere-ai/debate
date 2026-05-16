@@ -1,6 +1,6 @@
 # Spec 01 - Design Overview
 
-The full design for `debate`. This document is the authoritative spec; the project README is a usage reference.
+The full design for `agon`. This document is the authoritative spec; the project README is a usage reference.
 
 ## What this is
 
@@ -8,7 +8,7 @@ A tool that productizes the debate architecture from [agents-byzantine-tolerance
 
 ## Goal
 
-When Claude finishes a coding task, run a critic (Codex by default) that produces concrete adversarial comments on the diff. Claude either fixes or defends each comment. Up to N rounds of cross-examination. Unresolved leaves surface to the human at the end as a structured review. The human inspects only what wasn't resolved by debate, not the full output.
+When Claude finishes a coding task, run a critic (Codex by default) that produces concrete adversarial comments on the diff. Claude either fixes or defends each comment. Up to N rounds of cross-examination. Unresolved leaves surface to the human at the end as a structured review. The human inspects only what wasn't resolved by agon, not the full output.
 
 ## Versioning
 
@@ -16,11 +16,11 @@ The spec uses **v0** and **v1** as concrete release tiers, not vague handwaves.
 
 **v0 - minimum viable, shippable artifact. Everything above the line.**
 
-- `debate` CLI binary.
+- `agon` CLI binary.
 - **Claude-as-proposer mode only.** Codex-as-proposer is fully *described* in this spec (so the architecture has a target) but its implementation is v1.
 - Auto-trigger via Stop hook (default UX) + manual CLI invocation.
 - Aspect-specialized multi-critic with the four-aspect default (`functional-logic`, `security`, `code-quality`, `performance`).
-- File-pointer channel; **no debate-content** in root JSONL; `--fork-session` always; recursion guard via `DEBATE_IN_PROGRESS`. (The byte-identical "root transcript unchanged" claim holds across all modes including Option B - probe-confirmed 2026-05 against claude 2.1.131: a no-output Stop hook produces no `hook_*` attachments. See [28-probe-no-output-stop-hook-outcome.md](28-probe-no-output-stop-hook-outcome.md) for the recording.)
+- File-pointer channel; **no agon-content** in root JSONL; `--fork-session` always; recursion guard via `AGON_IN_PROGRESS`. (The byte-identical "root transcript unchanged" claim holds across all modes including Option B - probe-confirmed 2026-05 against claude 2.1.131: a no-output Stop hook produces no `hook_*` attachments. See [28-probe-no-output-stop-hook-outcome.md](28-probe-no-output-stop-hook-outcome.md) for the recording.)
 - Session persistence layout: `start.json`, per-fork `proposer-state.json` + round files, `attacks.jsonl`, `transcript.jsonl`, `summary.md`, `end.json`, plus cross-session `log.jsonl`.
 - Stable `attack_id` ledger; contention-scored headline.
 - `--changed-lines-min` trivial-diff gate.
@@ -31,7 +31,7 @@ The spec uses **v0** and **v1** as concrete release tiers, not vague handwaves.
 **v0 release blockers (must clear before GA, not just before merge).**
 
 - **Upstream 07a per-aspect critic-found-bug rate** ≥ 60% on at least two aspects (see Relationship to upstream research). Without this, the tool is hollow.
-- **No-output Stop-hook probe.** Run a Stop hook that emits *nothing* to stdout/stderr/JSON against the current claude version and verify whether root JSONL gains a `hook_success` (or any other) attachment. Outcome determines the final wording of the root-preservation invariant: byte-identical (probe says no attachment) or "no debate-content pollution" (probe says yes). Stop hook is the v0 default UX, so this question cannot be left open at GA. See Verified primitives → Constraints uncovered.
+- **No-output Stop-hook probe.** Run a Stop hook that emits *nothing* to stdout/stderr/JSON against the current claude version and verify whether root JSONL gains a `hook_success` (or any other) attachment. Outcome determines the final wording of the root-preservation invariant: byte-identical (probe says no attachment) or "no agon-content pollution" (probe says yes). Stop hook is the v0 default UX, so this question cannot be left open at GA. See Verified primitives → Constraints uncovered.
 - **Hook output rendering in interactive claude.** v0 already commits to "stdout best-effort" so this is not strictly blocking, but a 30-second interactive probe before GA settles whether to mention "stdout *may* surface in interactive mode" or drop the qualifier entirely.
 
 **v1 - natural enhancements once v0 is proven and 07a's per-aspect critic-found-bug rates are positive.**
@@ -39,7 +39,7 @@ The spec uses **v0** and **v1** as concrete release tiers, not vague handwaves.
 - **Codex-as-proposer.** Stateless rounds with re-supplied context (architecture already in spec). No auto-trigger; manual CLI only.
 - **Per-fork git worktrees** via `claude --worktree`. Frozen working-tree snapshot per fork; eliminates outcome leakage between serial critics; enables parallel forks. Needs a concession-merge story.
 - **Per-critic model configuration.** v0 uses one `--side-model` for all critics; v1 lets each critic specify its own model alongside its aspect.
-- **Resume an old debate session.** `debate resume <session-id>` - re-open a prior debate's unresolved leaves after the human addresses them, run more rounds.
+- **Resume an old agon session.** `agon resume <session-id>` - re-open a prior agon's unresolved leaves after the human addresses them, run more rounds.
 - **Live-progress UI**, *if* an interactive-mode probe finds a hook channel that surfaces text without polluting root JSONL. The current finding is that none of the obvious channels qualify; this v1 item is contingent on that changing.
 - **Strict critic isolation** via per-fork sandbox temp directory. v0 enforces "diff + task only" by aspect prompt + `codex --sandbox read-only`; OS-level isolation (or restricted-cwd discipline that holds against misbehaving agents) is v1 work. See Critic isolation.
 
@@ -62,13 +62,13 @@ The spec uses **v0** and **v1** as concrete release tiers, not vague handwaves.
 
 ### Fork model (load-bearing)
 
-The debate must not pollute the root session. The user's original Claude Code conversation is the **root** - when debate ends, the user resumes from that root, with the working tree updated (any concession-fixes have landed) and a summary on disk. The conversation log of the root session never sees a debate turn.
+The agon must not pollute the root session. The user's original Claude Code conversation is the **root** - when agon ends, the user resumes from that root, with the working tree updated (any concession-fixes have landed) and a summary on disk. The conversation log of the root session never sees a agon turn.
 
-Each critic gets its own **debate fork**: a clone of the root session paired with one critic process. Forks are isolated:
+Each critic gets its own **agon fork**: a clone of the root session paired with one critic process. Forks are isolated:
 
 - **No transcript leakage between critics.** Each fork has its own (proposer-clone, critic) conversation pair. Critic A never sees critic B's attacks or the proposer's responses inside critic B's fork - the conversation logs are isolated.
 - **Outcome leakage through the working tree is real and accepted.** When critic A's fork concedes a fix, that fix lands in the shared working tree. Critic B (running later, since v0 is serial) is shown the working-tree diff *as it stands at critic-B's fork start* (i.e. including critic-A's concessions), and that snapshot is captured to `forks/critic-<i>/diff.patch` for audit - so each critic's record reflects what it actually saw, not what was in `start.json`. This is the conservative trade-off: full per-fork isolation would require frozen working-tree snapshots per fork (e.g. `claude --worktree`), which is deferred (see Out of scope). Treat critic-B as reviewing "the code as it stands now," not "the code Claude wrote initially."
-- **No debate-content pollution of the root.** The proposer in a fork is a clone of the root produced via Claude Code's built-in `--fork-session` flag. No debate turn, no debate text, no proposer-clone reply ever lands in the root's transcript. The strict "byte-identical root JSONL after a run" claim holds across all modes including Option B (Stop hook). Probe-confirmed 2026-05 against claude 2.1.131: a Stop hook with no stdout/stderr output produces no `hook_*` attachment in root JSONL. See [28-probe-no-output-stop-hook-outcome.md](28-probe-no-output-stop-hook-outcome.md).
+- **No agon-content pollution of the root.** The proposer in a fork is a clone of the root produced via Claude Code's built-in `--fork-session` flag. No agon turn, no agon text, no proposer-clone reply ever lands in the root's transcript. The strict "byte-identical root JSONL after a run" claim holds across all modes including Option B (Stop hook). Probe-confirmed 2026-05 against claude 2.1.131: a Stop hook with no stdout/stderr output produces no `hook_*` attachment in root JSONL. See [28-probe-no-output-stop-hook-outcome.md](28-probe-no-output-stop-hook-outcome.md).
 - **Serial execution in v0.** Forks run one at a time to avoid working-tree races. Parallel forks via per-fork git worktrees would also frozen-snapshot the tree per fork, eliminating outcome leakage; deferred until v0 is proven.
 
 ### When the proposer is Codex instead of Claude
@@ -124,7 +124,7 @@ root session  (user → assistant: "code written")  ←─── user resumes he
                             stdout to user
 ```
 
-Branches do not see each other. The user, looking at their Claude Code session, sees only the root. The debate lives entirely on disk and in the orchestrator's stdout. The proposer-clone sessions are artifacts - they remain in the session picker grouped under root (Claude Code groups forks under their root automatically) but the user can ignore them.
+Branches do not see each other. The user, looking at their Claude Code session, sees only the root. The agon lives entirely on disk and in the orchestrator's stdout. The proposer-clone sessions are artifacts - they remain in the session picker grouped under root (Claude Code groups forks under their root automatically) but the user can ignore them.
 
 ### Mechanism - how forks are created and driven
 
@@ -151,7 +151,7 @@ The orchestrator uses three Claude Code primitives, all already documented:
 
    - **Codex critic** (the cross-family default). `codex exec --skip-git-repo-check --sandbox read-only --json "<aspect prompt + task + diff + pointers to prior round files>"`. `read-only` blocks writes/network; **it does not isolate which files codex can read** - see Critic isolation. Codex has no fork concept; each invocation is a fresh process. Reads prior proposer round files via codex's file-access tool. Capture `thread_id` from the first `thread.started` event for audit; round-to-round continuity is on disk, not via that id.
 
-   - **Claude critic** (used in same-family `claude/claude` mode, see Heterogeneity). `claude -p "<aspect prompt + task + diff + pointers to prior round files>" --output-format json`. Fresh session per round - **no `--resume`, no `--fork-session`**. Freshness blocks the critic from inheriting any other session's conversation; it does **not** isolate which workspace files claude's file-access tools can read (the agent runs from the repo cwd; see Critic isolation). The "diff + task only" contract is enforced by aspect prompt discipline, not by OS isolation. Anthropic's 5-minute prompt cache amortizes the system-prompt prefix across rounds within one debate. **Hook-recursion:** each `claude -p` critic call also fires the user's Stop hook, so the `DEBATE_IN_PROGRESS=1` guard must cover critic invocations as well as proposer-clone invocations (the orchestrator exports it once at process start; child `claude`/`codex` processes inherit it). Persistence: the critic writes its output to `r<n>-critic.md` (after the orchestrator parses + normalizes ids - see R1 attack); no per-critic session-id file is needed since each round is a fresh process.
+   - **Claude critic** (used in same-family `claude/claude` mode, see Heterogeneity). `claude -p "<aspect prompt + task + diff + pointers to prior round files>" --output-format json`. Fresh session per round - **no `--resume`, no `--fork-session`**. Freshness blocks the critic from inheriting any other session's conversation; it does **not** isolate which workspace files claude's file-access tools can read (the agent runs from the repo cwd; see Critic isolation). The "diff + task only" contract is enforced by aspect prompt discipline, not by OS isolation. Anthropic's 5-minute prompt cache amortizes the system-prompt prefix across rounds within one agon. **Hook-recursion:** each `claude -p` critic call also fires the user's Stop hook, so the `AGON_IN_PROGRESS=1` guard must cover critic invocations as well as proposer-clone invocations (the orchestrator exports it once at process start; child `claude`/`codex` processes inherit it). Persistence: the critic writes its output to `r<n>-critic.md` (after the orchestrator parses + normalizes ids - see R1 attack); no per-critic session-id file is needed since each round is a fresh process.
 
 The wrap-up step prints to stdout. **Claude Code provides no way to inject an assistant turn into the root session**, and *every* alternative I considered violates either the channel constraint or the root-preservation invariant:
 
@@ -174,8 +174,8 @@ The mechanism above was probed against a real Claude Code installation before th
 - **`--resume` is cwd-scoped.** Running `claude --resume <id>` from any cwd other than the one the session was created in returns *No conversation found with session ID*. The orchestrator must `cd` to the cwd captured in the Stop hook payload before any `claude --resume` call. This is not optional.
 - **`ANTHROPIC_API_KEY` env var pollution.** If set (even to a stale/invalid value), `claude -p` uses it instead of the OAuth keychain and fails with 401. The hook script must either `unset ANTHROPIC_API_KEY` before invoking the orchestrator, or document the precondition. (This bites in subprocesses inheriting env from a parent shell with a stale key.)
 - **JSON output may contain control characters in `result`** that break naive parsers. The orchestrator must use a proper JSON library (Python `json`, Go `encoding/json`), not `jq` with raw shell pipes.
-- **First-call cost.** First `claude -p` invocation in a fresh window primes a large system-prompt cache (~32k tokens, ~$0.20). Subsequent calls within the 5-minute cache window are cheap. Run all rounds of a debate in close succession to amortize.
-- **`Stop` hook `systemMessage` mutates root JSONL.** Probe (2026-05) emitted `{"systemMessage":"<marker>"}` from a Stop hook and found it written into the root session's transcript as a `hook_system_message` attachment entry alongside a `hook_success` attachment. So `systemMessage` is *not* a way to surface debate notifications to the user without polluting root. The conservative path is "no in-session UI"; live progress requires the user to `tail -f` the orchestrator's session files in another terminal.
+- **First-call cost.** First `claude -p` invocation in a fresh window primes a large system-prompt cache (~32k tokens, ~$0.20). Subsequent calls within the 5-minute cache window are cheap. Run all rounds of a agon in close succession to amortize.
+- **`Stop` hook `systemMessage` mutates root JSONL.** Probe (2026-05) emitted `{"systemMessage":"<marker>"}` from a Stop hook and found it written into the root session's transcript as a `hook_system_message` attachment entry alongside a `hook_success` attachment. So `systemMessage` is *not* a way to surface agon notifications to the user without polluting root. The conservative path is "no in-session UI"; live progress requires the user to `tail -f` the orchestrator's session files in another terminal.
 - **Stop hook output channels in `-p` mode**: plain stderr, plain stdout, and `systemMessage` JSON are all silently swallowed (don't appear in claude's captured stdout/stderr). Interactive mode rendering is unverified. Hook config must use the verbose format `{"matcher": "...", "hooks": [{"type": "command", "command": "..."}]}` - the simpler `{"command": "..."}` is silently dropped from the registry.
 
 ### Channel constraint (load-bearing)
@@ -206,7 +206,7 @@ Implication for the trust model: **the critic's "context starvation" is a proper
 The verbatim user message stays short. The critic's full critique is written to disk, and the message just points at it:
 
 ```
-Some comments at @.debate/sessions/<id>/rounds/r1-critic-1.md. Please resolve or respond. If you disagree, please raise it.
+Some comments at @.agon/sessions/<id>/rounds/r1-critic-1.md. Please resolve or respond. If you disagree, please raise it.
 ```
 
 This is exactly how a human hands an agent a code review in normal Claude Code usage - `@file, please address`. The proposer's defense behavior is whatever Claude does with that pattern in any other session. No special protocol, no system-prompt-shaped instruction.
@@ -214,7 +214,7 @@ This is exactly how a human hands an agent a code review in normal Claude Code u
 Three reasons this matters:
 
 - **Token economy.** Long critiques don't bloat every defense round's context. The file is read on demand.
-- **Audit trail.** Each round's critique is a durable artifact under `.debate/sessions/<id>/rounds/`, not a chat-buffer scrap.
+- **Audit trail.** Each round's critique is a durable artifact under `.agon/sessions/<id>/rounds/`, not a chat-buffer scrap.
 - **Naturalism preserved.** The pointer message is short and natural; the critique text is whatever the critic wrote, untouched.
 
 The mechanism end-to-end:
@@ -238,7 +238,7 @@ Per fork (forks run serially in v0):
 4. **R3..R(max_turn) - Cross-examination.** Critic and proposer-clone alternate, addressing attacks by id. Re-attacks reuse the original `attack_id` and set `re_attacked = true`; new attacks get new ids; withdrawn attacks transition to `status = withdrawn`. Each round persisted to its file.
 5. **Fork-wrap.** When this fork's termination condition fires, the per-fork ledger is final.
 
-After all forks complete: aggregate across forks (attack_id is unique per critic-index, so cross-fork IDs don't collide), write `summary.md` and `end.json`, print to stdout. Root receives no debate content (see Fork model and Lifecycle invariants for the full caveat about Option B's `hook_success` attachment).
+After all forks complete: aggregate across forks (attack_id is unique per critic-index, so cross-fork IDs don't collide), write `summary.md` and `end.json`, print to stdout. Root receives no agon content (see Fork model and Lifecycle invariants for the full caveat about Option B's `hook_success` attachment).
 
 ## Critic specialization
 
@@ -274,7 +274,7 @@ The four defaults cover typical backend coding work. Other teams might add `conc
 
 The default pairing is cross-family: claude proposer, codex critic. Family asymmetry is the strongest form of independence - different training corpora, different RLHF objectives, different priors. It's the cleanest way to keep proposer and critic from rubber-stamping each other.
 
-But sometimes only one agent is available, or a user wants same-family debate (claude/claude, codex/codex). The tool supports this with one hard constraint:
+But sometimes only one agent is available, or a user wants same-family agon (claude/claude, codex/codex). The tool supports this with one hard constraint:
 
 **When `--main` and `--side` are the same agent family, `--main-model` and `--side-model` must both be set and must differ.** Same model on both sides collapses to "the model debating itself" - same priors, same blind spots, no heterogeneity. The CLI errors out if either is unset or if they match.
 
@@ -293,10 +293,10 @@ The channel constraint above eliminates most of the design space. Anything that 
 
 ### Option A - CLI binary (the primitive)
 
-A standalone `debate` orchestrator. Always built first; everything else layers on it.
+A standalone `agon` orchestrator. Always built first; everything else layers on it.
 
 ```
-debate --max-turn=10 --main claude --side codex --side-count=3 \
+agon --max-turn=10 --main claude --side codex --side-count=3 \
        --aspect functional-logic,security,performance --session-id <claude-session>
 ```
 
@@ -304,22 +304,22 @@ In claude-as-proposer mode, the CLI **always injects into a fork, never the root
 
 ### Option B - CLI + Stop hook (default UX for claude-as-proposer)
 
-Hook fires when claude finishes responding, invokes the CLI synchronously to completion, exits. The user's claude prompt is unavailable while debate runs (typical 30s–3min). After it returns, the canonical place to look up the run is `.debate/log.jsonl` (one line per run, last line is the most recent; the entry contains the path to that run's `summary.md`); the orchestrator's stdout *may* also surface that path in the surrounding shell, but stdout rendering during a hook is best-effort and unverified, so the spec does not depend on it. **No mid-flight in-session UI is delivered** - Stop-hook channels (stderr, stdout, systemMessage) either don't render in `-p` mode or pollute the root JSONL. Users who want live progress can `tail -f` the orchestrator's session/round files in another terminal.
+Hook fires when claude finishes responding, invokes the CLI synchronously to completion, exits. The user's claude prompt is unavailable while agon runs (typical 30s–3min). After it returns, the canonical place to look up the run is `.agon/log.jsonl` (one line per run, last line is the most recent; the entry contains the path to that run's `summary.md`); the orchestrator's stdout *may* also surface that path in the surrounding shell, but stdout rendering during a hook is best-effort and unverified, so the spec does not depend on it. **No mid-flight in-session UI is delivered** - Stop-hook channels (stderr, stdout, systemMessage) either don't render in `-p` mode or pollute the root JSONL. Users who want live progress can `tail -f` the orchestrator's session/round files in another terminal.
 
-- Pro: zero workflow friction. User doesn't have to remember to run `debate` after every session.
+- Pro: zero workflow friction. User doesn't have to remember to run `agon` after every session.
 - Con: every claude stop triggers the orchestrator unless gated; the gate (`--changed-lines-min`) is essential to avoid debating trivial completions. And: no in-session feedback during the run.
-- Verdict: **default for claude-as-proposer.** The hook is one stdin-read of the payload, an `exec debate ...` call, and a recursion guard.
+- Verdict: **default for claude-as-proposer.** The hook is one stdin-read of the payload, an `exec agon ...` call, and a recursion guard.
 
 ### Rejected options
 
-- **Slash command (`/debate`)**: violates the channel constraint - slash commands inject a template into the conversation. Even if the template only said "run the debate process," that's still a system-prompt-shaped artifact the proposer sees before the critic's text.
-- **Skill (`debate-review` or `debate-defense`)**: same reason. Skills carry instructions Claude follows. The whole point is that Claude follows its *normal* coding-feedback instincts when responding to the critic, not a skill-specific methodology.
+- **Slash command (`/agon`)**: violates the channel constraint - slash commands inject a template into the conversation. Even if the template only said "run the agon process," that's still a system-prompt-shaped artifact the proposer sees before the critic's text.
+- **Skill (`agon-review` or `agon-defense`)**: same reason. Skills carry instructions Claude follows. The whole point is that Claude follows its *normal* coding-feedback instincts when responding to the critic, not a skill-specific methodology.
 - **Plugin packaging**: premature productization. A two-line hook + a CLI binary doesn't need a plugin manifest. Revisit if a second user shows up.
 
 ## CLI surface
 
 ```
-debate [--main claude] [--side codex] [--side-count 4]
+agon [--main claude] [--side codex] [--side-count 4]
        [--main-model <model>] [--side-model <model>]
        [--max-turn 6]
        [--aspect functional-logic,security,code-quality,performance]
@@ -330,7 +330,7 @@ debate [--main claude] [--side codex] [--side-count 4]
        [--judge none|llm|human]
        [--cost-cap 50000]
        [--changed-lines-min 10]
-       [--state-dir .debate]
+       [--state-dir .agon]
        [--format markdown|json]
        [--hook-mode]
 ```
@@ -345,12 +345,12 @@ Notes:
 - `--max-turn` counts P+C exchanges combined per fork. 6 = 3 attack rounds + 3 defense rounds within one fork. With `side-count=3` and max-turn=6, the worst case is 18 round-exchanges total (serial across forks).
 - `--task-context` is mandatory when neither `--session-id` nor `--transcript` is given. Otherwise the orchestrator extracts it from the first user turn in the transcript.
 - `--cost-cap` is always enforced (default 50k tokens); when hit, the orchestrator aborts gracefully (surfaces partial review). Multi-critic multi-turn debates blow token budgets fast.
-- `--changed-lines-min` is the trivial-diff gate. Below the threshold, the orchestrator prints one status line (`[debate] skipped: trivial diff`) and exits fast. Critical when the Stop hook is auto-triggering on every claude session-stop.
+- `--changed-lines-min` is the trivial-diff gate. Below the threshold, the orchestrator prints one status line (`[agon] skipped: trivial diff`) and exits fast. Critical when the Stop hook is auto-triggering on every claude session-stop.
 - Exit code 0 if zero unresolved leaves, 1 otherwise. Lets it gate CI. **`--hook-mode` overrides this to always exit 0** - used by the default Stop hook script so a normal "review found unresolved" run doesn't read as a hook failure to claude. CI gating scripts must NOT pass `--hook-mode`; they want the non-zero exit on unresolved leaves. The flag only changes the exit code; the surfacing rule, `summary.md` content, and `log.jsonl` entry are unchanged.
 
 ## Trigger via Stop hook (default for claude-as-proposer)
 
-The Stop hook is the **default install path**, not optional. It's how zero-friction triggering is delivered: user opens claude interactively, codes normally, and when claude finishes responding the orchestrator runs synchronously, writes `summary.md` to disk, appends a one-line entry to `.debate/log.jsonl`, and exits. The orchestrator's stdout flows through `exec` to the surrounding shell, so it *may* render on the user's terminal in interactive mode (unverified - see "What the user sees during debate"); the spec does **not** depend on that. The contract is "summary on disk; stdout best-effort."
+The Stop hook is the **default install path**, not optional. It's how zero-friction triggering is delivered: user opens claude interactively, codes normally, and when claude finishes responding the orchestrator runs synchronously, writes `summary.md` to disk, appends a one-line entry to `.agon/log.jsonl`, and exits. The orchestrator's stdout flows through `exec` to the surrounding shell, so it *may* render on the user's terminal in interactive mode (unverified - see "What the user sees during agon"); the spec does **not** depend on that. The contract is "summary on disk; stdout best-effort."
 
 ### Hook configuration
 
@@ -365,7 +365,7 @@ The Stop hook entry in `.claude/settings.json` must use the **verbose format** (
         "hooks": [
           {
             "type": "command",
-            "command": "/path/to/debate-stop-hook.sh"
+            "command": "/path/to/agon-stop-hook.sh"
           }
         ]
       }
@@ -384,10 +384,10 @@ set -e
 # subprocesses to drive each round; those subprocesses also fire the Stop
 # hook when they finish responding. Without this guard the hook would
 # re-enter the orchestrator on every round and fork infinitely.
-if [ -n "$DEBATE_IN_PROGRESS" ]; then
+if [ -n "$AGON_IN_PROGRESS" ]; then
   exit 0
 fi
-export DEBATE_IN_PROGRESS=1
+export AGON_IN_PROGRESS=1
 
 PAYLOAD=$(cat)
 SESSION_ID=$(echo "$PAYLOAD" | jq -r '.session_id')
@@ -410,24 +410,24 @@ cd "$CWD" || exit 1
 # Without it, the CLI's `unresolved leaves -> exit 1` semantics (see
 # CLI surface notes) would propagate through `exec` and Claude would
 # read the Stop hook as having failed on every interesting review run.
-exec debate --hook-mode --session-id "$SESSION_ID" --transcript "$TRANSCRIPT" --max-turn 6
+exec agon --hook-mode --session-id "$SESSION_ID" --transcript "$TRANSCRIPT" --max-turn 6
 ```
 
-The hook payload contains `session_id`, `transcript_path`, `cwd`, `stop_reason`, and `output` as JSON on stdin. No plugin manifest, no slash command, no skill - all the work lives in the `debate` CLI; the hook just routes the payload.
+The hook payload contains `session_id`, `transcript_path`, `cwd`, `stop_reason`, and `output` as JSON on stdin. No plugin manifest, no slash command, no skill - all the work lives in the `agon` CLI; the hook just routes the payload.
 
-**Recursion guard contract.** The orchestrator must `export DEBATE_IN_PROGRESS=1` (or inherit it) before spawning any `claude --resume <fork-id> -p ...` subprocess, and the hook must check it and exit 0 immediately if set. Without both halves of this contract, every fork's `claude -p` round would itself trigger the Stop hook → recursive debate. The guard is the only reliable signal because the spawned subprocess looks like a normal claude session from the hook's perspective.
+**Recursion guard contract.** The orchestrator must `export AGON_IN_PROGRESS=1` (or inherit it) before spawning any `claude --resume <fork-id> -p ...` subprocess, and the hook must check it and exit 0 immediately if set. Without both halves of this contract, every fork's `claude -p` round would itself trigger the Stop hook → recursive agon runs. The guard is the only reliable signal because the spawned subprocess looks like a normal claude session from the hook's perspective.
 
 **No JSON emitted to stdout from the hook.** Anything written to stdout in the Stop event's expected JSON shape (e.g. `{"systemMessage": "..."}`) is processed by claude and persisted to the root session's JSONL as an attachment entry - pollution. The hook should write nothing to stdout. The orchestrator's stdout flows through to the surrounding shell's terminal directly via `exec`, where it's visible after the run completes.
 
 **Project-level vs user-level settings.** Project `.claude/settings.json` works (claude reads it), but my probe of `claude -p` showed hooks defined there can be filtered if the project isn't trusted. The cleanest install path is *user-level* `~/.claude/settings.json` for tools meant to apply across projects, or `.claude/settings.json` accepted via a one-time interactive trust prompt for project-specific config.
 
-### What the user sees during debate
+### What the user sees during agon
 
 Conservative baseline, decided after probe findings:
 
-- **At Stop**: hook fires, sets `DEBATE_IN_PROGRESS=1`, `exec`s the orchestrator. Claude is "stopping" and the user's prompt is unavailable until the orchestrator exits. **No in-session UI is delivered**: no banner, no progress, no styled note. The terminal may show the orchestrator's stdout/stderr if interactive mode renders it (unverified - see below), but the spec does not depend on it.
-- **At orchestrator exit**: orchestrator's last stdout line names the summary path (`.debate/sessions/<ts>-<id>/summary.md`). The hook returns 0; claude finishes stopping; the user's prompt returns. The user opens `summary.md` to see results.
-- **Trivial diffs**: `--changed-lines-min 10` short-circuits early. Hook returns in <100ms with one stdout line ("debate skipped: trivial diff, <N> lines"). No round files, no `summary.md`, just a `.debate/log.jsonl` entry.
+- **At Stop**: hook fires, sets `AGON_IN_PROGRESS=1`, `exec`s the orchestrator. Claude is "stopping" and the user's prompt is unavailable until the orchestrator exits. **No in-session UI is delivered**: no banner, no progress, no styled note. The terminal may show the orchestrator's stdout/stderr if interactive mode renders it (unverified - see below), but the spec does not depend on it.
+- **At orchestrator exit**: orchestrator's last stdout line names the summary path (`.agon/sessions/<ts>-<id>/summary.md`). The hook returns 0; claude finishes stopping; the user's prompt returns. The user opens `summary.md` to see results.
+- **Trivial diffs**: `--changed-lines-min 10` short-circuits early. Hook returns in <100ms with one stdout line ("agon skipped: trivial diff, <N> lines"). No round files, no `summary.md`, just a `.agon/log.jsonl` entry.
 - **Cancellable**: Ctrl-C in the user's terminal sends SIGINT through the process tree. Orchestrator catches it, writes `end.json` with `terminated: interrupted`. With `--hook-mode` (the default Stop-hook path) it exits 0 so claude doesn't treat the cancellation as a hook failure; without `--hook-mode` (manual/CI path) it exits non-zero. Claude finishes stopping normally either way.
 
 If a future probe shows interactive claude renders hook stderr (TUI mode, unverified - `-p` definitely doesn't), the orchestrator can write per-fork progress to stderr and users will see it scroll. That's an *additive* enhancement; the spec design does not promise it.
@@ -442,20 +442,20 @@ Three channels were considered and all failed:
 | Stop-hook `systemMessage` JSON | Probe: writes `hook_system_message` attachment into root JSONL. **Pollution** - rejected. |
 | Stop-hook `additionalContext` JSON | Probe: schema rejects `additionalContext` for Stop event. |
 
-If the user wants live progress, the supported path is `tail -f .debate/sessions/<latest>/forks/critic-*/rounds/r*-{critic,proposer}.md` (or `transcript.jsonl`) in another terminal. That's outside the claude session and doesn't touch root.
+If the user wants live progress, the supported path is `tail -f .agon/sessions/<latest>/forks/critic-*/rounds/r*-{critic,proposer}.md` (or `transcript.jsonl`) in another terminal. That's outside the claude session and doesn't touch root.
 
 ### Manual invocation (fallback)
 
-For CI gating, scripted batch runs, running debate against a saved session out-of-band, or codex-as-proposer (v1, no Stop hook equivalent), invoke the CLI directly:
+For CI gating, scripted batch runs, running agon against a saved session out-of-band, or codex-as-proposer (v1, no Stop hook equivalent), invoke the CLI directly:
 
 ```
-debate --session-id <root-claude-session-id> --max-turn 6
+agon --session-id <root-claude-session-id> --max-turn 6
 ```
 
 Or with codex as proposer (v1; not available in v0):
 
 ```
-debate --main codex --side claude --main-model gpt-5 --side-model claude-sonnet-4-6 \
+agon --main codex --side claude --main-model gpt-5 --side-model claude-sonnet-4-6 \
        --task-context "$(< task.md)" --diff-from HEAD~1
 ```
 
@@ -463,15 +463,15 @@ Manual invocation is the only path for codex-as-proposer (when it ships in v1); 
 
 ## Session persistence
 
-Each debate run is a session with explicit start and end markers and an on-disk record. This is what makes the orchestrator auditable and the "review unresolved later" workflow possible.
+Each agon run is a session with explicit start and end markers and an on-disk record. This is what makes the orchestrator auditable and the "review unresolved later" workflow possible.
 
 ### Layout
 
-Each invocation creates a folder under `--state-dir` (default `.debate/`):
+Each invocation creates a folder under `--state-dir` (default `.agon/`):
 
 ```
-.debate/
-  log.jsonl                          # one line per debate run, appended at end
+.agon/
+  log.jsonl                          # one line per agon run, appended at end
   sessions/
     <ISO8601>-<short-id>/
       start.json                     # timestamp, proposer-agent, root-session-id (claude only), task-context, *initial* diff snapshot (before any fork runs), config
@@ -562,7 +562,7 @@ The general rule: any file referenced by an `@<path>` pointer must exist on disk
 - `transcript.jsonl` and `attacks.jsonl` are append-only - never rewrite, never seek-back. A killed process leaves a valid (truncated) record.
 - `summary.md` and `end.json` are written only at termination (clean or interrupted).
 - `log.jsonl` is appended last, after `end.json` is durable. A run with `end.json` missing is an interrupted session; user can inspect `forks/<i>/rounds/` directly.
-- **Root session is never modified by debate content.** No `claude --resume <root-id>` without `--fork-session`. The proposer-clone runs in the fork; debate turns never reach the root's transcript. **Probe-confirmed 2026-05 against claude 2.1.131:** a no-output Stop hook produces zero `hook_*` attachments in root JSONL. The 2026-05 finding that an *output-emitting* Stop hook writes a `hook_system_message` (and `hook_success`) attachment is unaffected - that is by design, since it carries the hook's actual output. The load-bearing invariant for debate is: when the orchestrator chooses not to write to stdout/stderr (the v0 default in `--hook-mode`), the root JSONL gets no hook-related attachment. Recording in [28-probe-no-output-stop-hook-outcome.md](28-probe-no-output-stop-hook-outcome.md) and `release-notes-v0.0.1.md`.
+- **Root session is never modified by agon content.** No `claude --resume <root-id>` without `--fork-session`. The proposer-clone runs in the fork; agon turns never reach the root's transcript. **Probe-confirmed 2026-05 against claude 2.1.131:** a no-output Stop hook produces zero `hook_*` attachments in root JSONL. The 2026-05 finding that an *output-emitting* Stop hook writes a `hook_system_message` (and `hook_success`) attachment is unaffected - that is by design, since it carries the hook's actual output. The load-bearing invariant for agon is: when the orchestrator chooses not to write to stdout/stderr (the v0 default in `--hook-mode`), the root JSONL gets no hook-related attachment. Recording in [28-probe-no-output-stop-hook-outcome.md](28-probe-no-output-stop-hook-outcome.md) and `release-notes-v0.0.1.md`.
 
 ### Surfacing rule
 
@@ -582,11 +582,11 @@ Tie-break by first appearance. This is deliberately a cheap rule with no LLM sco
 
 ### `.gitignore`
 
-`.debate/` should not be committed. Orchestrator checks `.gitignore` on first run and prints a warning (not a hard error) if `.debate/` is missing from it. Doesn't auto-edit the file - that's the user's call.
+`.agon/` should not be committed. Orchestrator checks `.gitignore` on first run and prints a warning (not a hard error) if `.agon/` is missing from it. Doesn't auto-edit the file - that's the user's call.
 
 ## Configuration
 
-Project-level `.debate.toml` overrides defaults:
+Project-level `.agon.toml` overrides defaults:
 
 ```toml
 max_turn = 6
@@ -621,7 +621,7 @@ The summary header names which condition fired, so the human knows whether to tr
 `summary.md` structure:
 
 ```
-# Debate review - terminated: steady-state | max-turn | cost-cap | malformed-output | interrupted
+# Agon review - terminated: steady-state | max-turn | cost-cap | malformed-output | interrupted
 
 ## Headline (most contested unresolved)
 - [security/api.py:88] Input sanitization
@@ -639,11 +639,11 @@ The summary header names which condition fired, so the human knows whether to tr
 
 ## Stats
 critic-found-bug rate: 7/15 attacks led to a fix
-debate cost: 38k tokens, 6 turns, 2 critics
-session: .debate/sessions/2026-05-05T14-22-31-a3f9b1/
+agon cost: 38k tokens, 6 turns, 2 critics
+session: .agon/sessions/2026-05-05T14-22-31-a3f9b1/
 ```
 
-When unresolved count is zero, `summary.md` still has the Resolved + Stats sections (no Headline, no Unresolved) and is written but not surfaced. The user only sees one line on stdout pointing at `.debate/log.jsonl`.
+When unresolved count is zero, `summary.md` still has the Resolved + Stats sections (no Headline, no Unresolved) and is written but not surfaced. The user only sees one line on stdout pointing at `.agon/log.jsonl`.
 
 The Headline section is the entire justification for the tool. If it's noise across many sessions, the tool fails - and the cross-session `log.jsonl` makes that measurable rather than vibes-based. The Stats block lets the user spot-check whether the critic is actually working: if `critic-found-bug rate` trends near 0, disable the hook.
 
@@ -651,7 +651,7 @@ The Headline section is the entire justification for the tool. If it's noise acr
 
 - **Per-aspect lazy-critic risk** (was previously framed as "the binding one"; that overgeneralized the single-critic case). A lazy critic produces no value in its aspect. With multi-critic across distinct aspects, no single lazy critic collapses the whole tool - only its aspect goes uncovered. The binding question becomes **per-aspect**: for each aspect we ship as default, is the critic prompt + model competent enough to find real instances? Mitigation: measure critic-found-bug rate *per aspect* in upstream 07a; aspects below threshold get dropped from defaults rather than the tool being abandoned. The debate-theoretic intuition (one competent honest player suffices for soundness) is what makes this work.
 - **Cost.** Multi-critic multi-turn debates 5–10x a coding session's token bill. Cost cap is always enforced (no uncapped mode); default it conservatively (50k tokens).
-- **Flow disruption.** Auto-Stop on every claude completion would fire on trivial edits (typo fixes, single-line changes), which is the dominant failure mode of "always-on review tools." Mitigation is structural, not opt-in: `--changed-lines-min` (default 10) gates debate at the orchestrator entry point, so the hook returns in milliseconds for trivial diffs. The user sees one status line confirming the gate fired, not a debate run.
+- **Flow disruption.** Auto-Stop on every claude completion would fire on trivial edits (typo fixes, single-line changes), which is the dominant failure mode of "always-on review tools." Mitigation is structural, not opt-in: `--changed-lines-min` (default 10) gates agon at the orchestrator entry point, so the hook returns in milliseconds for trivial diffs. The user sees one status line confirming the gate fired, not a agon run.
 - **Critic context starvation (and the inverse: rabbit-holes).** The aspect prompt asks the critic to focus on diff + task; in v0 this is enforced by prompt discipline rather than OS isolation (see Critic isolation), so a well-behaved critic produces context-starved attacks ("this function isn't called!" - yes it is, elsewhere) and a misbehaving one produces rabbit-hole attacks against unrelated code. Mitigations: critic prompt requires concrete reproduction (drops most rabbit-holes at parse time); the proposer is allowed to rebut with `file:line` references the critic is forbidden from re-attacking.
 - **Stylistic-gripe drift (especially in `code-quality` aspect).** Critic drifts from real maintainability impact into formatting/naming preferences. `code-quality` is the most exposed aspect because the line between "real quality issue" and "preference" is fuzzier than for `security` or `performance`. Mitigation: critic prompt requires every attack to name a concrete behavior or maintainability impact; mediator drops style-shaped attacks at parse time (heuristic: attack contains "should be" + naming/formatting language without a concrete behavior claim).
 - **Asymmetric truth.** Proposer has more context than critic; may over-defend when actually wrong. Mitigation: `--judge llm` mode triages unresolved leaves; default `none` just surfaces them and trusts the human.
@@ -676,7 +676,7 @@ This section is the canonical list. The Versioning section above summarises the 
 - **Codex-as-proposer.** Architecture documented above; implementation is v1 - different round driver, no Stop-hook auto-trigger, fresh `codex exec` per round.
 - **Parallel forks via per-fork worktrees** (`claude --worktree`). Frozen working-tree snapshots per fork eliminate the serial-outcome-leakage problem and enable parallel execution. Needs a concession-merge story when two critics' fixes conflict.
 - **Streaming TUI / live in-session progress.** v0 is batch (no in-session UI); a TUI or a viable hook-output channel would be v1 work.
-- **Persistent debate state across user sessions.** Each v0 invocation is fresh against the current diff. `debate resume <session-id>` is v1.
+- **Persistent agon state across user sessions.** Each v0 invocation is fresh against the current diff. `agon resume <session-id>` is v1.
 - **Per-critic model configuration.** v0 shares one `--side-model` across all critics (aspect specialization carries the per-critic diversity). v1 may add per-critic model overrides.
 
 ## Relationship to upstream research
@@ -688,7 +688,7 @@ This tool is the productization of the debate architecture studied in [agents-by
 1. Run upstream 07a per aspect (functional-logic, security, code-quality, performance) - aspect-specialized critics, not one generalist.
 2. For each aspect, measure critic-found-bug rate on seeded bugs of that aspect.
 3. **Default aspects = aspects where the rate is ≥ 60%.**
-4. **Acceptable thresholds**: at least two aspects pass; otherwise the tool is hollow. If only one aspect passes, it's a single-aspect linter, not a debate tool.
+4. **Acceptable thresholds**: at least two aspects pass; otherwise the tool is hollow. If only one aspect passes, it's a single-aspect linter, not a agon tool.
 5. If H1 also holds (debate beats voting at equal compute, on per-aspect tasks): add Option B's Stop hook.
 
 The previous order-of-work conflated all critics into one threshold. With aspect specialization, the failure of one aspect doesn't kill the tool - it just narrows the default set. Upstream 07's H6 ("lazy critic collapses the architecture") is real but only at the per-aspect level.

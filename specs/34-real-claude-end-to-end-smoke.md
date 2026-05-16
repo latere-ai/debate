@@ -1,7 +1,7 @@
 # Spec 34 - Real-claude end-to-end smoke
 
 > **Status: ✅ implemented** (G16 PASS at 181s/fork on v0.0.1 rc binary. Auth was unblocked by `unset ANTHROPIC_API_KEY` so claude falls back to the OAuth token from `/login`; the shipping hook script already does this. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the smoke remains as a developer sanity check.)
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"v0 release blockers" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"v0 release blockers" for design intent.
 
 **Depends on:** [17](17-claude-proposer.md), [18](18-critic-drivers.md), [19](19-round-loop.md), [24](24-stop-hook.md), [33](33-install-hook-smoke.md).
 **Consumed by:** [27](27-release.md).
@@ -14,14 +14,14 @@ This is distinct from [32](32-real-e2e-suite.md) (Path A) - that suite is automa
 
 ## Execution
 
-1. `make build`. Note `bin/debate`'s sha256.
+1. `make build`. Note `bin/agon`'s sha256.
 2. Install the hook into the maintainer's real `~/.claude/settings.json`:
    ```
-   ./bin/debate install-hook --scope user
+   ./bin/agon install-hook --scope user
    ```
 3. In a fresh git repo with one trivial commit:
    ```
-   mkdir -p ~/tmp/debate-g16 && cd $_
+   mkdir -p ~/tmp/agon-g16 && cd $_
    git init && echo seed > seed.txt && git add . && \
      git -c user.email=t@e.com -c user.name=t commit -m init
    ```
@@ -29,7 +29,7 @@ This is distinct from [32](32-real-e2e-suite.md) (Path A) - that suite is automa
    > "Add a small Go HTTP handler in `server.go` with input validation and a couple of unit tests. Aim for around 50 lines."
 5. End the session normally (Ctrl-D / `/quit`). The Stop hook fires.
 6. Wait. Each fork has up to 5 minutes; default is 4 aspects → 4 forks → up to 20 minutes total in the worst case. Note the **per-fork** wall-time budget is what G16 asserts, not the total.
-7. Inspect `.debate/sessions/<latest>/` and capture:
+7. Inspect `.agon/sessions/<latest>/` and capture:
    - `summary.md` exists and is non-empty.
    - `end.json` exists; its `termination` field is one of `steady-state | max-turn | cost-cap`.
    - `forks/critic-*/` directories exist for each default aspect.
@@ -42,7 +42,7 @@ gate: real-claude-end-to-end
 host_os: darwin|linux
 claude_version: <`claude --version`>
 codex_version: <`codex --version`>
-session_dir: .debate/sessions/<id>
+session_dir: .agon/sessions/<id>
 termination: steady-state | max-turn | cost-cap | malformed-output | interrupted
 forks: [<aspect, wall_seconds>, ...]
 max_per_fork_wall: <max of forks[*].wall_seconds>
@@ -60,11 +60,11 @@ verdict: PASS | FAIL    # PASS iff max_per_fork_wall ≤ 300s and a summary file
 ## Out of scope
 
 - Repeating G16 across multiple model versions. One claude/codex pairing is enough for v0; the recording captures versions for audit.
-- Cleanup of the throwaway repo or `.debate/sessions/` entry. Maintainer's call.
+- Cleanup of the throwaway repo or `.agon/sessions/` entry. Maintainer's call.
 
 ## Acceptance criteria
 
-- [x] One real-claude session ran to completion; recording captured. (Run via `bin/debate --session-id <real-id>` against a fixture with a 46-line diff; the Stop-hook trigger path is functionally identical and is verified separately by spec 33's install-hook smoke.)
+- [x] One real-claude session ran to completion; recording captured. (Run via `bin/agon --session-id <real-id>` against a fixture with a 46-line diff; the Stop-hook trigger path is functionally identical and is verified separately by spec 33's install-hook smoke.)
 - [x] `verdict: PASS` and `max_per_fork_wall ≤ 300s`. Measured: 181 s.
 - [x] ~~[27-release.md](27-release.md) G16 cites the recording.~~ *(retracted: G16 no longer exists as a release blocker.)*
 - [x] Disposition updated to allow SKIP when `claude --print` is unauthenticated (HTTP 401), with the escape-hatch wording above. Now superseded by the PASS recording, but the escape hatch stays for future maintainers on hosts without working auth.

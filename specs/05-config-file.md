@@ -1,7 +1,7 @@
-# Spec 05 - Config file (`.debate.toml`)
+# Spec 05 - Config file (`.agon.toml`)
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §Configuration for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §Configuration for design intent.
 
 **Depends on:** [02](02-go-module.md), [04](04-cli-flags.md).
 **Consumed by:** [06](06-preflight.md).
@@ -18,7 +18,7 @@ Out: validating the resulting effective config (see [06](06-preflight.md)).
 
 ## Schema
 
-`.debate.toml`:
+`.agon.toml`:
 
 ```toml
 # Optional. Each field maps 1:1 to the CLI flag of the same name with
@@ -33,7 +33,7 @@ max_turn = 6
 aspects = ["functional-logic", "security", "code-quality", "performance"]
 cost_cap_tokens = 50000          # NB: TOML name; CLI is --cost-cap
 changed_lines_min = 10
-state_dir = ".debate"
+state_dir = ".agon"
 format = "markdown"
 judge = "none"
 trigger = "stop"                  # "stop" | "manual"; informational, drives install instructions only
@@ -44,11 +44,11 @@ Naming rule: TOML keys are `snake_case`; CLI flags are `--kebab-case`. Mapping i
 
 ## Search path
 
-When `--config` is empty, `debate` looks for `.debate.toml` in this order and uses the first hit:
+When `--config` is empty, `agon` looks for `.agon.toml` in this order and uses the first hit:
 
-1. Current working directory (`./.debate.toml`).
+1. Current working directory (`./.agon.toml`).
 2. The git repo root, if cwd is inside a repo (`git rev-parse --show-toplevel`).
-3. `$XDG_CONFIG_HOME/debate/config.toml`, falling back to `$HOME/.config/debate/config.toml`.
+3. `$XDG_CONFIG_HOME/agon/config.toml`, falling back to `$HOME/.config/agon/config.toml`.
 4. None - built-in defaults only.
 
 When `--config <path>` is set, that path is used; missing file is an error.
@@ -59,8 +59,8 @@ Effective config is computed in this order, last writer wins per field:
 
 1. Built-in defaults (from [04](04-cli-flags.md) flag table).
 2. User config (`$XDG_CONFIG_HOME/...`), if present.
-3. Project config (`./.debate.toml` or repo root), if present.
-4. Env vars (`DEBATE_*`).
+3. Project config (`./.agon.toml` or repo root), if present.
+4. Env vars (`AGON_*`).
 5. CLI flags.
 
 Sentinel: an absent field at level N never overwrites a present field at level N-1. `cobra` distinguishes "user supplied" via `flag.Changed`; the loader uses that flag.

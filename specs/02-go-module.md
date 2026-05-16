@@ -1,7 +1,7 @@
 # Spec 02 - Go module and layout
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) for design intent.
 
 **Depends on:** none.
 **Consumed by:** every other implementation spec - this defines the skeleton everything else fills in.
@@ -14,15 +14,15 @@ Out: build/test pipeline ([03](03-ci-lint-release.md)), CLI logic ([04](04-cli-f
 
 ## Module path and toolchain
 
-- Module: `latere.ai/x/debate`.
+- Module: `latere.ai/x/agon`.
 - Go directive in `go.mod`: `go 1.26` (selected for `slices`, `cmp`, `errors.Join`, integer `for` range).
 - No third-party dependencies in v0 except a CLI library and TOML parser; both pinned in [04](04-cli-flags.md) and [05](05-config-file.md). Standard library elsewhere.
 
 ## Directory layout
 
 ```
-debate/
-├── cmd/debate/                # main.go: flag wiring only
+agon/
+├── cmd/agon/                # main.go: flag wiring only
 ├── internal/
 │   ├── cli/                   # filled by 04, 05, 06
 │   ├── input/                 # filled by 07, 08
@@ -34,7 +34,7 @@ debate/
 │   ├── summary/               # filled by 22, 23
 │   └── hook/                  # filled by 24
 ├── scripts/
-│   ├── debate-stop-hook.sh    # filled by 24
+│   ├── agon-stop-hook.sh    # filled by 24
 │   └── probes/                # filled by 25
 ├── testdata/                  # fixtures (filled per-spec)
 ├── specs/                     # this directory
@@ -49,15 +49,15 @@ debate/
 Rules:
 
 - All implementation under `internal/`. No exported library API for v0.
-- `cmd/debate/main.go` does flag wiring → `internal/cli.Run(ctx, args)` only. Zero business logic in `cmd`.
+- `cmd/agon/main.go` does flag wiring → `internal/cli.Run(ctx, args)` only. Zero business logic in `cmd`.
 - One package per directory; no nested sub-packages inside `internal/<name>` unless a later spec explicitly requires it.
 
 ## Makefile
 
 ```makefile
 SHELL := /bin/bash
-BIN   := bin/debate
-PKG   := ./cmd/debate
+BIN   := bin/agon
+PKG   := ./cmd/agon
 
 .PHONY: all build install test lint vet clean
 all: lint vet test build
@@ -86,7 +86,7 @@ clean:
 
 ```
 bin/
-.debate/
+.agon/
 *.test
 *.out
 coverage.txt
@@ -111,8 +111,8 @@ So `go build ./...` succeeds on a fresh clone before any business logic lands.
 
 ## Acceptance criteria
 
-- [x] `go.mod` is `latere.ai/x/debate` at `go 1.26`.
+- [x] `go.mod` is `latere.ai/x/agon` at `go 1.26`.
 - [x] Every directory in the layout exists, each with at least `doc.go` (where applicable).
-- [x] `make build` produces `bin/debate`.
-- [x] `bin/debate` exits 0 (placeholder until [04](04-cli-flags.md) replaces `main`).
+- [x] `make build` produces `bin/agon`.
+- [x] `bin/agon` exits 0 (placeholder until [04](04-cli-flags.md) replaces `main`).
 - [x] `make all` succeeds on a fresh clone with no warnings.

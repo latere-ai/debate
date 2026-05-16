@@ -1,7 +1,7 @@
 # Spec 19 - Round loop and per-fork orchestration
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Rounds" and "Lifecycle invariants" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Rounds" and "Lifecycle invariants" for design intent.
 
 **Depends on:** [06](06-preflight.md), [07](07-claude-transcript.md), [08](08-diff.md), [09](09-state-dir.md), [10](10-run-artifacts.md), [11](11-fork-artifacts.md), [12](12-attacks-ledger.md), [14](14-attack-parser.md), [15](15-aspect-prompts.md), [17](17-claude-proposer.md), [18](18-critic-drivers.md).
 **Consumed by:** [20](20-termination.md), [21](21-signals.md), [22](22-contention-headline.md), [23](23-summary-render.md).

@@ -1,7 +1,7 @@
 # Spec 32 - Real-e2e suite (write or retract)
 
 > **Status: ✅ implemented** (Path A; `e2e/real/full_test.go` lives behind `//go:build real_e2e`. The release-blocker gate G13 this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the suite remains as opt-in `workflow_dispatch` coverage.)
-> Implementation spec for `debate`. Resolves the gap between [.github/workflows/real-e2e.yml](../.github/workflows/real-e2e.yml), [26-tests.md](26-tests.md), and the actual file tree.
+> Implementation spec for `agon`. Resolves the gap between [.github/workflows/real-e2e.yml](../.github/workflows/real-e2e.yml), [26-tests.md](26-tests.md), and the actual file tree.
 
 **Depends on:** [16](16-subprocess-infra.md), [17](17-claude-proposer.md), [18](18-critic-drivers.md), [19](19-round-loop.md), [26](26-tests.md).
 **Consumed by:** [27](27-release.md), [.github/workflows/real-e2e.yml](../.github/workflows/real-e2e.yml).
@@ -20,7 +20,7 @@ Test contract:
 
 - `TestRealEndToEnd_OneFork` (only test in the file, deliberately):
   - Initialises a temp git repo with a 47-line diff fixture (reuse `testdata/diffs/typical.patch` if present).
-  - Spawns `bin/debate` with `--main claude --side codex --max-turn 4 --aspects security`.
+  - Spawns `bin/agon` with `--main claude --side codex --max-turn 4 --aspects security`.
   - Asserts: process exits within 5 minutes; `summary.md` exists and is non-empty; `attacks.jsonl` parses; at least one `forks/critic-*/rounds/r1-critic.md` exists.
   - Skips with `t.Skip` if `claude` or `codex` are missing on `$PATH`, *not* if `RUN_REAL` is unset (the build tag already gates that).
 

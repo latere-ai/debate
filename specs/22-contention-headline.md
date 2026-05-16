@@ -1,7 +1,7 @@
 # Spec 22 - Contention scoring and headline selection
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Headline contradicting signal" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Headline contradicting signal" for design intent.
 
 **Depends on:** [12](12-attacks-ledger.md).
 **Consumed by:** [23](23-summary-render.md).

@@ -1,14 +1,14 @@
 # Spec 33 - install-hook smoke verification
 
 > **Status: ✅ implemented** (G15 PASS verified once on v0.0.1 rc binary. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the smoke remains as a developer sanity check to be re-run when [24](24-stop-hook.md) changes.)
-> Implementation spec for `debate`. See [24-stop-hook.md](24-stop-hook.md) for the underlying behaviour.
+> Implementation spec for `agon`. See [24-stop-hook.md](24-stop-hook.md) for the underlying behaviour.
 
 **Depends on:** [24](24-stop-hook.md).
 **Consumed by:** [27](27-release.md).
 
 ## What we're proving
 
-[27-release.md](27-release.md) G15: `debate install-hook --scope user` against a fresh `~/.claude/settings.json` produces a valid verbose-format Stop hook entry. This must be exercised on the release-candidate binary, not the working-tree binary, and not on a settings file that already has hooks (since merge behaviour is the more interesting case but is **not** what G15 asks for).
+[27-release.md](27-release.md) G15: `agon install-hook --scope user` against a fresh `~/.claude/settings.json` produces a valid verbose-format Stop hook entry. This must be exercised on the release-candidate binary, not the working-tree binary, and not on a settings file that already has hooks (since merge behaviour is the more interesting case but is **not** what G15 asks for).
 
 A second, narrower check is also worth running and recording: install-hook is idempotent on a settings file that already contains the same hook entry (per [24-stop-hook.md](24-stop-hook.md)). This is recorded but does not block GA.
 
@@ -18,16 +18,16 @@ A second, narrower check is also worth running and recording: install-hook is id
 2. Use a throwaway `$HOME` directory to avoid touching the real settings:
    ```
    FAKE_HOME=$(mktemp -d)
-   HOME=$FAKE_HOME ./bin/debate install-hook --scope user
+   HOME=$FAKE_HOME ./bin/agon install-hook --scope user
    cat $FAKE_HOME/.claude/settings.json
    ```
 3. Inspect the generated `settings.json`:
    - Top-level `hooks.Stop` array exists.
-   - Exactly one entry under `hooks.Stop` whose `command` references `debate-stop-hook.sh` (or `bin/debate run --hook-mode`, depending on what install-hook writes).
+   - Exactly one entry under `hooks.Stop` whose `command` references `agon-stop-hook.sh` (or `bin/agon run --hook-mode`, depending on what install-hook writes).
    - JSON is valid (`jq . settings.json` exits 0).
 4. Idempotency check (informational, not blocking):
    ```
-   HOME=$FAKE_HOME ./bin/debate install-hook --scope user   # second run
+   HOME=$FAKE_HOME ./bin/agon install-hook --scope user   # second run
    jq '.hooks.Stop | length' $FAKE_HOME/.claude/settings.json   # should still be 1
    ```
 
@@ -36,7 +36,7 @@ A second, narrower check is also worth running and recording: install-hook is id
 ```
 gate: install-hook-smoke
 host_os: darwin|linux
-binary_sha256: <sha of bin/debate>
+binary_sha256: <sha of bin/agon>
 fresh_install_valid: yes|no
 generated_command: <the exact `command` string in the hook entry>
 idempotent_second_run: yes|no|not_tested

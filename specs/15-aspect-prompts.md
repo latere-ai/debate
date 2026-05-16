@@ -1,7 +1,7 @@
 # Spec 15 - Aspect prompts
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Critic specialization" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Critic specialization" for design intent.
 
 **Depends on:** [13](13-critic-output-format.md).
 **Consumed by:** [14](14-attack-parser.md) (cross-aspect filter), [18](18-critic-drivers.md) (prompt assembly).

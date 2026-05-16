@@ -1,7 +1,7 @@
 # Spec 17 - Claude proposer driver
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Mechanism" → "Forking the proposer" / "Continuing within a fork" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Mechanism" → "Forking the proposer" / "Continuing within a fork" for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [07](07-claude-transcript.md), [11](11-fork-artifacts.md), [16](16-subprocess-infra.md).
 **Consumed by:** [19](19-round-loop.md).
@@ -130,7 +130,7 @@ Each typed error wraps the raw `agent.Result` for debugging.
 ## Behavior
 
 - `Bin` resolves once at construction (or first call); reuse the cached path.
-- The `--permission-mode` flag is only added when env `DEBATE_PERMISSION_MODE` is set; v0 default omits it.
+- The `--permission-mode` flag is only added when env `AGON_PERMISSION_MODE` is set; v0 default omits it.
 - ANSI escapes in `result` (e.g., from claude's tool-output rendering) are not stripped - the proposer's chat reply is captured verbatim and persisted to `r<n>-proposer.md` ([11](11-fork-artifacts.md)).
 - The driver does *not* parse the response (no attack-shape parsing, no JSON-inside-result extraction). It returns raw text; downstream readers (`r<n>-proposer.md` + the next critic round) consume it as-is.
 

@@ -1,7 +1,7 @@
 # Spec 11 - Per-fork artifacts
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Session persistence" → Layout for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Session persistence" → Layout for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [08](08-diff.md), [09](09-state-dir.md).
 **Consumed by:** [17](17-claude-proposer.md), [18](18-critic-drivers.md), [19](19-round-loop.md), [22](22-contention-headline.md), [23](23-summary-render.md).
@@ -34,7 +34,7 @@ Two shapes, discriminated by `agent`:
 ```jsonc
 // Claude-as-proposer (v0)
 {
-  "schema":            "debate.proposer-state.v0",
+  "schema":            "agon.proposer-state.v0",
   "agent":             "claude",
   "model":             "claude-sonnet-4-6",     // "" = CLI default
   "fork_session_id":   "5a8c9b1e-...",          // captured from --fork-session JSON, R1
@@ -43,7 +43,7 @@ Two shapes, discriminated by `agent`:
 
 // Codex-as-proposer (v1; documented for forward-compat, not written in v0)
 {
-  "schema":            "debate.proposer-state.v0",
+  "schema":            "agon.proposer-state.v0",
   "agent":             "codex",
   "model":             "gpt-5",
   "round_thread_ids": [

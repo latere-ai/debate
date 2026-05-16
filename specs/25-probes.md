@@ -1,7 +1,7 @@
 # Spec 25 - Probes (incl. v0 GA blocker)
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"v0 release blockers" and §"Constraints uncovered by the probe" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"v0 release blockers" and §"Constraints uncovered by the probe" for design intent.
 
 **Depends on:** [16](16-subprocess-infra.md), [21](21-signals.md), [24](24-stop-hook.md).
 **Consumed by:** [27](27-release.md).
@@ -34,9 +34,9 @@ require_bin() {
   command -v "$1" >/dev/null 2>&1 || { echo "missing: $1" >&2; exit 2; }
 }
 ensure_clean_env() {
-  unset ANTHROPIC_API_KEY DEBATE_IN_PROGRESS
+  unset ANTHROPIC_API_KEY AGON_IN_PROGRESS
 }
-mk_tmpdir() { mktemp -d "${TMPDIR:-/tmp}/debate-probe-XXXXXX"; }
+mk_tmpdir() { mktemp -d "${TMPDIR:-/tmp}/agon-probe-XXXXXX"; }
 sha256() { shasum -a 256 "$1" | cut -d' ' -f1; }
 ```
 
@@ -124,7 +124,7 @@ if [ -z "$HOOK_ATTACHMENTS" ]; then
   exit 0
 else
   echo "FAIL: Stop hook produced hook_* attachments in root JSONL even with no output"
-  echo "Implication: spec/01 §'Lifecycle invariants' must keep the 'no debate-content pollution' wording"
+  echo "Implication: spec/01 §'Lifecycle invariants' must keep the 'no agon-content pollution' wording"
   exit 1
 fi
 ```
@@ -132,7 +132,7 @@ fi
 Outcome consumed by [27](27-release.md):
 
 - **PASS**: GA can claim the strict "byte-identical root JSONL" form of root-preservation in non-Stop-hook modes AND in Option B. The spec's caveat at [01-overview.md](01-overview.md) §"Lifecycle invariants" can be tightened.
-- **FAIL**: GA proceeds with the existing "no debate-content pollution" wording. No code change needed - the spec is already correct under this branch.
+- **FAIL**: GA proceeds with the existing "no agon-content pollution" wording. No code change needed - the spec is already correct under this branch.
 
 Either way, GA is unblocked once the probe runs and its result is recorded in the release notes.
 
@@ -140,7 +140,7 @@ Either way, GA is unblocked once the probe runs and its result is recorded in th
 
 `scripts/probes/interactive-stdout.sh`:
 
-Runs claude in an interactive PTY (via `script` or `expect`), triggers a Stop hook that emits `[debate] hello` on its stdout, and checks whether that line surfaces in the user's terminal.
+Runs claude in an interactive PTY (via `script` or `expect`), triggers a Stop hook that emits `[agon] hello` on its stdout, and checks whether that line surfaces in the user's terminal.
 
 PASS / FAIL informs whether [23](23-summary-render.md)'s "stdout best-effort" qualifier in [01-overview.md](01-overview.md) and the README ([24](24-stop-hook.md)) can be tightened to "stdout surfaces in interactive mode."
 
@@ -151,7 +151,7 @@ Optional: if the probe doesn't run before GA, the conservative wording stays.
 `scripts/probes/signal-latency.sh`:
 
 ```bash
-# Spawn `bin/debate` against a mock subprocess, send SIGINT, time how
+# Spawn `bin/agon` against a mock subprocess, send SIGINT, time how
 # long until the process exits.
 # Asserts < 5s on a stuck child (per [21]).
 ```
@@ -163,7 +163,7 @@ Uses a mock `claude` shim that sleeps; not gated on a real claude install.
 `scripts/probes/trivial-diff-perf.sh`:
 
 ```bash
-# Run `bin/debate --changed-lines-min 100` against a 5-line-diff repo.
+# Run `bin/agon --changed-lines-min 100` against a 5-line-diff repo.
 # Asserts median wall time < 200ms across 3 runs.
 # Verifies [08]'s exit-fast path performance claim.
 # Note: spec 01 §UX still names <100ms as the aspirational target; 200ms

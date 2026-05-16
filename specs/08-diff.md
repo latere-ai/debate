@@ -1,7 +1,7 @@
 # Spec 08 - Working-tree diff and trivial-diff gate
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Risks" → flow disruption for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Risks" → flow disruption for design intent.
 
 **Depends on:** [02](02-go-module.md), [04](04-cli-flags.md).
 **Consumed by:** [11](11-fork-artifacts.md), [17](17-claude-proposer.md), [18](18-critic-drivers.md), [19](19-round-loop.md).
@@ -70,7 +70,7 @@ The orchestrator calls `Compute` immediately after pre-flight and before opening
    ```
 2. Print to stderr (always, not gated on verbose):
    ```
-   [debate] skipped: trivial diff (<n> changed lines < <m> threshold)
+   [agon] skipped: trivial diff (<n> changed lines < <m> threshold)
    ```
 3. Exit 0. (Under `--hook-mode` also 0; the gate fires before the unresolved-leaves logic.)
 
@@ -94,7 +94,7 @@ When `--session-id` is set and the user did not pass `--diff-from`, the default 
 - Unit: untracked file in `To == "."` mode shows up in the patch.
 - Unit: diff with binary file → patch contains the `Binary files differ` line, `ChangedLines == 0` for that file.
 - Unit: `ErrNotGitRepo` returned outside a git repo.
-- Integration: `make build && cd <fixture-repo> && bin/debate --changed-lines-min 100` exits 0 with the trivial-diff stderr line.
+- Integration: `make build && cd <fixture-repo> && bin/agon --changed-lines-min 100` exits 0 with the trivial-diff stderr line.
 
 ## Acceptance criteria
 

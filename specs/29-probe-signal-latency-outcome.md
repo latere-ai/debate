@@ -1,7 +1,7 @@
 # Spec 29 - Probe G5 outcome: signal latency
 
-> **Status: ✅ implemented** (G5 PASS at sub-50 ms after fixing a wired-but-unused signal handler in `cmd/debate/main.go`. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the signal-handler fix stands and is regression-pinned by `e2e/cli/signal_test.go`.)
-> Implementation spec for `debate`. See [21-signals.md](21-signals.md) for the underlying invariant and [25-probes.md](25-probes.md) for the probe.
+> **Status: ✅ implemented** (G5 PASS at sub-50 ms after fixing a wired-but-unused signal handler in `cmd/agon/main.go`. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the signal-handler fix stands and is regression-pinned by `e2e/cli/signal_test.go`.)
+> Implementation spec for `agon`. See [21-signals.md](21-signals.md) for the underlying invariant and [25-probes.md](25-probes.md) for the probe.
 
 **Depends on:** [21](21-signals.md), [25](25-probes.md).
 **Consumed by:** [27](27-release.md).
@@ -14,7 +14,7 @@ Out: changes to the signal-handling code ([21](21-signals.md)) or to the probe i
 
 ## What we're proving
 
-[21-signals.md](21-signals.md) commits to "SIGINT to a stuck child causes the orchestrator to exit in under 5 seconds." The probe spawns `bin/debate` against a sleep-only mock and times the SIGINT-to-exit interval. The release-cut gate is binary: PASS if the measured interval is <5s; FAIL otherwise.
+[21-signals.md](21-signals.md) commits to "SIGINT to a stuck child causes the orchestrator to exit in under 5 seconds." The probe spawns `bin/agon` against a sleep-only mock and times the SIGINT-to-exit interval. The release-cut gate is binary: PASS if the measured interval is <5s; FAIL otherwise.
 
 ## Execution
 
@@ -27,7 +27,7 @@ Out: changes to the signal-handling code ([21](21-signals.md)) or to the probe i
 ```
 probe: signal-latency
 host_os: darwin|linux
-binary_sha256: <sha of bin/debate at run time>
+binary_sha256: <sha of bin/agon at run time>
 wall_seconds: <float>
 verdict: PASS | FAIL
 ```
@@ -48,16 +48,16 @@ A flaky FAIL (one failure, one PASS) does not unblock GA - the probe must pass o
 
 ## Out-of-scope-but-fixed
 
-The original probe never exercised `bin/debate` and contained a bash
+The original probe never exercised `bin/agon` and contained a bash
 trap-vs-sleep race that made it always FAIL. Rewriting it to actually
-spawn `bin/debate` against a sleep-forever shim surfaced a real spec-21
-violation: `cmd/debate/main.go` was using cobra's default
+spawn `bin/agon` against a sleep-forever shim surfaced a real spec-21
+violation: `cmd/agon/main.go` was using cobra's default
 `context.Background()`, so the signal handler in
 `internal/round/signals.go` was dead code. Fixing both required:
 
-- `cmd/debate/main.go` calls `round.InstallHandler` and passes the
+- `cmd/agon/main.go` calls `round.InstallHandler` and passes the
   signal-aware context via `root.ExecuteContext(ctx)`.
-- `scripts/probes/signal-latency.sh` is rewritten to spawn `bin/debate`
+- `scripts/probes/signal-latency.sh` is rewritten to spawn `bin/agon`
   with shell-shim claude/codex that sleep, then signal and time exit.
 - `e2e/cli/signal_test.go` is the regression-pinning unit at the e2e
   layer: it asserts SIGINT-to-exit < 2 s on a stuck-child run.

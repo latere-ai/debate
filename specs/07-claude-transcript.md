@@ -1,7 +1,7 @@
 # Spec 07 - Claude session JSONL reader
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Verified primitives" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Verified primitives" for design intent.
 
 **Depends on:** [02](02-go-module.md), [04](04-cli-flags.md), [06](06-preflight.md).
 **Consumed by:** [10](10-run-artifacts.md), [17](17-claude-proposer.md), [19](19-round-loop.md).
@@ -10,7 +10,7 @@
 
 In: locating the root session's JSONL, parsing it as the line-delimited JSON Claude Code writes, extracting task context (the first user turn) and basic metadata. Includes a fallback for the case where the path can't be located but `--session-id` is set.
 
-Out: writing or modifying any session file (root is read-only); transcript indexing for the debate's own state-dir (that's [10](10-run-artifacts.md)'s `transcript.jsonl`).
+Out: writing or modifying any session file (root is read-only); transcript indexing for the agon's own state-dir (that's [10](10-run-artifacts.md)'s `transcript.jsonl`).
 
 ## Path encoding
 

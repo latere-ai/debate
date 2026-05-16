@@ -1,7 +1,7 @@
 # Spec 20 - Termination conditions and cost-cap accounting
 
 > **Status: ✅ implemented.**
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"Termination conditions" for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"Termination conditions" for design intent.
 
 **Depends on:** [04](04-cli-flags.md), [12](12-attacks-ledger.md), [14](14-attack-parser.md), [19](19-round-loop.md).
 **Consumed by:** [19](19-round-loop.md), [21](21-signals.md), [23](23-summary-render.md).

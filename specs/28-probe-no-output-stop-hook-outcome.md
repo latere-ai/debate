@@ -1,7 +1,7 @@
 # Spec 28 - Probe G4 outcome: no-output Stop hook
 
 > **Status: ✅ implemented** (G4 PASS against claude 2.1.131. Spec 01 wording tightened to drop the "probe owed" caveats. The release-blocker gate this spec closed was retracted in the 2026-05-08 simplification of [27](27-release.md); the probe and its disposition stand as historical record.)
-> Implementation spec for `debate`. See [01-overview.md](01-overview.md) §"v0 release blockers" and [25-probes.md](25-probes.md) for design intent.
+> Implementation spec for `agon`. See [01-overview.md](01-overview.md) §"v0 release blockers" and [25-probes.md](25-probes.md) for design intent.
 
 **Depends on:** [25](25-probes.md), [27](27-release.md).
 **Consumed by:** [27](27-release.md).
@@ -17,7 +17,7 @@ Out: changes to the probe script itself ([25](25-probes.md)), changes to the Sto
 [01-overview.md](01-overview.md) commits to one of two wordings for the root-preservation invariant:
 
 - **PASS branch:** "byte-identical root JSONL" - applies to non-Stop-hook modes *and* Option B.
-- **FAIL branch:** "no debate-content pollution" - the stricter byte-identical claim is dropped for Option B; a single per-run `hook_success` attachment is the worst-case mutation.
+- **FAIL branch:** "no agon-content pollution" - the stricter byte-identical claim is dropped for Option B; a single per-run `hook_success` attachment is the worst-case mutation.
 
 The probe is the only way to discriminate. It must run before tagging.
 
