@@ -312,8 +312,9 @@ Hook fires when claude finishes responding, invokes the CLI synchronously to com
 
 ### Rejected options
 
-- **Slash command (`/agon`)**: violates the channel constraint - slash commands inject a template into the conversation. Even if the template only said "run the agon process," that's still a system-prompt-shaped artifact the proposer sees before the critic's text.
+- **Slash command (`/agon`)**: violates the channel constraint - slash commands inject a template into the conversation. Even if the template only said "run the agon process," that's still a system-prompt-shaped artifact the proposer sees before the critic's text. (Current Claude Code unifies slash commands with skills; the rendered body is a persistent turn that survives compaction - non-zero footprint by construction.)
 - **Skill (`agon-review` or `agon-defense`)**: same reason. Skills carry instructions Claude follows. The whole point is that Claude follows its *normal* coding-feedback instincts when responding to the critic, not a skill-specific methodology.
+- **`UserPromptSubmit` sentinel hook (in-editor manual trigger)**: the only user-typed mechanism that runs out-of-band like the Stop hook. Probed (spec [36](36-probe-userpromptsubmit-manual-trigger.md), claude 2.1.143): a no-stdout hook that exits 2 to "erase" the sentinel still records the sentinel + a "blocked by hook" system line in root JSONL (~4 housekeeping lines, no review content, no `hook_*`). It satisfies the channel constraint but **cannot be byte-identical**. Conclusion: there is no in-editor byte-identical manual trigger; the on-demand path is CLI-only (see Manual invocation).
 - **Plugin packaging**: premature productization. A two-line hook + a CLI binary doesn't need a plugin manifest. Revisit if a second user shows up.
 
 ## CLI surface
@@ -444,9 +445,9 @@ Three channels were considered and all failed:
 
 If the user wants live progress, the supported path is `tail -f .agon/sessions/<latest>/forks/critic-*/rounds/r*-{critic,proposer}.md` (or `transcript.jsonl`) in another terminal. That's outside the claude session and doesn't touch root.
 
-### Manual invocation (fallback)
+### Manual invocation (the on-demand trigger)
 
-For CI gating, scripted batch runs, running agon against a saved session out-of-band, or codex-as-proposer (v1, no Stop hook equivalent), invoke the CLI directly:
+This is **the** supported on-demand trigger, not just a CI affordance: probe [36](36-probe-userpromptsubmit-manual-trigger.md) established that no in-editor mechanism (slash command, skill, `UserPromptSubmit` sentinel) can run agon without mutating root JSONL. Running the CLI yourself in a terminal is the only byte-identical way to trigger on demand - agon only ever touches the live session via `--fork-session`, so the root transcript is untouched exactly as under the Stop hook. For CI gating, scripted batch runs, on-demand review of the current/saved session, or codex-as-proposer (v1, no Stop hook equivalent), invoke the CLI directly:
 
 ```
 agon --session-id <root-claude-session-id> --max-turn 6

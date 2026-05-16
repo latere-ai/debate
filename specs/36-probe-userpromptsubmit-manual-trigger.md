@@ -90,10 +90,15 @@ Two honest options for an on-demand trigger:
   the stricter byte-identical claim is lost.
 
 The choice is a product call: byte-identical-but-terminal vs.
-in-editor-but-4-housekeeping-lines. [01-overview.md](01-overview.md)
-§"Trigger" and [24-stop-hook.md](24-stop-hook.md) are updated only
-once that call is made; this spec records the evidence the call
-rests on.
+in-editor-but-4-housekeeping-lines.
+
+**Decision (2026-05-16): CLI-only.** Byte-identical wins; no
+in-editor trigger ships. The manual on-demand path is running the
+`agon` CLI in a terminal (a shell alias for ergonomics) - already
+the documented out-of-band path, now elevated to *the* on-demand
+trigger in [01-overview.md](01-overview.md) §"Manual invocation".
+The Stop hook stays the auto path. No `UserPromptSubmit`/slash
+mechanism is implemented.
 
 ## Acceptance criteria
 
@@ -102,6 +107,6 @@ rests on.
       once on the maintainer machine; full stdout captured above.
 - [x] Mutation characterized line-by-line (queue-operation + system
       "blocked by hook" + last-prompt; no `hook_*`, no review content).
-- [ ] Product decision recorded (CLI-only vs. bounded UserPromptSubmit)
-      and [01-overview.md](01-overview.md) / [24](24-stop-hook.md)
-      updated accordingly. *(blocked on maintainer call)*
+- [x] Product decision recorded: **CLI-only** (2026-05-16).
+      [01-overview.md](01-overview.md) §"Rejected options" + §"Manual
+      invocation" and `README.md` updated; no in-editor trigger ships.

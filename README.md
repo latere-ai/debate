@@ -82,14 +82,29 @@ Trivial diffs (under `--changed-lines-min`, default 10) short-circuit
 in milliseconds. No session folder, just one `kind:"skipped"` line in
 `.agon/log.jsonl`.
 
-For CI gating, scripted batch runs, or out-of-band review, invoke
-manually:
+### Run it on demand
+
+There is no in-editor manual trigger: a slash command, skill, or
+`UserPromptSubmit` sentinel all mutate the root transcript (probed -
+see `specs/36-probe-userpromptsubmit-manual-trigger.md`). The
+byte-identical way to trigger on demand is to run agon yourself in a
+terminal - it only touches the live session via `--fork-session`, so
+your Claude Code transcript is untouched, exactly as under the Stop
+hook. This is also the path for CI gating, scripted batch runs, and
+reviewing a saved session:
 
 ```sh
 agon \
   --session-id <root-claude-session-id> \
   --side-count 4 \
   --max-turn 6
+```
+
+A shell alias keeps it one keystroke away (agon resolves the latest
+session for the cwd when `--session-id` is omitted):
+
+```sh
+alias agon-attack='agon --side-count 4 --max-turn 6'
 ```
 
 Each of the four critics picks its own topic in R1; the orchestrator
