@@ -46,9 +46,7 @@ git init -q
 git -c user.email=t@e.com -c user.name=t commit --allow-empty -q -m init
 printf '// fixture line\n%.0s' {1..30} > search.go
 
-# Spawn agon in background; capture PID. Strip AGON_IN_PROGRESS so
-# the recursion guard does not short-circuit.
-unset AGON_IN_PROGRESS
+# Spawn agon in background; capture PID.
 PATH="$WORKDIR/bin:$PATH" "$BIN" \
   --main claude --side codex \
   --max-turn 2 --side-count 1 \

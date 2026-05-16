@@ -6,7 +6,7 @@ require_bin() {
 }
 
 ensure_clean_env() {
-  unset ANTHROPIC_API_KEY AGON_IN_PROGRESS
+  unset ANTHROPIC_API_KEY
 }
 
 mk_tmpdir() {
