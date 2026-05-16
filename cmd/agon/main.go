@@ -202,8 +202,8 @@ func Run(ctx context.Context, flags *cli.Flags, plan *cli.Plan) (int, error) {
 		RootSession: state.RootSession{
 			ID: flags.SessionID, TranscriptPath: plan.TranscriptPath, Cwd: plan.Cwd,
 		},
-		DebateVersion: version,
-		GoVersion:     runtime.Version(),
+		AgonVersion: version,
+		GoVersion:   runtime.Version(),
 	}); err != nil {
 		return 1, err
 	}

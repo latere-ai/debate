@@ -18,8 +18,8 @@ type StartFile struct {
 	Config      ConfigSnap  `json:"config"`
 	RootSession RootSession `json:"root_session"`
 
-	DebateVersion string `json:"debate_version"`
-	GoVersion     string `json:"go_version"`
+	AgonVersion string `json:"debate_version"`
+	GoVersion   string `json:"go_version"`
 }
 
 // AgentRef is the embedded agent identity.
