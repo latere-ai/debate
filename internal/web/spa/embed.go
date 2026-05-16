@@ -9,5 +9,7 @@ package spa
 
 import "embed"
 
+// FS holds the embedded, Bun-built Agon landing site (vite-ssg dist).
+//
 //go:embed all:dist
 var FS embed.FS
