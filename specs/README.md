@@ -73,6 +73,7 @@ a numbered GA gate from spec 27 and writes its outcome into
 - [33 G15 install-hook smoke](33-install-hook-smoke.md) - settings.json shape + idempotency
 - [34 G16 real-claude end-to-end](34-real-claude-end-to-end-smoke.md) - agon runs with real claude+codex
 - [35 Release-notes channel](35-release-notes-channel.md) - decides where probe/gate outcomes live
+- [36 Probe: UserPromptSubmit manual trigger](36-probe-userpromptsubmit-manual-trigger.md) - FAIL; manual trigger can't be byte-identical
 
 ## Status
 
