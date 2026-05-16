@@ -2,7 +2,7 @@ import { useHead } from '@unhead/vue';
 import DefaultLayout from '../layouts/DefaultLayout.vue';
 import { useT } from '../i18n';
 const t = useT();
-useHead({ title: '404 — Agon' });
+useHead({ title: '404 · Agon' });
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
 let __VLS_components;

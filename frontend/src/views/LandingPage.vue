@@ -7,7 +7,7 @@ import { useT } from '../i18n';
 const t = useT();
 
 useHead({
-  title: 'Agon — adversarial verification for AI-produced work',
+  title: 'Agon: adversarial verification for AI-produced work',
   meta: [
     { name: 'description', content: 'An independent critic cross-examines AI-produced work; the producer defends or concedes; only surviving disputes reach a human. Vendor-neutral, auditable, formally grounded.' },
   ],
@@ -135,7 +135,7 @@ onMounted(() => {
           </p>
           <p class="ref">
             <span class="ref-cite">{{ t('found.research.cite') }}</span>
-            <em>agents-byzantine-tolerance</em> — {{ t('found.research.note') }}
+            <em>agents-byzantine-tolerance</em>: {{ t('found.research.note') }}
             <a href="https://github.com/changkun/agents-byzantine-tolerance" target="_blank" rel="noopener">github.com/changkun/agents-byzantine-tolerance</a>
           </p>
         </div>

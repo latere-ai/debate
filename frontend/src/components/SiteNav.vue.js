@@ -1,6 +1,4 @@
-import { usePrefsStore } from '../stores/prefs';
 import { useT } from '../i18n';
-const prefs = usePrefsStore();
 const t = useT();
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {};
@@ -38,34 +36,6 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.a, __VLS_intrinsicElements.a)(
     target: "_blank",
     rel: "noopener",
 });
-__VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
-    ...{ class: "seg" },
-    role: "group",
-    'aria-label': "Language",
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.prefs.setLocale('en');
-        } },
-    ...{ class: "seg-btn" },
-    ...{ class: ({ 'is-active': __VLS_ctx.prefs.locale === 'en' }) },
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.prefs.setLocale('zh');
-        } },
-    ...{ class: "seg-btn" },
-    ...{ class: ({ 'is-active': __VLS_ctx.prefs.locale === 'zh' }) },
-});
-__VLS_asFunctionalElement(__VLS_intrinsicElements.button, __VLS_intrinsicElements.button)({
-    ...{ onClick: (...[$event]) => {
-            __VLS_ctx.prefs.toggleTheme();
-        } },
-    ...{ class: "seg-btn" },
-    'aria-label': (__VLS_ctx.t('nav.theme')),
-    ...{ style: {} },
-});
-(__VLS_ctx.prefs.themeIcon);
 __VLS_asFunctionalElement(__VLS_intrinsicElements.a, __VLS_intrinsicElements.a)({
     ...{ class: "nav-cta" },
     href: "#install",
@@ -79,16 +49,11 @@ __VLS_asFunctionalElement(__VLS_intrinsicElements.a, __VLS_intrinsicElements.a)(
 /** @type {__VLS_StyleScopedClasses['nav-actions']} */ ;
 /** @type {__VLS_StyleScopedClasses['nav-link']} */ ;
 /** @type {__VLS_StyleScopedClasses['nav-link']} */ ;
-/** @type {__VLS_StyleScopedClasses['seg']} */ ;
-/** @type {__VLS_StyleScopedClasses['seg-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['seg-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['seg-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['nav-cta']} */ ;
 var __VLS_dollars;
 const __VLS_self = (await import('vue')).defineComponent({
     setup() {
         return {
-            prefs: prefs,
             t: t,
         };
     },

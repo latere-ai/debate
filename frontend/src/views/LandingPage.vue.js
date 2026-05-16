@@ -4,7 +4,7 @@ import DefaultLayout from '../layouts/DefaultLayout.vue';
 import { useT } from '../i18n';
 const t = useT();
 useHead({
-    title: 'Agon — adversarial verification for AI-produced work',
+    title: 'Agon: adversarial verification for AI-produced work',
     meta: [
         { name: 'description', content: 'An independent critic cross-examines AI-produced work; the producer defends or concedes; only surviving disputes reach a human. Vendor-neutral, auditable, formally grounded.' },
     ],

@@ -3,7 +3,7 @@ import { useHead } from '@unhead/vue';
 import DefaultLayout from '../layouts/DefaultLayout.vue';
 import { useT } from '../i18n';
 const t = useT();
-useHead({ title: '404 — Agon' });
+useHead({ title: '404 · Agon' });
 </script>
 
 <template>
