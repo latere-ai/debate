@@ -4,7 +4,7 @@ export const zh: LandingContent = {
   meta: {
     title: 'Agon — 让 AI 为自己辩护',
     description:
-      'Agon —— 面向 AI 产出的对抗式验证关卡。由一位独立评审对 AI 产出进行交叉质询；生产方辩护或让步；只有仍存争议的部分才会交到人手中。',
+      'Agon 是面向 AI 产出的对抗式验证关卡。由一位独立评审对 AI 产出进行交叉质询；生产方辩护或让步；只有仍存争议的部分才会交到人手中。',
   },
 
   nav: {
@@ -23,7 +23,7 @@ export const zh: LandingContent = {
     title:
       '<em>对抗式</em>验证。<br><span class="ht-line">对 <em>AI</em> 逐手交叉质询 <span style="color:var(--accent)">★</span></span>',
     sub:
-      '由 AI <span style="color:var(--text);font-weight:600">提议方</span> 给出产出。一位独立的 <span style="color:var(--accent);font-weight:600">评审</span> 发起攻击。两者进行有界辩论；评审将<strong>一条</strong>未解攻击押注为决定性叶子。裁判只审视那个叶子 —— 绝不看完整记录。人只复核最终存留的争议。',
+      '由 AI <span style="color:var(--text);font-weight:600">提议方</span> 给出产出。一位独立的 <span style="color:var(--accent);font-weight:600">评审</span> 发起攻击。两者进行有界辩论；评审将<strong>一条</strong>未解攻击押注为决定性叶子。裁判只审视那个叶子，绝不看完整记录。人只复核最终存留的争议。',
     ctaPrimary: '安装 Agon',
     ctaSecondary: '工作原理 →',
     worksWith: '兼容',
@@ -53,7 +53,7 @@ export const zh: LandingContent = {
         r: 'R3',
         side: 'p',
         label: '辩护',
-        html: '不同意 —— invalidate 会<em>先</em>递增版本计数器再发布。<code>atomic.Value</code> 满足 acquire-release 语义，是安全的。',
+        html: '不同意：invalidate 会<em>先</em>递增版本计数器再发布。<code>atomic.Value</code> 满足 acquire-release 语义，是安全的。',
       },
       {
         r: 'R4',
@@ -63,7 +63,7 @@ export const zh: LandingContent = {
       },
     ],
     verdictKey: '裁决',
-    verdictText: '裁判只审视被押注的叶子 —— 绝不看完整记录。',
+    verdictText: '裁判只审视被押注的叶子，绝不看完整记录。',
     verdictRight: '争议度 0.74 · 需人工复核',
   },
 
@@ -92,7 +92,7 @@ export const zh: LandingContent = {
         actor: 'critic',
         actorLabel: 'CRITIC',
         tag: { label: '∎ ATK-2', kind: 'attack' },
-        html: '“免互斥锁读取” —— 版本计数器自增在竞争下仍是一个 CAS 循环。声称无锁有误导性。',
+        html: '“免互斥锁读取”：版本计数器自增在竞争下仍是一个 CAS 循环。声称无锁有误导性。',
       },
       {
         n: 'R2·04',
@@ -162,7 +162,7 @@ export const zh: LandingContent = {
       {
         k: 'ii',
         t: '构造上厂商中立',
-        d: '默认配对为跨家族 —— 一个模型提议，一个无关模型评审。两侧同模型即模型自我辩论，被拒绝。没有厂商会去做这一中立层。',
+        d: '默认配对为跨家族：一个模型提议，一个无关模型评审。两侧同模型即模型自我辩论，被拒绝。没有厂商会去做这一中立层。',
       },
       {
         k: 'iii',
@@ -172,7 +172,7 @@ export const zh: LandingContent = {
       {
         k: 'iv',
         t: '设计上可审计',
-        d: '稳定的攻击 id、仅追加的账本、由一条纯规则给出的争议度排序标题 —— 呈现层没有任何 LLM 参与裁决。安全团队读一次会话就像读一份庭审记录。',
+        d: '稳定的攻击 id、仅追加的账本、由一条纯规则给出的争议度排序标题；呈现层没有任何 LLM 参与裁决。安全团队读一次会话就像读一份庭审记录。',
       },
     ],
   },
@@ -206,7 +206,7 @@ export const zh: LandingContent = {
   arch: {
     eyebrow: '架构',
     title: '三个角色。<em>一条可审计的轨迹。</em>',
-    lead: '提议方与评审以跨家族配对运作。裁判只审视辩论终结所在的那个叶子 —— 绝不看完整记录。',
+    lead: '提议方与评审以跨家族配对运作。裁判只审视辩论终结所在的那个叶子，绝不看完整记录。',
     cap: '提议方 ↔ 评审 ↔ 裁判。各角色不共享权重。每条存争议的攻击都可分叉出自己的子辩论；账本看到整棵树，裁判只看一个叶子。',
   },
 
@@ -229,21 +229,21 @@ export const zh: LandingContent = {
         num: '0.74',
         label: '争议度',
         route: '升级 ★',
-        desc: '高于阈值的攻击以一份聚焦简报抵达人手中 —— 被押注的叶子、提议方的反驳与复现脚本。不是完整记录。',
+        desc: '高于阈值的攻击以一份聚焦简报抵达人手中：被押注的叶子、提议方的反驳与复现脚本。不是完整记录。',
       },
     ],
   },
 
   found: {
     eyebrow: '学术基础',
-    title: '立足于辩论研究 —— <em>也坦承其局限。</em>',
+    title: '立足于辩论研究，<em>也坦承其局限。</em>',
     lead: 'Agon 建立在 Irving、Christiano 与 Amodei 的对抗式辩论架构之上。其复杂度理论上的直觉是启发性的，并非对 LLM 的断言。',
     refs: [
       {
         yr: '2018',
         cite: 'Irving, Christiano & Amodei',
         em: 'AI Safety via Debate',
-        tail: ' —— 提出以辩论作为对齐机制。',
+        tail: '：提出以辩论作为对齐机制。',
         link: 'arXiv:1805.00899',
         href: 'https://arxiv.org/abs/1805.00899',
       },
@@ -251,7 +251,7 @@ export const zh: LandingContent = {
         yr: '2023',
         cite: 'Brown-Cohen, Irving & Piliouras',
         em: 'Scalable AI Safety via Doubly-Efficient Debate',
-        tail: ' —— 扩展到随机系统与有界辩论者。',
+        tail: '：扩展到随机系统与有界辩论者。',
         link: 'arXiv:2311.14125',
         href: 'https://arxiv.org/abs/2311.14125',
       },
@@ -259,7 +259,7 @@ export const zh: LandingContent = {
         yr: '2025',
         cite: 'Brown-Cohen, Irving & Piliouras',
         em: 'Avoiding Obfuscation with Prover-Estimator Debate',
-        tail: ' —— 应对混淆论证攻击。',
+        tail: '：应对混淆论证攻击。',
         link: 'arXiv:2506.13609',
         href: 'https://arxiv.org/abs/2506.13609',
       },
@@ -267,7 +267,7 @@ export const zh: LandingContent = {
         yr: '仓库',
         cite: 'changkun/agents-byzantine-tolerance',
         em: '研究主页',
-        tail: ' —— 对抗式辩论，沿算力、深度、随机性、叶子形态、混淆与查询复杂度伸缩等维度扩展。',
+        tail: '：对抗式辩论，沿算力、深度、随机性、叶子形态、混淆与查询复杂度伸缩等维度扩展。',
         link: 'github →',
         href: 'https://github.com/changkun/agents-byzantine-tolerance',
       },
@@ -278,13 +278,13 @@ export const zh: LandingContent = {
     },
     honestStrong: '实话实说：',
     honestRest:
-      '形式可靠性结论是关于协议在既定假设下的性质，而非对任何特定模型的保证。应用于真实 LLM 是经验驱动、处于假设阶段的 —— 关卡指标是按维度的“评审发现缺陷率”。如果评审并不真正发起攻击，辩论就退化为只剩提议方。Agon 不证明你的代码正确，也不声称免除信任的必要。',
+      '形式可靠性结论是关于协议在既定假设下的性质，而非对任何特定模型的保证。应用于真实 LLM 是经验驱动、处于假设阶段；关卡指标是按维度的“评审发现缺陷率”。如果评审并不真正发起攻击，辩论就退化为只剩提议方。Agon 不证明你的代码正确，也不声称免除信任的必要。',
   },
 
   hook: {
     eyebrow: '按需评审',
     title: '需要时再运行，<em>一个二进制。</em>',
-    desc: '当你需要一次验证时，由你来运行 Agon —— 针对你当前的 Claude 会话或一份 diff。它会派生（fork）生产方（根记录保持不变），启动一个独立评审，运行协议，并把一次可审计的会话写入磁盘。已化解 → 继续。存争议 → 浮现一份聚焦评审。',
+    desc: '当你需要一次验证时，由你来运行 Agon，对象是你当前的 Claude 会话或一份 diff。它会派生（fork）生产方（根记录保持不变），启动一个独立评审，运行协议，并把一次可审计的会话写入磁盘。已化解 → 继续。存争议 → 浮现一份聚焦评审。',
     cta: '查看安装',
     lines: [
       { p: '$', cmd: 'latere agon --session-id 9f4c --max-turn 6' },
@@ -303,10 +303,10 @@ export const zh: LandingContent = {
     items: [
       {
         q: '辩论永远是一条线性的线索吗？',
-        a: '不是。协议是一棵树，而非一条记录。任何存争议的攻击都可分叉出自己的子辩论：提议方的反驳成为新的论断，评审再去攻击它。评审仍然在整棵树上恰好押注一个叶子，裁判仍然只审视那个叶子。分叉正是协议得以抵御混淆论证的原因 —— 一个误导性的反驳可以在它自己的子博弈中被交叉质询，而不是被照单全收。',
+        a: '不是。协议是一棵树，而非一条记录。任何存争议的攻击都可分叉出自己的子辩论：提议方的反驳成为新的论断，评审再去攻击它。评审仍然在整棵树上恰好押注一个叶子，裁判仍然只审视那个叶子。分叉正是协议得以抵御混淆论证的原因：一个误导性的反驳可以在它自己的子博弈中被交叉质询，而不是被照单全收。',
       },
       {
-        q: '两侧同模型 —— 为何被取消资格？',
+        q: '两侧同模型，为何被取消资格？',
         a: '那是模型在和自己辩论。交叉质询需要相互独立的失效模式；相同权重共享相同的盲点与相同的谎言。Agon 的默认配对是跨家族（例如厂商 A 的某模型作提议方，厂商 B 的另一模型作评审）。同厂商配对会被接受，但在账本中加以标记。',
       },
       {
@@ -315,7 +315,7 @@ export const zh: LandingContent = {
       },
       {
         q: '裁判也是 LLM 吗？',
-        a: '是，但它只审视被押注的叶子 —— 而非完整记录 —— 而呈现层（争议度、标题）是一条纯规则，其中没有任何 LLM。裁判的职责是对单一论断的局部可靠性；人读标题并决定接下来看什么。',
+        a: '是，但它只审视被押注的叶子（而非完整记录），而呈现层（争议度、标题）是一条纯规则，其中没有任何 LLM。裁判的职责是对单一论断的局部可靠性；人读标题并决定接下来看什么。',
       },
       {
         q: '这能证明我的代码正确吗？',
@@ -323,7 +323,7 @@ export const zh: LandingContent = {
       },
       {
         q: '这与让第二个 LLM 评审第一个有何不同？',
-        a: '一个朴素的第二评审者只会给出软性意见。Agon 强制具体攻击（输入 X 产生 Y 违反 Z），强制提议方对每一条辩护或让步，并把一条未解攻击押注为决定性叶子。裁判只审视那个叶子 —— 绝不看整份记录。结构本身就是关卡。',
+        a: '一个朴素的第二评审者只会给出软性意见。Agon 强制具体攻击（输入 X 产生 Y 违反 Z），强制提议方对每一条辩护或让步，并把一条未解攻击押注为决定性叶子。裁判只审视那个叶子，绝不看整份记录。结构本身就是关卡。',
       },
     ],
   },
@@ -332,8 +332,8 @@ export const zh: LandingContent = {
     eyebrow: '安装',
     title: '一个二进制。<em>按需运行。</em>',
     lead: '本地优先、厂商中立。自带你的一对模型；Agon 运行协议并把一次可审计的会话写入磁盘。',
-    a: { c: '一行命令 —— 检测 OS/架构，校验 checksum', cmd: 'curl -fsSL https://latere.ai/install.sh | sh' },
-    b: { c: '按需运行一次验证 —— 针对你当前的会话', cmd: 'latere agon --session-id <session>' },
+    a: { c: '一行命令，自动检测 OS/架构并校验 checksum', cmd: 'curl -fsSL https://latere.ai/install.sh | sh' },
+    b: { c: '按需运行一次验证，针对你当前的会话', cmd: 'latere agon --session-id <session>' },
     copy: '复制',
     copied: '已复制',
     ctaPrimary: '在 GitHub 查看',
