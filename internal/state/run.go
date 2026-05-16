@@ -18,7 +18,7 @@ type StartFile struct {
 	Config      ConfigSnap  `json:"config"`
 	RootSession RootSession `json:"root_session"`
 
-	AgonVersion string `json:"debate_version"`
+	AgonVersion string `json:"agon_version"`
 	GoVersion   string `json:"go_version"`
 }
 
@@ -134,9 +134,9 @@ type LogRecord struct {
 // On-disk schema versions.
 const (
 	// SchemaStart identifies the start.json schema.
-	SchemaStart = "debate.start.v0"
+	SchemaStart = "agon.start.v0"
 	// SchemaEnd identifies the end.json schema.
-	SchemaEnd = "debate.end.v0"
+	SchemaEnd = "agon.end.v0"
 )
 
 // WriteStart writes <session>/start.json. Idempotent within a fresh

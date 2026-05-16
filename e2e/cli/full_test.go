@@ -259,7 +259,7 @@ func TestFullE2E_HappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(startBody), `"schema": "debate.start.v0"`) {
+	if !strings.Contains(string(startBody), `"schema": "agon.start.v0"`) {
 		t.Errorf("start.json missing schema; body=%s", startBody)
 	}
 

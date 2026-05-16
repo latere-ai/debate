@@ -251,7 +251,7 @@ func TestEnginePerForkUsageStats(t *testing.T) {
 	if err := json.Unmarshal(statsBytes, &on); err != nil {
 		t.Fatalf("stats.json invalid JSON: %v", err)
 	}
-	if on["schema"] != "debate.fork-stats.v0" {
+	if on["schema"] != "agon.fork-stats.v0" {
 		t.Errorf("stats.json schema: %v", on["schema"])
 	}
 	if on["topic"] != "security" {

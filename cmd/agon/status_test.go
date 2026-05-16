@@ -78,7 +78,7 @@ func TestComputeStatusLine_InProgress(t *testing.T) {
 	sess := filepath.Join(dir, ".debate", "sessions", "20260507T120000Z-aaa")
 	mustMkdir(t, filepath.Join(sess, "forks", "critic-1", "rounds"))
 	mustWrite(t, filepath.Join(sess, "start.json"),
-		`{"schema":"debate.start.v0","config":{"side_count":4}}`)
+		`{"schema":"agon.start.v0","config":{"side_count":4}}`)
 	mustWrite(t, filepath.Join(sess, "forks", "critic-1", "rounds", "r1-critic.md"),
 		"# Critic 1 - round 1 attacks\n\naspect: input-validation-security\n\n")
 	mustWrite(t, filepath.Join(sess, "attacks.jsonl"),

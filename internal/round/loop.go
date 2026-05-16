@@ -420,7 +420,7 @@ func (e *Engine) runFork(ctx context.Context, forkIdx int, priorTopics []string,
 	return out, runStop, nil
 }
 
-const schemaForkStats = "debate.fork-stats.v0"
+const schemaForkStats = "agon.fork-stats.v0"
 
 type forkStatsFile struct {
 	Schema      string    `json:"schema"`
