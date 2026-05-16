@@ -147,7 +147,7 @@ func repoRoot(t *testing.T) string {
 func build(t *testing.T, root, binDir string) string {
 	t.Helper()
 	out := filepath.Join(binDir, "debate")
-	cmd := exec.Command("go", "build", "-o", out, "./cmd/debate")
+	cmd := exec.Command("go", "build", "-o", out, "./cmd/agon")
 	cmd.Dir = root
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build debate: %v\n%s", err, b)

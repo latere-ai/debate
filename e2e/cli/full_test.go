@@ -173,7 +173,7 @@ func TestFullE2E_HappyPath(t *testing.T) {
 	binDir := t.TempDir()
 
 	// Build debate + mocks.
-	debate := build(t, root, "./cmd/debate", binDir)
+	debate := build(t, root, "./cmd/agon", binDir)
 	build(t, root, "./e2e/mock/claudemock", binDir)
 	build(t, root, "./e2e/mock/codexmock", binDir)
 	// PATH lookup expects the binaries to be named "claude" / "codex".
@@ -325,7 +325,7 @@ func TestFullE2E_HappyPath(t *testing.T) {
 func TestFullE2E_TrivialDiffSkip(t *testing.T) {
 	root := repoRoot(t)
 	binDir := t.TempDir()
-	debate := build(t, root, "./cmd/debate", binDir)
+	debate := build(t, root, "./cmd/agon", binDir)
 
 	// Empty repo (no diff).
 	repo := t.TempDir()
@@ -380,7 +380,7 @@ func TestFullE2E_TrivialDiffSkip(t *testing.T) {
 func TestFullE2E_BareInvocationShowsHelp(t *testing.T) {
 	root := repoRoot(t)
 	binDir := t.TempDir()
-	debate := build(t, root, "./cmd/debate", binDir)
+	debate := build(t, root, "./cmd/agon", binDir)
 
 	// A scratch repo so cwd is somewhere sensible; we pass no args
 	// and rely on the help short-circuit firing before preflight.
@@ -411,7 +411,7 @@ func TestFullE2E_BareInvocationShowsHelp(t *testing.T) {
 func TestFullE2E_RecursionGuard(t *testing.T) {
 	root := repoRoot(t)
 	binDir := t.TempDir()
-	debate := build(t, root, "./cmd/debate", binDir)
+	debate := build(t, root, "./cmd/agon", binDir)
 
 	repo := fixtureRepo(t)
 	env := patchedPATH(t, binDir)
@@ -435,7 +435,7 @@ func TestFullE2E_RecursionGuard(t *testing.T) {
 func TestFullE2E_PreflightExitCode(t *testing.T) {
 	root := repoRoot(t)
 	binDir := t.TempDir()
-	debate := build(t, root, "./cmd/debate", binDir)
+	debate := build(t, root, "./cmd/agon", binDir)
 
 	repo := fixtureRepo(t)
 	env := patchedPATH(t, binDir)

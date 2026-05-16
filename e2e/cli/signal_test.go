@@ -24,7 +24,7 @@ func TestSignalLatency_StuckChild(t *testing.T) {
 
 	root := repoRoot(t)
 	binDir := t.TempDir()
-	debate := build(t, root, "./cmd/debate", binDir)
+	debate := build(t, root, "./cmd/agon", binDir)
 
 	// Shell shims for claude/codex that sleep long enough to outlast
 	// any reasonable signal latency budget.
