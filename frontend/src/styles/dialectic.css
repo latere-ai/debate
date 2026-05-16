@@ -1616,6 +1616,14 @@
 [data-theme="dark"] .v-dialectic .spine-stop {
     background: var(--bg-raised);
 }
+/* The generic dark rule above overrides the is-c/is-stake background
+   but not their light text colour, leaving dark-on-dark. Restore the
+   filled-crimson stop with readable text (matches the dark stake pill). */
+[data-theme="dark"] .v-dialectic .spine-stop.is-c,
+[data-theme="dark"] .v-dialectic .spine-stop.is-stake {
+    background: var(--accent);
+    color: var(--bg);
+}
 
 [data-theme="dark"] .v-dialectic .tx-head { background: var(--bg-ink); }
 [data-theme="dark"] .v-dialectic .code,
