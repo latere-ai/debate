@@ -236,7 +236,7 @@ export const zh: LandingContent = {
 
   found: {
     eyebrow: '学术基础',
-    title: '扎根于辩论文献 —— <em>并对其局限保持诚实。</em>',
+    title: '立足于辩论研究 —— <em>也坦承其局限。</em>',
     lead: 'Agon 建立在 Irving、Christiano 与 Amodei 的对抗式辩论架构之上。其复杂度理论上的直觉是启发性的，并非对 LLM 的断言。',
     refs: [
       {
@@ -276,7 +276,7 @@ export const zh: LandingContent = {
       q: '辩论是一种证明搜索博弈：两位对抗式证明者在一个多项式有界的裁判面前论辩。',
       cite: 'Brown-Cohen, Irving & Piliouras · 2023',
     },
-    honestStrong: '诚实的表述：',
+    honestStrong: '实话实说：',
     honestRest:
       '形式可靠性结论是关于协议在既定假设下的性质，而非对任何特定模型的保证。应用于真实 LLM 是经验驱动、处于假设阶段的 —— 关卡指标是按维度的“评审发现缺陷率”。如果评审并不真正发起攻击，辩论就退化为只剩提议方。Agon 不证明你的代码正确，也不声称免除信任的必要。',
   },
